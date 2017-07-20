@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/2bud8s6w7uqxtvrv?svg=true)](https://ci.appveyor.com/project/Faaux/dingoengine)
+
 #### Prerequisites:
 
 Install v140 Platformset (VS2017) -> Modify it, its an additional feature
