@@ -1,0 +1,25 @@
+language: cpp
+
+compiler:
+  - clang
+
+addons:
+    apt:
+        sources:
+            - llvm-toolchain-precise
+            - ubuntu-toolchain-r-test
+        packages:
+            - clang-4.0
+
+install:
+  # clang 4.0
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
+
+  before_script:  
+    - mkdir build
+    - cd build
+    - cmake ..
+
+script: 
+    - make
+    - $CXX --version
