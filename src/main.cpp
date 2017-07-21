@@ -80,7 +80,12 @@ namespace DG
 	{
 		SDL_Quit();
 	}
+
+	void empty_work(Job* job,const void * idx)
+	{
+	}
 }
+
 
 
 int main(int , char* [])
@@ -105,21 +110,21 @@ int main(int , char* [])
 	u64 currentTime = SDL_GetPerformanceCounter();
 	u64 cpuFrequency = SDL_GetPerformanceFrequency();	
 
-	SDL_Log("Output example");
+	/*SDL_Log("Output example");
 	SDL_LogVerbose(0,"Verbose Logging");
 	SDL_LogDebug(0, "Debug Logging");
 	SDL_LogInfo(0, "Info Logging");
 	SDL_LogWarn(0, "Warn Logging");
 	SDL_LogError(0, "Error Logging");
-	SDL_LogCritical(0, "Critical Logging");
+	SDL_LogCritical(0, "Critical Logging");*/
 
 	SDL_Log("Hardware Information ---------------------");
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
-	
-	
 
-	while(GameIsRunning)
+	u64 startTime, endTime;
+
+	while(GameIsRunning && currentFrame < 500)
 	{
 		PollEvents();
 		// Frame Begin
@@ -127,12 +132,25 @@ int main(int , char* [])
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
-		
+		startTime = SDL_GetPerformanceCounter();
+		Job* firstJob = JobSystem::CreateJob(&empty_work);
+		for (int i = 0; i < 65535; ++i)
+		{
+			Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
+			JobSystem::Run(job);
+		}
+		JobSystem::Run(firstJob);
+		JobSystem::Wait(firstJob);
+		endTime = SDL_GetPerformanceCounter();
 		// Frame End
 		currentFrame++;
 	}
+	SDL_LogCritical(0,"Time spent in ms: %f", static_cast<r32>(endTime - startTime) * 1000.f / static_cast<r32>(cpuFrequency));
+	SDL_LogCritical(0,"Jobs run: %i", (currentFrame - 1) * 65536);
 
 
+	g_JobQueueShutdownRequested = true;
 	Cleanup();
+	
 	return 0;
 }
