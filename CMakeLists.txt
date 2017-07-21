@@ -33,15 +33,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 
 
 #Source Files
-set (SOURCE_FILES 	src/main.cpp)
+set (SOURCE_FILES 	src/main.cpp
+					src/DG_Job.cpp
+					src/DG_SDLHelper.cpp)
 
 #Header Files
-set (HEADER_FILES	)
+set (HEADER_FILES	include/DG_Job.h
+					include/DG_Include.h
+					include/DG_SDLHelper.h
+					include/DG_Windows.h)
 
 #Executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(${PROJECT_NAME} SDL/SDL2)
 target_link_libraries(${PROJECT_NAME} SDL/SDL2main)
+
+# Path to find resources while debugging
+target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LIST_DIR})
 
 #Copy DLLs to working dir
 IF (MSVC)

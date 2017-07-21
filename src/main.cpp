@@ -1,52 +1,118 @@
 #include <SDL/SDL.h>
-#include <stdio.h>
+#include "DG_Include.h"
+#include "DG_SDLHelper.h"
 
-//Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+namespace DG
+{
+	bool GameIsRunning = true;
+	SDL_Window* Window;
+
+	bool InitSDL()
+	{
+		if (SDL_Init(0) < 0)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "SDL could not initialize! SDL Error: %s\n", SDL_GetError());
+			return false;
+		}
+#if _DEBUG
+		SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+#else
+		SDL_LogSetAllPriority(SDL_LOG_PRIORITY_ERROR);
+#endif
+		SDL_LogSetOutputFunction(LogOutput, nullptr);
+		return true;
+	}
+
+	bool InitWindow()
+	{
+		Window = SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
+		if (Window == nullptr)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n", SDL_GetError());
+			return false;
+		}
+		return true;
+	}
+
+	void PollEvents()
+	{
+		SDL_Event event;
+		while (SDL_PollEvent(&event))
+		{
+			if (event.type == SDL_QUIT)
+			{
+				GameIsRunning = false;
+			}
+			else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+			{
+				// Key input!
+			}
+			else if (event.type == SDL_TEXTINPUT)
+			{
+				// Some text input
+			}
+			else if (event.type == SDL_WINDOWEVENT)
+			{
+				if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				{
+					// Resize Window and rebuild render pipeline
+				}
+			}
+
+		}
+	}
+
+	void Cleanup()
+	{
+		SDL_Quit();
+	}
+}
 
 int main(int , char* [])
 {
-	//The window we'll be rendering to
-	SDL_Window* window = nullptr;
+	using namespace DG;
+	if (!InitSDL())
+		return -1;
 
-	//The surface contained by the window
-	SDL_Surface* screenSurface;
+	if (!InitWindow())
+		return -1;
 
-	//Initialize SDL
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	// When in fullscreen dont minimize when loosing focus! (Borderless windowed)
+	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+
+	r32 deltaTime;
+	u64 lastTime;
+	u64 currentFrame = 1;
+
+	u64 currentTime = SDL_GetPerformanceCounter();
+	u64 cpuFrequency = SDL_GetPerformanceFrequency();	
+
+	SDL_Log("Output example");
+	SDL_LogVerbose(0,"Verbose Logging");
+	SDL_LogDebug(0, "Debug Logging");
+	SDL_LogInfo(0, "Info Logging");
+	SDL_LogWarn(0, "Warn Logging");
+	SDL_LogError(0, "Error Logging");
+	SDL_LogCritical(0, "Critical Logging");
+
+	SDL_Log("Init Done ---------------------");
+	SDL_Log("");
+	SDL_Log("");
+
+	while(GameIsRunning)
 	{
-		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-	}
-	else
-	{
-		//Create window
-		window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-		if (window == nullptr)
-		{
-			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-		}
-		else
-		{
-			//Get window surface
-			screenSurface = SDL_GetWindowSurface(window);
+		PollEvents();
+		// Frame Begin
+		lastTime = currentTime;
+		currentTime = SDL_GetPerformanceCounter();
+		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
-			//Fill the surface white
-			SDL_FillRect(screenSurface, nullptr, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-
-			//Update the surface
-			SDL_UpdateWindowSurface(window);
-
-			//Wait two seconds
-			SDL_Delay(2000);
-		}
+		
+		// Frame End
+		currentFrame++;
 	}
 
-	//Destroy window
-	SDL_DestroyWindow(window);
 
-	//Quit SDL subsystems
-	SDL_Quit();
-
+	Cleanup();
 	return 0;
 }
