@@ -1,3 +1,6 @@
+sudo: required
+dist: trusty
+
 language: cpp
 
 compiler:
@@ -6,7 +9,7 @@ compiler:
 addons:
     apt:
         sources:
-            - llvm-toolchain-precise
+            - llvm-toolchain-precise-4.0
             - ubuntu-toolchain-r-test
         packages:
             - clang-4.0
