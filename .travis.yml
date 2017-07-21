@@ -13,7 +13,7 @@ addons:
 
 install:
   # clang 4.0
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
+  if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
 
   before_script:  
     - mkdir build
