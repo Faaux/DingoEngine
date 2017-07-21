@@ -1,6 +1,7 @@
 #include <SDL/SDL.h>
 #include "DG_Include.h"
 #include "DG_SDLHelper.h"
+#include "DG_Job.h"
 
 namespace DG
 {
@@ -30,6 +31,19 @@ namespace DG
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n", SDL_GetError());
 			return false;
+		}
+		return true;
+	}
+
+	bool InitWorkerThreads()
+	{
+		// Register Main Thread
+		JobSystem::RegisterWorker();
+
+		// Create Worker Threads
+		for (int i = 0; i < SDL_GetCPUCount() - 1; ++i)
+		{
+			JobSystem::CreateAndRegisterWorker();
 		}
 		return true;
 	}
@@ -68,6 +82,7 @@ namespace DG
 	}
 }
 
+
 int main(int , char* [])
 {
 	using namespace DG;
@@ -75,6 +90,9 @@ int main(int , char* [])
 		return -1;
 
 	if (!InitWindow())
+		return -1;
+
+	if (!InitWorkerThreads())
 		return -1;
 
 	// When in fullscreen dont minimize when loosing focus! (Borderless windowed)
@@ -95,9 +113,11 @@ int main(int , char* [])
 	SDL_LogError(0, "Error Logging");
 	SDL_LogCritical(0, "Critical Logging");
 
-	SDL_Log("Init Done ---------------------");
-	SDL_Log("");
-	SDL_Log("");
+	SDL_Log("Hardware Information ---------------------");
+	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
+	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
+	
+	
 
 	while(GameIsRunning)
 	{
