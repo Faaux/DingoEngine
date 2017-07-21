@@ -15,8 +15,7 @@ addons:
             - clang-4.0
 
 install:
-  # clang 4.0
-  if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
+  # Cmake
   - |
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
         CMAKE_URL="http://www.cmake.org/files/v3.9/cmake-3.9.0.tar.gz"
