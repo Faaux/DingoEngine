@@ -15,7 +15,7 @@ install:
   # clang 4.0
   if [ "$CXX" == "clang++" ]; then export CXX="clang++-4.0"; fi
 
-  before_script:  
+before_script:  
     - mkdir build
     - cd build
     - cmake ..
