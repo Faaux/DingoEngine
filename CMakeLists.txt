@@ -9,9 +9,6 @@ cmake_minimum_required(VERSION 3.6)
 # Project Name
 project(DingoEngine)
 
-# C++ Version
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std:c++11")
-
 # Includes
 include_directories(include
 					ThirdParty/include)
