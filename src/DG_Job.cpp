@@ -5,13 +5,13 @@
 
 namespace DG
 {
-	static const u32 JOB_COUNT = 65536;
+	static const u32 JOB_COUNT = 4096;
 	static const u32 JOB_MASK = JOB_COUNT - 1u;
 
 	thread_local u32 LocalJobBufferIndex = 0;
 	thread_local Job LocalJobBuffer[JOB_COUNT];
 	thread_local Job* LocalJobQueue[JOB_COUNT];
-	thread_local JobSystem::JobWorkQueue LocalQueue(LocalJobQueue,JOB_COUNT);
+	thread_local JobSystem::JobWorkQueue LocalQueue(LocalJobQueue, JOB_COUNT);
 
 	bool g_JobQueueShutdownRequested = false;
 
@@ -30,7 +30,7 @@ namespace DG
 
 		MemoryBarrier();
 
-		s32 bottom = _bottom;
+		s32 bottom = _bottom.value;
 
 		if (bottom <= top)
 		{
@@ -39,7 +39,7 @@ namespace DG
 			{
 				return job;
 			}
-			if (_InterlockedCompareExchange(reinterpret_cast<long *>(&_bottom), bottom + 1, bottom) != bottom)
+			if (!SDL_AtomicCAS(&_bottom, bottom, bottom + 1))
 			{
 				job = nullptr;
 			}
@@ -53,7 +53,7 @@ namespace DG
 
 	Job* JobSystem::JobWorkQueue::Steal()
 	{
-		u32 bottom = _bottom;
+		u32 bottom = _bottom.value;
 
 		SDL_CompilerBarrier();
 		u32 top = _top;
@@ -63,7 +63,7 @@ namespace DG
 			Job* job = _queue[bottom & JOB_MASK];
 
 			// ToDo: Make this work on all platforms this is windows specific! (SDL forces their own atomic struct which is annoying)
-			if (_InterlockedCompareExchange(reinterpret_cast<long *>(&_bottom), bottom + 1, bottom) == bottom)
+			if (SDL_AtomicCAS(&_bottom, bottom, bottom + 1))
 			{
 				return job;
 			}

@@ -46,8 +46,8 @@ namespace DG
 
 			Job** _queue;
 			u32 _size;
-			s32 _bottom = 0;
-			s32 _top = 0;
+			SDL_atomic_t _bottom;
+			s32 _top;
 
 		};
 

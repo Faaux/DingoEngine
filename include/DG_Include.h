@@ -1,4 +1,6 @@
+#pragma once
 #include <SDL/SDL.h>
+
 namespace DG
 {
 #define Assert(predicate) SDL_assert(predicate)
