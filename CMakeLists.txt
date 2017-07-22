@@ -9,6 +9,18 @@ cmake_minimum_required(VERSION 3.6)
 # Project Name
 project(DingoEngine)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	set(CMAKE_C_FLAGS "/Zi /MP")
+	set(CMAKE_C_FLAGS_DEBUG "-DDEBUG=1 /MTd /Od")
+	set(CMAKE_C_FLAGS_RELEASE "/MT")
+	set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MT")
+	set(CMAKE_CXX_FLAGS "/EHsc /Zi /MP")
+	set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG=1 /MTd /Od")
+	set(CMAKE_CXX_FLAGS_RELEASE "/MT")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MT")
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 # Runtime folders for VS
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
