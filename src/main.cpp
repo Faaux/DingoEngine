@@ -1,4 +1,4 @@
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include "DG_Include.h"
 #include "DG_SDLHelper.h"
 #include "DG_Job.h"

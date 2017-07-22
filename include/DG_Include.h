@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL/SDL.h>
+#include <SDL.h>
 
 namespace DG
 {
@@ -15,14 +15,16 @@ namespace DG
 #define BUFFER_OFFSET(i) ((char *)0 + (i))
 #define ArrayCount(arr) ((sizeof(arr)) / (sizeof(arr[0])))
 
-#ifndef SOURCEPATH
-#error SOURCEPATH needs to be defined in CMake and sould point to the source root folder
-#endif
+/* Commented out for future reference once a resource system is in use */
 
-#define QUOTE(str) #str
-#define EXPAND_AND_QUOTE(str) QUOTE(str)
-#define FileInRes(file) EXPAND_AND_QUOTE(SOURCEPATH) "/res/"#file
-#define FileInShader(file) EXPAND_AND_QUOTE(SOURCEPATH) "/shader/"#file
+//#ifndef SOURCEPATH
+//#error SOURCEPATH needs to be defined in CMake and sould point to the source root folder
+//#endif
+//
+//#define QUOTE(str) #str
+//#define EXPAND_AND_QUOTE(str) QUOTE(str)
+//#define FileInRes(file) EXPAND_AND_QUOTE(SOURCEPATH) "/res/"#file
+//#define FileInShader(file) EXPAND_AND_QUOTE(SOURCEPATH) "/shader/"#file
 
 	typedef int8_t s8;
 	typedef int16_t s16;

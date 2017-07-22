@@ -1,5 +1,5 @@
 #include "DG_Job.h"
-#include "SDL/SDL.h"
+#include <SDL.h>
 #include <atomic>
 #include "DG_Windows.h"
 
