@@ -81,14 +81,15 @@ namespace DG
 		SDL_Quit();
 	}
 
-	void empty_work(Job* job,const void * idx)
+	void empty_work(Job* job, const void * idx)
 	{
+		SDL_Delay(2);
 	}
 }
 
 
 
-int main(int , char* [])
+int main(int, char*[])
 {
 	using namespace DG;
 	if (!InitSDL())
@@ -108,7 +109,7 @@ int main(int , char* [])
 	u64 currentFrame = 1;
 
 	u64 currentTime = SDL_GetPerformanceCounter();
-	u64 cpuFrequency = SDL_GetPerformanceFrequency();	
+	u64 cpuFrequency = SDL_GetPerformanceFrequency();
 
 	/*SDL_Log("Output example");
 	SDL_LogVerbose(0,"Verbose Logging");
@@ -122,30 +123,18 @@ int main(int , char* [])
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
 
-	while(GameIsRunning)
+	while (GameIsRunning)
 	{
 		PollEvents();
-		// Frame Begin
 		lastTime = currentTime;
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
-		Job* firstJob = JobSystem::CreateJob(&empty_work);
-		for (int i = 0; i < 1000; ++i)
-		{
-			Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
-			JobSystem::Run(job);
-		}
-		JobSystem::Run(firstJob);
-		JobSystem::Wait(firstJob);
-
-		// Frame End
 		currentFrame++;
-		SDL_Log("Last MS: %f", deltaTime);
 	}
 
 	g_JobQueueShutdownRequested = true;
 	Cleanup();
-	
+
 	return 0;
 }

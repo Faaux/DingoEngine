@@ -17,6 +17,7 @@ namespace DG
 
 	std::unordered_set<JobSystem::JobWorkQueue *> JobSystem::_threadTLSIds;
 	static SDL_mutex* _mutex = SDL_CreateMutex();
+	static SDL_cond* _cond = SDL_CreateCond();
 
 	JobSystem::JobWorkQueue::JobWorkQueue(Job** queue, u32 size)
 		: _queue(queue), _size(size)
@@ -30,7 +31,7 @@ namespace DG
 
 		MemoryBarrier();
 
-		s32 bottom = _bottom.value;
+		s32 bottom = SDL_AtomicGet(&_bottom);
 
 		if (bottom <= top)
 		{
@@ -53,7 +54,7 @@ namespace DG
 
 	Job* JobSystem::JobWorkQueue::Steal()
 	{
-		u32 bottom = _bottom.value;
+		u32 bottom = SDL_AtomicGet(&_bottom);;
 
 		SDL_CompilerBarrier();
 		u32 top = _top;
@@ -80,9 +81,6 @@ namespace DG
 			{
 				Finish(job->parent);
 			}
-
-			SDL_AtomicAdd(&job->unfinishedJobs, -1);
-			Assert(job->unfinishedJobs.value == -1);
 		}
 	}
 
@@ -91,7 +89,7 @@ namespace DG
 		u32 index = LocalJobBufferIndex & JOB_MASK;
 		++LocalJobBufferIndex;
 		Job& job = LocalJobBuffer[index];
-		Assert(job.unfinishedJobs.value == -1);
+		Assert(SDL_AtomicGet(&job.unfinishedJobs) == 0);
 		job.function = function;
 		job.parent = nullptr;
 		SDL_AtomicSet(&job.unfinishedJobs, 1);
@@ -107,7 +105,9 @@ namespace DG
 		u32 index = LocalJobBufferIndex & JOB_MASK;
 		++LocalJobBufferIndex;
 		Job& job = LocalJobBuffer[index];
-		Assert(job.unfinishedJobs.value == -1);
+
+		Assert(SDL_AtomicGet(&job.unfinishedJobs) == 0);
+
 		job.function = function;
 		job.parent = parent;
 		SDL_AtomicSet(&job.unfinishedJobs, 1);
@@ -116,10 +116,10 @@ namespace DG
 		return &job;
 	}
 
-	void JobSystem::Wait(const Job* job)
+	void JobSystem::Wait(Job* job)
 	{
 		// wait until the job has completed. in the meantime, work on any other job.
-		while (job->unfinishedJobs.value != -1)
+		while (SDL_AtomicGet(&job->unfinishedJobs) != 0)
 		{
 			TryDoJob();
 		}
@@ -131,6 +131,9 @@ namespace DG
 
 		SDL_CompilerBarrier();
 		++LocalQueue._top;
+		SDL_LockMutex(_mutex);
+		SDL_CondSignal(_cond);
+		SDL_UnlockMutex(_mutex);
 	}
 
 	void JobSystem::CreateAndRegisterWorker()
@@ -145,7 +148,7 @@ namespace DG
 		SDL_UnlockMutex(_mutex);
 	}
 
-	void JobSystem::TryDoJob()
+	bool JobSystem::TryDoJob()
 	{
 		Job* job = LocalQueue.TryGetLocalJob();
 		if (!job)
@@ -161,12 +164,14 @@ namespace DG
 					break;
 			}
 			if (!job)
-				return;
+				return false;
+
 		}
-		Assert(job->unfinishedJobs.value != -1);
+		Assert(SDL_AtomicGet(&job->unfinishedJobs) != 0);
 		// Execute Job
 		job->function(job, job->data);
 		LocalQueue.Finish(job);
+		return true;
 	}
 
 	int JobSystem::JobQueueWorkerFunction(void* data)
@@ -175,7 +180,13 @@ namespace DG
 
 		while (!g_JobQueueShutdownRequested)
 		{
-			TryDoJob();
+			if (!TryDoJob())
+			{
+				// Did not do any work, go to sleep
+				SDL_LockMutex(_mutex);
+				SDL_CondWait(_cond, _mutex);
+				SDL_UnlockMutex(_mutex);
+			}
 		}
 		return 0;
 	}
