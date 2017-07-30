@@ -19,6 +19,7 @@ namespace DG
 	static SDL_mutex* _mutex = SDL_CreateMutex();
 	static SDL_cond* _cond = SDL_CreateCond();
 	static s32 _workerCount = 0;
+	static SDL_atomic_t _jobCount;
 	JobSystem::JobWorkQueue::JobWorkQueue(Job** queue, u32 size)
 		: _jobs(queue), _size(size)
 	{
@@ -109,7 +110,8 @@ namespace DG
 			{
 				Finish(job->parent);
 			}
-		}
+			SDL_AtomicAdd(&_jobCount, -1);
+		}		
 	}
 
 	Job* JobSystem::CreateJob(JobFunction function)
@@ -161,9 +163,13 @@ namespace DG
 	void JobSystem::Run(Job* job)
 	{
 		LocalQueue.Push(job);
-		SDL_LockMutex(_mutex);
-		SDL_CondBroadcast(_cond);
-		SDL_UnlockMutex(_mutex);
+		s32 prev = SDL_AtomicAdd(&_jobCount, 1);
+		if (prev == 0)
+		{
+			SDL_LockMutex(_mutex);
+			SDL_CondBroadcast(_cond);
+			SDL_UnlockMutex(_mutex);
+		}
 	}
 
 	void JobSystem::CreateAndRegisterWorker()
@@ -197,7 +203,7 @@ namespace DG
 				job->function(job, job->data);
 				Finish(job);
 			}
-			else
+			if (SDL_AtomicGet(&_jobCount) == 0)
 			{
 				SDL_LockMutex(_mutex);
 				SDL_CondWait(_cond, _mutex);
