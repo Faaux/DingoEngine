@@ -42,7 +42,7 @@ namespace DG
 	static HANDLE stderrHandle = NULL;
 #endif
 
-	void LogOutput(void *, int , SDL_LogPriority priority, const char *message)
+	void LogOutput(void *, int, SDL_LogPriority priority, const char *message)
 	{
 #if defined(__WIN32__) || defined(__WINRT__)
 		/* Way too many allocations here, urgh */
@@ -150,6 +150,13 @@ namespace DG
 #if __NACL__
 		fflush(stderr);
 #endif
+#endif
+	}
+
+	void LogCleanup()
+	{
+#if !defined(HAVE_STDIO_H) && !defined(__WINRT__)
+		SetConsoleTextAttribute(stderrHandle, 7);
 #endif
 	}
 }

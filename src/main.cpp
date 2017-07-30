@@ -79,11 +79,13 @@ namespace DG
 	void Cleanup()
 	{
 		SDL_Quit();
+		LogCleanup();
 	}
 
+	SDL_atomic_t work;
 	void empty_work(Job* job, const void * idx)
 	{
-		SDL_Delay(2);
+		SDL_AtomicAdd(&work, 1);
 	}
 }
 
@@ -130,9 +132,20 @@ int main(int, char*[])
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
+#if defined(_DEV_USER)
+		if(_DEV_USER == 1)
+		{
+			SDL_Log("Test Chris");
+		}
+		else if (_DEV_USER == 2)
+		{
+			SDL_Log("Test Michi");
+		}
+#endif
+
+
 		currentFrame++;
 	}
-
 	g_JobQueueShutdownRequested = true;
 	Cleanup();
 

@@ -5,3 +5,15 @@
 
 #### For Windows:
 - Run init_win.bat
+
+#### ToDo:
+- Vulkan (Primitives)
+  - Debug UI
+- Memory Allocators
+  - Pool Allocator
+- Entity Component System
+  - Handles
+  - Components
+  - System Dependency Tree
+- Profiler (chrome://tracing)
+- HID

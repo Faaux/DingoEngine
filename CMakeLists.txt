@@ -8,6 +8,13 @@ cmake_minimum_required(VERSION 3.6)
 
 # Project Name
 project(DingoEngine)
+message(STATUS "")
+message(STATUS "----- Dingo Engine -----")
+message(STATUS "")
+message(STATUS "Options:")
+message(STATUS "_DEV_USER: Chris(1), Michi(2)")
+message(STATUS "")
+message(STATUS "------------------------")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_C_FLAGS "/Zi /MP")
@@ -19,6 +26,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_CXX_FLAGS_RELEASE "/MT")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MT")
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+	
+	IF (DEFINED _DEV_USER)
+		ADD_DEFINITIONS(-D_DEV_USER=${_DEV_USER})
+	ENDIF()
+
+	
 endif()
 
 # Runtime folders for VS
