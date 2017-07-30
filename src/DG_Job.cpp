@@ -5,7 +5,7 @@
 
 namespace DG
 {
-	static const u32 JOB_COUNT = 4096;
+	static const u32 JOB_COUNT = 65536;
 	static const u32 JOB_MASK = JOB_COUNT - 1u;
 
 	thread_local u32 LocalJobBufferIndex = 0;
@@ -15,56 +15,84 @@ namespace DG
 
 	bool g_JobQueueShutdownRequested = false;
 
-	std::unordered_set<JobSystem::JobWorkQueue *> JobSystem::_threadTLSIds;
+	std::vector<JobSystem::JobWorkQueue *> JobSystem::_queues;
 	static SDL_mutex* _mutex = SDL_CreateMutex();
-	static SDL_cond* _cond = SDL_CreateCond();
+	static SDL_sem* _sem = SDL_CreateSemaphore(0);
 
 	JobSystem::JobWorkQueue::JobWorkQueue(Job** queue, u32 size)
-		: _queue(queue), _size(size)
+		: _jobs(queue), _size(size)
 	{
 	}
 
-	Job* JobSystem::JobWorkQueue::TryGetLocalJob()
+	Job* JobSystem::JobWorkQueue::GetJob()
 	{
-		s32 top = _top - 1;
-		_top = top;
-
-		MemoryBarrier();
-
-		s32 bottom = SDL_AtomicGet(&_bottom);
-
-		if (bottom <= top)
+		Job* job = Pop();
+		if (!job)
 		{
-			Job* job = LocalJobQueue[top & JOB_MASK];
-			if (bottom != top)
+			// Steal Job
+			u32 index = rand() % _queues.size();
+			JobWorkQueue* queueToStealFrom = _queues[index];
+			if (&LocalQueue != queueToStealFrom)
 			{
-				return job;
+				job = queueToStealFrom->Steal();
 			}
-			if (!SDL_AtomicCAS(&_bottom, bottom, bottom + 1))
-			{
-				job = nullptr;
-			}
-			_top = bottom + 1;
-			return job;
 		}
-		_top = bottom;
-		return nullptr;
+		return job;
+	}
 
+	void JobSystem::JobWorkQueue::Push(Job* job)
+	{
+		s32 t = _top;
+		_jobs[t & JOB_MASK] = job;
+
+		SDL_CompilerBarrier();
+
+		_top = t + 1;
+	}
+
+	Job* JobSystem::JobWorkQueue::Pop()
+	{
+		s32 t = _top - 1;
+		_top = t;
+
+		MemoryBarrier(); // Can't find a SDL equivalent
+
+		s32 b = SDL_AtomicGet(&_bottom);
+
+		// Empty queue
+		if (b > t)
+		{
+			_top = b;
+			return nullptr;
+		}
+
+		// not empty
+		Job* job = _jobs[t & JOB_MASK];
+
+		// Not Last Item
+		if (b != t)
+			return job;
+
+		// Check if a steal operation got there before us
+		if (!SDL_AtomicCAS(&_bottom, b, b + 1))
+			job = nullptr; // Someone stole the job
+
+		_top = b + 1;
+		return job;
 	}
 
 	Job* JobSystem::JobWorkQueue::Steal()
 	{
-		u32 bottom = SDL_AtomicGet(&_bottom);;
+		long b = SDL_AtomicGet(&_bottom);
 
 		SDL_CompilerBarrier();
-		u32 top = _top;
 
-		if (bottom < top)
+		long t = _top;
+		if (b < t)
 		{
-			Job* job = _queue[bottom & JOB_MASK];
-
-			// ToDo: Make this work on all platforms this is windows specific! (SDL forces their own atomic struct which is annoying)
-			if (SDL_AtomicCAS(&_bottom, bottom, bottom + 1))
+			// non-empty queue
+			Job* job = _jobs[b & JOB_MASK];
+			if (SDL_AtomicCAS(&_bottom, b, b + 1))
 			{
 				return job;
 			}
@@ -72,7 +100,7 @@ namespace DG
 		return nullptr;
 	}
 
-	void JobSystem::JobWorkQueue::Finish(Job* job)
+	void JobSystem::Finish(Job* job)
 	{
 		const s32 unfinishedJobs = SDL_AtomicAdd(&job->unfinishedJobs, -1);
 		if (unfinishedJobs == 1)
@@ -121,19 +149,26 @@ namespace DG
 		// wait until the job has completed. in the meantime, work on any other job.
 		while (SDL_AtomicGet(&job->unfinishedJobs) != 0)
 		{
-			TryDoJob();
+#if 1
+			if (SDL_SemTryWait(_sem) == 0)
+			{
+				Job* jobToBeDone = nullptr;
+				while (!jobToBeDone)
+				{
+					jobToBeDone = LocalQueue.GetJob();
+				}
+
+				jobToBeDone->function(jobToBeDone, jobToBeDone->data);
+				Finish(jobToBeDone);
+			}
+#endif
 		}
 	}
 
 	void JobSystem::Run(Job* job)
 	{
-		LocalJobQueue[LocalQueue._top & JOB_MASK] = job;
-
-		SDL_CompilerBarrier();
-		++LocalQueue._top;
-		SDL_LockMutex(_mutex);
-		SDL_CondSignal(_cond);
-		SDL_UnlockMutex(_mutex);
+		LocalQueue.Push(job);
+		SDL_SemPost(_sem);
 	}
 
 	void JobSystem::CreateAndRegisterWorker()
@@ -144,49 +179,25 @@ namespace DG
 	void JobSystem::RegisterWorker()
 	{
 		SDL_LockMutex(_mutex);
-		_threadTLSIds.insert(&LocalQueue);
+		_queues.push_back(&LocalQueue);
 		SDL_UnlockMutex(_mutex);
-	}
-
-	bool JobSystem::TryDoJob()
-	{
-		Job* job = LocalQueue.TryGetLocalJob();
-		if (!job)
-		{
-			for (JobWorkQueue * queue : _threadTLSIds)
-			{
-				if (!queue || queue == &LocalQueue)
-					continue;
-
-				job = queue->Steal();
-
-				if (job)
-					break;
-			}
-			if (!job)
-				return false;
-
-		}
-		Assert(SDL_AtomicGet(&job->unfinishedJobs) != 0);
-		// Execute Job
-		job->function(job, job->data);
-		LocalQueue.Finish(job);
-		return true;
 	}
 
 	int JobSystem::JobQueueWorkerFunction(void* data)
 	{
 		RegisterWorker();
-
 		while (!g_JobQueueShutdownRequested)
 		{
-			if (!TryDoJob())
+			SDL_SemWait(_sem);
+			// We got the semaphore, meaning we need to do one job!
+			Job* job = nullptr;
+			while (!job)
 			{
-				// Did not do any work, go to sleep
-				SDL_LockMutex(_mutex);
-				SDL_CondWait(_cond, _mutex);
-				SDL_UnlockMutex(_mutex);
+				job = LocalQueue.GetJob();
 			}
+
+			job->function(job, job->data);
+			Finish(job);
 		}
 		return 0;
 	}

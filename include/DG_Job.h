@@ -13,7 +13,7 @@ namespace DG
 	{
 		JobFunction function;
 		Job *parent;
-		SDL_atomic_t unfinishedJobs{ 0 }; // 1 job can be run, >1 amount of children to finish, -1 job finished, 0 job finishing
+		SDL_atomic_t unfinishedJobs{ 0 };
 		char data[44]; // Padded to be 64 byte in size!
 	};
 	static_assert((sizeof(Job::function) + sizeof(Job::parent) + sizeof(Job::unfinishedJobs) + sizeof(Job::data)) == 64, "sizeof(Job) needs to be a multiple of 64Bytes");
@@ -26,6 +26,7 @@ namespace DG
 
 		static void Wait(Job* job);
 		static void Run(Job *job);
+		static void Finish(Job* job);
 
 		static void CreateAndRegisterWorker();
 		static void RegisterWorker();
@@ -35,23 +36,23 @@ namespace DG
 			friend class JobSystem;
 		public:
 			JobWorkQueue(Job** queue, u32 size);
-
+			Job* GetJob();
 
 		private:
-			Job* TryGetLocalJob();
+			void Push(Job *job);
+			Job* Pop();
 			Job* Steal();
-			void Finish(Job* job);
+			
 
-			Job** _queue;
+			Job** _jobs;
 			u32 _size;
 			SDL_atomic_t _bottom;
-			s32 _top;
+			s32 _top = 0;
 
 		};
 
 	private:
-		static std::unordered_set<JobWorkQueue *> _threadTLSIds;
-		static bool TryDoJob();
+		static std::vector<JobWorkQueue *> _queues;
 		static int JobQueueWorkerFunction(void *data);
 	};
 }

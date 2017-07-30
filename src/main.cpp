@@ -2,6 +2,7 @@
 #include "DG_Include.h"
 #include "DG_SDLHelper.h"
 #include "DG_Job.h"
+#include <chrono>
 
 namespace DG
 {
@@ -94,6 +95,8 @@ namespace DG
 int main(int, char*[])
 {
 	using namespace DG;
+
+	srand(21948219874);
 	if (!InitSDL())
 		return -1;
 
@@ -130,7 +133,7 @@ int main(int, char*[])
 	if (_DEV_USER == CHRIS)
 	{
 		SDL_Log("----- Chris' Code -----");
-		
+
 	}
 	else if (_DEV_USER == MICHI)
 	{
@@ -148,11 +151,12 @@ int main(int, char*[])
 #if defined(_DEV_USER)
 		if (_DEV_USER == CHRIS)
 		{
+#if 0
 			if (currentFrame % 1000 == 0)
 				SDL_Log("Current Frame: %i", currentFrame);
 
 			Job* firstJob = JobSystem::CreateJob(&empty_work);
-			for (int i = 0; i < 1000; ++i)
+			for (int i = 0; i < 4095; ++i)
 			{
 				Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
 				JobSystem::Run(job);
@@ -160,6 +164,25 @@ int main(int, char*[])
 			JobSystem::Run(firstJob);
 			JobSystem::Wait(firstJob);
 			totalTime += deltaTime;
+#else
+			auto start_time = std::chrono::high_resolution_clock::now();
+
+			for (int i = 0; i < 1000; ++i)
+			{
+				Job* firstJob = JobSystem::CreateJob(&empty_work);
+				for (int j = 0; j < 4095; ++j)
+				{
+					Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
+					JobSystem::Run(job);
+				}
+				JobSystem::Run(firstJob);
+				JobSystem::Wait(firstJob);
+			}
+
+			auto end_time = std::chrono::high_resolution_clock::now();
+			auto time = end_time - start_time;
+
+#endif
 		}
 		else if (_DEV_USER == MICHI)
 		{
