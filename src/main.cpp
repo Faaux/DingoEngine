@@ -140,7 +140,6 @@ int main(int, char*[])
 		SDL_Log("----- Michis Code -----");
 	}
 #endif
-
 	while (GameIsRunning)
 	{
 		PollEvents();

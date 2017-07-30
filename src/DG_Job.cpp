@@ -17,7 +17,7 @@ namespace DG
 
 	static JobSystem::JobWorkQueue* _queues[64];
 	static SDL_mutex* _mutex = SDL_CreateMutex();
-	static SDL_sem* _sem = SDL_CreateSemaphore(0);
+	static SDL_cond* _cond = SDL_CreateCond();
 	static s32 _workerCount = 0;
 	JobSystem::JobWorkQueue::JobWorkQueue(Job** queue, u32 size)
 		: _jobs(queue), _size(size)
@@ -149,14 +149,9 @@ namespace DG
 		// wait until the job has completed. in the meantime, work on any other job.
 		while (SDL_AtomicGet(&job->unfinishedJobs) != 0)
 		{
-			if (SDL_SemTryWait(_sem) == 0)
+			Job* jobToBeDone = LocalQueue.GetJob();
+			if (jobToBeDone)
 			{
-				Job* jobToBeDone = nullptr;
-				while (!jobToBeDone)
-				{
-					jobToBeDone = LocalQueue.GetJob();
-				}
-
 				jobToBeDone->function(jobToBeDone, jobToBeDone->data);
 				Finish(jobToBeDone);
 			}
@@ -166,7 +161,9 @@ namespace DG
 	void JobSystem::Run(Job* job)
 	{
 		LocalQueue.Push(job);
-		SDL_SemPost(_sem);
+		SDL_LockMutex(_mutex);
+		SDL_CondBroadcast(_cond);
+		SDL_UnlockMutex(_mutex);
 	}
 
 	void JobSystem::CreateAndRegisterWorker()
@@ -177,7 +174,7 @@ namespace DG
 	bool JobSystem::RegisterWorker()
 	{
 		SDL_LockMutex(_mutex);
-		
+
 		if (_workerCount >= ArrayCount(_queues))
 		{
 			Assert(false);
@@ -194,16 +191,18 @@ namespace DG
 			return -1;
 		while (!g_JobQueueShutdownRequested)
 		{
-			SDL_SemWait(_sem);
-			// We got the semaphore, meaning we need to do one job!
-			Job* job = nullptr;
-			while (!job)
+			Job* job = LocalQueue.GetJob();
+			if (job)
 			{
-				job = LocalQueue.GetJob();
+				job->function(job, job->data);
+				Finish(job);
 			}
-
-			job->function(job, job->data);
-			Finish(job);
+			else
+			{
+				SDL_LockMutex(_mutex);
+				SDL_CondWait(_cond, _mutex);
+				SDL_UnlockMutex(_mutex);
+			}
 		}
 		return 0;
 	}
