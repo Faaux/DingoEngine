@@ -121,9 +121,22 @@ int main(int, char*[])
 	SDL_LogError(0, "Error Logging");
 	SDL_LogCritical(0, "Critical Logging");*/
 
-	SDL_Log("Hardware Information ---------------------");
+	SDL_Log("----- Hardware Information -----");
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
+
+#if defined(_DEV_USER)
+	r32 totalTime = 0;
+	if (_DEV_USER == CHRIS)
+	{
+		SDL_Log("----- Chris' Code -----");
+		
+	}
+	else if (_DEV_USER == MICHI)
+	{
+		SDL_Log("----- Michis Code -----");
+	}
+#endif
 
 	while (GameIsRunning)
 	{
@@ -133,19 +146,39 @@ int main(int, char*[])
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
 #if defined(_DEV_USER)
-		if(_DEV_USER == 1)
+		if (_DEV_USER == CHRIS)
 		{
-			SDL_Log("Test Chris");
+			if (currentFrame % 1000 == 0)
+				SDL_Log("Current Frame: %i", currentFrame);
+
+			Job* firstJob = JobSystem::CreateJob(&empty_work);
+			for (int i = 0; i < 1000; ++i)
+			{
+				Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
+				JobSystem::Run(job);
+			}
+			JobSystem::Run(firstJob);
+			JobSystem::Wait(firstJob);
+			totalTime += deltaTime;
 		}
-		else if (_DEV_USER == 2)
+		else if (_DEV_USER == MICHI)
 		{
-			SDL_Log("Test Michi");
 		}
 #endif
 
 
 		currentFrame++;
 	}
+
+#if defined(_DEV_USER)
+	if (_DEV_USER == CHRIS)
+	{
+		SDL_Log("%f jobs/ms", work.value / totalTime);
+	}
+	else if (_DEV_USER == MICHI)
+	{
+	}
+#endif
 	g_JobQueueShutdownRequested = true;
 	Cleanup();
 

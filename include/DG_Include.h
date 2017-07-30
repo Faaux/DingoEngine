@@ -3,6 +3,11 @@
 
 namespace DG
 {
+#if defined(_DEV_USER)
+#define CHRIS 1
+#define MICHI 2
+#endif
+
 #define Assert(predicate) SDL_assert(predicate)
 
 #define Pi 3.14159265358979323846f
