@@ -151,12 +151,12 @@ int main(int, char*[])
 #if defined(_DEV_USER)
 		if (_DEV_USER == CHRIS)
 		{
-#if 0
+#if 1
 			if (currentFrame % 1000 == 0)
 				SDL_Log("Current Frame: %i", currentFrame);
 
 			Job* firstJob = JobSystem::CreateJob(&empty_work);
-			for (int i = 0; i < 4095; ++i)
+			for (int i = 0; i < 1000; ++i)
 			{
 				Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
 				JobSystem::Run(job);
@@ -196,7 +196,7 @@ int main(int, char*[])
 #if defined(_DEV_USER)
 	if (_DEV_USER == CHRIS)
 	{
-		SDL_Log("%f jobs/ms", work.value / totalTime);
+		SDL_LogError(0, "%f jobs/ms", work.value / totalTime);
 	}
 	else if (_DEV_USER == MICHI)
 	{

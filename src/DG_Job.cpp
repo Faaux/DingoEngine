@@ -5,7 +5,7 @@
 
 namespace DG
 {
-	static const u32 JOB_COUNT = 65536;
+	static const u32 JOB_COUNT = 4096;
 	static const u32 JOB_MASK = JOB_COUNT - 1u;
 
 	thread_local u32 LocalJobBufferIndex = 0;
@@ -15,10 +15,10 @@ namespace DG
 
 	bool g_JobQueueShutdownRequested = false;
 
-	std::vector<JobSystem::JobWorkQueue *> JobSystem::_queues;
+	static JobSystem::JobWorkQueue* _queues[64];
 	static SDL_mutex* _mutex = SDL_CreateMutex();
 	static SDL_sem* _sem = SDL_CreateSemaphore(0);
-
+	static s32 _workerCount = 0;
 	JobSystem::JobWorkQueue::JobWorkQueue(Job** queue, u32 size)
 		: _jobs(queue), _size(size)
 	{
@@ -30,7 +30,7 @@ namespace DG
 		if (!job)
 		{
 			// Steal Job
-			u32 index = rand() % _queues.size();
+			u32 index = rand() % _workerCount;
 			JobWorkQueue* queueToStealFrom = _queues[index];
 			if (&LocalQueue != queueToStealFrom)
 			{
@@ -149,7 +149,6 @@ namespace DG
 		// wait until the job has completed. in the meantime, work on any other job.
 		while (SDL_AtomicGet(&job->unfinishedJobs) != 0)
 		{
-#if 1
 			if (SDL_SemTryWait(_sem) == 0)
 			{
 				Job* jobToBeDone = nullptr;
@@ -161,7 +160,6 @@ namespace DG
 				jobToBeDone->function(jobToBeDone, jobToBeDone->data);
 				Finish(jobToBeDone);
 			}
-#endif
 		}
 	}
 
@@ -176,16 +174,24 @@ namespace DG
 		SDL_CreateThread(JobQueueWorkerFunction, "Worker", nullptr);
 	}
 
-	void JobSystem::RegisterWorker()
+	bool JobSystem::RegisterWorker()
 	{
 		SDL_LockMutex(_mutex);
-		_queues.push_back(&LocalQueue);
+		
+		if (_workerCount >= ArrayCount(_queues))
+		{
+			Assert(false);
+			return false;
+		}
+		_queues[_workerCount++] = &LocalQueue;
 		SDL_UnlockMutex(_mutex);
+		return true;
 	}
 
 	int JobSystem::JobQueueWorkerFunction(void* data)
 	{
-		RegisterWorker();
+		if (!RegisterWorker())
+			return -1;
 		while (!g_JobQueueShutdownRequested)
 		{
 			SDL_SemWait(_sem);

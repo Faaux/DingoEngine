@@ -29,7 +29,7 @@ namespace DG
 		static void Finish(Job* job);
 
 		static void CreateAndRegisterWorker();
-		static void RegisterWorker();
+		static bool RegisterWorker();
 		
 		class JobWorkQueue
 		{
@@ -52,7 +52,6 @@ namespace DG
 		};
 
 	private:
-		static std::vector<JobWorkQueue *> _queues;
 		static int JobQueueWorkerFunction(void *data);
 	};
 }
