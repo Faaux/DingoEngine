@@ -50,35 +50,39 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 	
 	## SDL	
-	set(DIRECTX OFF CACHE BOOL "" FORCE)
-	set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
-	set(DISKAUDIO OFF CACHE BOOL "" FORCE)
-	set(DUMMYAUDIO OFF CACHE BOOL "" FORCE)
-	set(SDL_RENDER OFF CACHE BOOL "" FORCE)
-	set(SDL_POWER ON CACHE BOOL "" FORCE)
-	set(SDL_THREADS ON CACHE BOOL "" FORCE)
-	set(SDL_FILE ON CACHE BOOL "" FORCE)
-	set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-	set(SDL_STATIC ON CACHE BOOL "" FORCE)
-	set(LIBC ON CACHE BOOL "" FORCE)
-	add_subdirectory(ThirdParty/SDL-mirror)
-	set_target_properties (SDL2-static PROPERTIES
-		FOLDER ThirdParty/SDL
-	)
-	set_target_properties (SDL2main PROPERTIES
-		FOLDER ThirdParty/SDL
-	)
-	set_target_properties (uninstall PROPERTIES
-		FOLDER ThirdParty/SDL
-	)
+		set(DIRECTX OFF CACHE BOOL "" FORCE)
+		set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
+		set(DISKAUDIO OFF CACHE BOOL "" FORCE)
+		set(DUMMYAUDIO OFF CACHE BOOL "" FORCE)
+		set(SDL_RENDER OFF CACHE BOOL "" FORCE)
+		set(SDL_POWER ON CACHE BOOL "" FORCE)
+		set(SDL_THREADS ON CACHE BOOL "" FORCE)
+		set(SDL_FILE ON CACHE BOOL "" FORCE)
+		set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+		set(SDL_STATIC ON CACHE BOOL "" FORCE)
+		set(LIBC ON CACHE BOOL "" FORCE)
+		add_subdirectory(ThirdParty/SDL-mirror)
+		set_target_properties (SDL2-static PROPERTIES
+			FOLDER ThirdParty/SDL
+		)
+		set_target_properties (SDL2main PROPERTIES
+			FOLDER ThirdParty/SDL
+		)
+		set_target_properties (uninstall PROPERTIES
+			FOLDER ThirdParty/SDL
+		)
 
-	set(SDL_LIBS
-		SDL2-static
-		SDL2main
-	)
-
+		set(SDL_LIBS
+			SDL2-static
+			SDL2main
+		)
+	
+	## GLM
+		find_package(GLM REQUIRED)
+	
 	## 3rd Party Includes
-	set(THIRD_PARTY_INCLUDES ${SDL2_SOURCE_DIR}/include)
+		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
+									${GLM_INCLUDE_DIRS})
 	
 
 # Includes
