@@ -78,11 +78,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		)
 	
 	## GLM
-		find_package(GLM REQUIRED)
+		# Nothing needed just added the includes to THIRD_PARTY_INCLUDES
 	
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
-									${GLM_INCLUDE_DIRS})
+									ThirdParty/glm)
 	
 
 # Includes
