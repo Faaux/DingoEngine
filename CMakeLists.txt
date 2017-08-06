@@ -8,13 +8,6 @@ cmake_minimum_required(VERSION 3.6)
 
 # Project Name
 project(DingoEngine)
-message(STATUS "")
-message(STATUS "----- Dingo Engine -----")
-message(STATUS "")
-message(STATUS "Options:")
-message(STATUS "_DEV_USER: Chris(1), Michi(2)")
-message(STATUS "")
-message(STATUS "------------------------")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_C_FLAGS "/Zi /MP")
@@ -90,10 +83,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 			FOLDER ThirdParty/glew
 		)
 		
+		set(GLEW_LIBS
+			glew
+		)
+		
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
 									ThirdParty/glm
 									ThirdParty/glew/include)
+		
+		
+		set(THIRD_PARTY_LIBS 		${SDL_LIBS}
+									${GLEW_LIBS})
 	
 
 # Includes
@@ -103,8 +104,7 @@ include_directories(include ${THIRD_PARTY_INCLUDES})
 set (SOURCE_FILES 	src/main.cpp
 					src/DG_Job.cpp
 					src/DG_SDLHelper.cpp
-					src/DG_Camera.cpp
-					)
+					src/DG_Camera.cpp)
 
 #Header Files
 set (HEADER_FILES	include/DG_Job.h
@@ -120,4 +120,4 @@ set (HEADER_FILES	include/DG_Job.h
 
 #Executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(${PROJECT_NAME} ${SDL_LIBS})
+target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS})

@@ -2,16 +2,17 @@
 #include "DG_Include.h"
 #include "DG_SDLHelper.h"
 #include "DG_Job.h"
-#include <chrono>
+#include "gl/glew.h"
 
 namespace DG
 {
 	bool GameIsRunning = true;
+	bool IsWireframe = false;
 	SDL_Window* Window;
 
 	bool InitSDL()
 	{
-		if (SDL_Init(0) < 0)
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "SDL could not initialize! SDL Error: %s\n", SDL_GetError());
 			return false;
@@ -27,7 +28,7 @@ namespace DG
 
 	bool InitWindow()
 	{
-		Window = SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
+		Window = SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 		if (Window == nullptr)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -35,6 +36,52 @@ namespace DG
 		}
 		return true;
 	}
+
+	bool InitOpenGL()
+	{
+		// Configure OpenGL
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+		// Anti Aliasing
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+		//Create context
+		SDL_GLContext gContext = SDL_GL_CreateContext(Window);
+		if (gContext == NULL)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
+			return false;
+		}
+
+		glewExperimental = GL_TRUE;
+		glewInit();
+
+		SDL_DisplayMode current;
+		int should_be_zero = SDL_GetCurrentDisplayMode(0, &current);
+
+		if (should_be_zero != 0)
+			SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not get display mode for video display #%d: %s", 0, SDL_GetError());
+		else
+			SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "Display #%d: current display mode is %dx%dpx @ %dhz.", 0, current.w, current.h, current.refresh_rate);
+
+
+		//Use Vsync
+		if (SDL_GL_SetSwapInterval(1) < 0)
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError());
+		}
+
+		//Initialize OpenGL
+		glClearColor(0.7f, 0.3f, 0.6f, 1.f);
+
+		return true;
+	}
+
 
 	bool InitWorkerThreads()
 	{
@@ -103,6 +150,9 @@ int main(int, char*[])
 	if (!InitWindow())
 		return -1;
 
+	if (!InitOpenGL())
+		return -1;
+
 	if (!InitWorkerThreads())
 		return -1;
 
@@ -128,18 +178,7 @@ int main(int, char*[])
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
 
-#if defined(_DEV_USER)
-	r32 totalTime = 0;
-	if (_DEV_USER == CHRIS)
-	{
-		SDL_Log("----- Chris' Code -----");
 
-	}
-	else if (_DEV_USER == MICHI)
-	{
-		SDL_Log("----- Michis Code -----");
-	}
-#endif
 	while (GameIsRunning)
 	{
 		PollEvents();
@@ -147,60 +186,16 @@ int main(int, char*[])
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
-#if defined(_DEV_USER)
-		if (_DEV_USER == CHRIS)
-		{
-#if 1
-			if (currentFrame % 1000 == 0)
-				SDL_Log("Current Frame: %i", currentFrame);
 
-			Job* firstJob = JobSystem::CreateJob(&empty_work);
-			for (int i = 0; i < 1000; ++i)
-			{
-				Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
-				JobSystem::Run(job);
-			}
-			JobSystem::Run(firstJob);
-			JobSystem::Wait(firstJob);
-			totalTime += deltaTime;
-#else
-			auto start_time = std::chrono::high_resolution_clock::now();
-
-			for (int i = 0; i < 1000; ++i)
-			{
-				Job* firstJob = JobSystem::CreateJob(&empty_work);
-				for (int j = 0; j < 4095; ++j)
-				{
-					Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
-					JobSystem::Run(job);
-				}
-				JobSystem::Run(firstJob);
-				JobSystem::Wait(firstJob);
-			}
-
-			auto end_time = std::chrono::high_resolution_clock::now();
-			auto time = end_time - start_time;
-
-#endif
-		}
-		else if (_DEV_USER == MICHI)
-		{
-		}
-#endif
-
+		// Wireframe 
+		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_FILL : GL_LINE);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		SDL_GL_SwapWindow(Window);
 
 		currentFrame++;
 	}
 
-#if defined(_DEV_USER)
-	if (_DEV_USER == CHRIS)
-	{
-		SDL_LogError(0, "%f jobs/ms", work.value / totalTime);
-	}
-	else if (_DEV_USER == MICHI)
-	{
-	}
-#endif
+
 	g_JobQueueShutdownRequested = true;
 	Cleanup();
 
