@@ -79,10 +79,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	
 	## GLM
 		# Nothing needed just added the includes to THIRD_PARTY_INCLUDES
-	
+		
+	## GLEW
+		set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
+		add_subdirectory(ThirdParty/glew/build/cmake)
+		set_target_properties (glew PROPERTIES
+			FOLDER ThirdParty/glew
+		)
+		set_target_properties (glew_s PROPERTIES
+			FOLDER ThirdParty/glew
+		)
+		
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
-									ThirdParty/glm)
+									ThirdParty/glm
+									ThirdParty/glew/include)
 	
 
 # Includes
