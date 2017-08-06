@@ -4,6 +4,10 @@
 #include "DG_Job.h"
 #include "gl/glew.h"
 
+#include "DG_Shader.h"
+#include "DG_Mesh.h"
+#include "DG_Camera.h"
+
 namespace DG
 {
 	bool GameIsRunning = true;
@@ -75,9 +79,7 @@ namespace DG
 		{
 			SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError());
 		}
-
-		//Initialize OpenGL
-		glClearColor(0.7f, 0.3f, 0.6f, 1.f);
+		
 
 		return true;
 	}
@@ -178,6 +180,10 @@ int main(int, char*[])
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
 
+	// Test Object
+	Camera camera;
+	Shader shader("./shaders/vertex_shader.vs", "./shaders/fragment_shader.fs");
+	Cube cube;
 
 	while (GameIsRunning)
 	{
@@ -186,10 +192,17 @@ int main(int, char*[])
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
+		glClearColor(0.7f, 0.3f, 0.6f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		cube.transform.rot.y += 1.f;
+		cube.transform.rot.x += 1.f;
+		shader.update(camera, cube);
+		cube.draw();
 
 		// Wireframe 
 		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_FILL : GL_LINE);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		SDL_GL_SwapWindow(Window);
 
 		currentFrame++;

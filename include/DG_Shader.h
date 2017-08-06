@@ -9,7 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "DG_Mesh.h"
-#include "DG_Shader.h"
+#include "DG_Camera.h"
 
 namespace DG
 {

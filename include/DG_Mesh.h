@@ -41,12 +41,12 @@ namespace DG
 
 			glGenBuffers(1, &VBO_points);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_points);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(primitives::cube), primitives::cube, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
 			glGenBuffers(1, &VBO_colors);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_colors);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(primitives::cube_color), primitives::cube_color, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(cube_color), cube_color, GL_STATIC_DRAW);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		}
 
