@@ -118,6 +118,12 @@ set (HEADER_FILES	include/DG_Job.h
 					include/DG_Transform.h
 					)
 
+#Shader Files
+set(SHADERS shaders/fragment_shader.fs
+			shaders/vertex_shader.vs)	
+
 #Executable
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADERS})
+source_group("shaders" FILES ${SHADERS})
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS})
+target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LIST_DIR})

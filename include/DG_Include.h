@@ -22,14 +22,14 @@ namespace DG
 
 /* Commented out for future reference once a resource system is in use */
 
-//#ifndef SOURCEPATH
-//#error SOURCEPATH needs to be defined in CMake and sould point to the source root folder
-//#endif
-//
-//#define QUOTE(str) #str
-//#define EXPAND_AND_QUOTE(str) QUOTE(str)
-//#define FileInRes(file) EXPAND_AND_QUOTE(SOURCEPATH) "/res/"#file
-//#define FileInShader(file) EXPAND_AND_QUOTE(SOURCEPATH) "/shader/"#file
+#ifndef SOURCEPATH
+#error SOURCEPATH needs to be defined in CMake and sould point to the source root folder
+#endif
+
+#define QUOTE(str) #str
+#define EXPAND_AND_QUOTE(str) QUOTE(str)
+#define FileInRes(file) EXPAND_AND_QUOTE(SOURCEPATH) "/res/"#file
+#define FileInShader(file) EXPAND_AND_QUOTE(SOURCEPATH) "/shaders/"#file
 
 	typedef int8_t s8;
 	typedef int16_t s16;

@@ -79,7 +79,7 @@ namespace DG
 		{
 			SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError());
 		}
-		
+
 
 		return true;
 	}
@@ -182,7 +182,7 @@ int main(int, char*[])
 
 	// Test Object
 	Camera camera;
-	Shader shader("./shaders/vertex_shader.vs", "./shaders/fragment_shader.fs");
+	Shader shader(FileInShader(vertex_shader.vs), FileInShader(fragment_shader.fs));
 	Cube cube;
 
 	while (GameIsRunning)
