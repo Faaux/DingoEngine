@@ -102,13 +102,21 @@ include_directories(include ${THIRD_PARTY_INCLUDES})
 #Source Files
 set (SOURCE_FILES 	src/main.cpp
 					src/DG_Job.cpp
-					src/DG_SDLHelper.cpp)
+					src/DG_SDLHelper.cpp
+					src/DG_Camera.cpp
+					)
 
 #Header Files
 set (HEADER_FILES	include/DG_Job.h
 					include/DG_Include.h
 					include/DG_SDLHelper.h
-					include/DG_Windows.h)
+					include/DG_Windows.h
+					include/DG_Camera.h
+					include/DG_Mesh.h
+					include/DG_Primitives.h
+					include/DG_Shader.h
+					include/DG_Transform.h
+					)
 
 #Executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
