@@ -15,7 +15,7 @@ namespace DG
 		virtual ~Camera();
 
 		// set/update view matrix
-		void setView(glm::vec3& camPos, glm::vec3& camTarget, glm::vec3& camUp) {
+		void setView(const glm::vec3& camPos, const glm::vec3& camTarget, const glm::vec3& camUp) {
 			view = glm::lookAt(camPos, camTarget, camUp);
 			camPosition = camPos;
 		}
