@@ -185,6 +185,10 @@ int main(int, char*[])
 	Shader shader(FileInShader(vertex_shader.vs), FileInShader(fragment_shader.fs));
 	Cube cube;
 
+	// Enable Depthtesting
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
 	while (GameIsRunning)
 	{
 		PollEvents();
@@ -196,13 +200,14 @@ int main(int, char*[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		cube.transform.rot.y += 1.f;
-		cube.transform.rot.x += 1.f;
+		cube.transform.rot.y += 0.01f;
+		cube.transform.rot.x += 0.01f;
+		shader.bind();
 		shader.update(camera, cube);
 		cube.draw();
 
 		// Wireframe 
-		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_FILL : GL_LINE);
+		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_LINE : GL_FILL);
 		SDL_GL_SwapWindow(Window);
 
 		currentFrame++;
