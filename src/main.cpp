@@ -200,7 +200,6 @@ int main(int, char*[])
 
 		LastFrameData = CurrentFrameData;
 		CurrentFrameData = FrameData();
-		SDL_Delay(3000);
 	}
 
 

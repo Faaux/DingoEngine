@@ -1,5 +1,6 @@
 #include "DG_InputSystem.h"
 #include "DG_Include.h"
+#include <cstring>
 
 namespace DG
 {
@@ -64,7 +65,7 @@ namespace DG
 			}
 			else if (event.type == SDL_TEXTINPUT)
 			{
-				_textInput[currentIndex++] = event.text.text[0];
+				strcat(_textInput, event.text.text);				
 			}
 			else if (event.type == SDL_WINDOWEVENT)
 			{
