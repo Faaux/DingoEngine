@@ -104,7 +104,9 @@ include_directories(include ${THIRD_PARTY_INCLUDES})
 set (SOURCE_FILES 	src/main.cpp
 					src/DG_Job.cpp
 					src/DG_SDLHelper.cpp
-					src/DG_Camera.cpp)
+					src/DG_Camera.cpp
+					src/DG_InputSystem.cpp
+					)
 
 #Header Files
 set (HEADER_FILES	include/DG_Job.h
@@ -116,6 +118,7 @@ set (HEADER_FILES	include/DG_Job.h
 					include/DG_Primitives.h
 					include/DG_Shader.h
 					include/DG_Transform.h
+					include/DG_InputSystem.h
 					)
 
 #Shader Files

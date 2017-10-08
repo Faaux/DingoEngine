@@ -7,6 +7,7 @@
 #include "DG_Shader.h"
 #include "DG_Mesh.h"
 #include "DG_Camera.h"
+#include "DG_InputSystem.h"
 
 namespace DG
 {
@@ -92,7 +93,6 @@ namespace DG
 		return true;
 	}
 
-
 	bool InitWorkerThreads()
 	{
 		// Register Main Thread
@@ -104,34 +104,6 @@ namespace DG
 			JobSystem::CreateAndRegisterWorker();
 		}
 		return true;
-	}
-
-	void PollEvents()
-	{
-		SDL_Event event;
-		while (SDL_PollEvent(&event))
-		{
-			if (event.type == SDL_QUIT)
-			{
-				GameIsRunning = false;
-			}
-			else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
-			{
-				// Key input!
-			}
-			else if (event.type == SDL_TEXTINPUT)
-			{
-				// Some text input
-			}
-			else if (event.type == SDL_WINDOWEVENT)
-			{
-				if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-				{
-					// Resize Window and rebuild render pipeline
-				}
-			}
-
-		}
 	}
 
 	void Cleanup()
@@ -188,15 +160,15 @@ int main(int, char*[])
 	Camera camera;
 	Shader shader(FileInShader(vertex_shader.vs), FileInShader(fragment_shader.fs));
 	Cube cube;
-
+	InputSystem inputSystem;
 	// Enable Depthtesting
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	while (GameIsRunning)
+	while (!inputSystem.IsQuitRequested())
 	{
 		// Needs to happen on the main thread
-		PollEvents();
+		inputSystem.Update();
 		lastTime = currentTime;
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
@@ -228,6 +200,7 @@ int main(int, char*[])
 
 		LastFrameData = CurrentFrameData;
 		CurrentFrameData = FrameData();
+		SDL_Delay(3000);
 	}
 
 
