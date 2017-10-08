@@ -10,6 +10,14 @@
 
 namespace DG
 {
+	struct FrameData
+	{
+		std::vector<Cube> renderQueue;
+	};
+
+	FrameData LastFrameData;
+	FrameData CurrentFrameData;
+
 	bool GameIsRunning = true;
 	bool IsWireframe = false;
 	SDL_Window* Window;
@@ -132,10 +140,14 @@ namespace DG
 		LogCleanup();
 	}
 
-	SDL_atomic_t work;
-	void empty_work(Job* job, const void * idx)
+	
+	void UpdateOneFrame(Job* job, const void * data)
 	{
-		SDL_AtomicAdd(&work, 1);
+		Cube *cube = ((Cube**)data)[0];
+		cube->transform.rot.y += 0.01f;
+		cube->transform.rot.x += 0.01f;
+
+		CurrentFrameData.renderQueue.push_back(*cube);
 	}
 }
 
@@ -168,14 +180,6 @@ int main(int, char*[])
 	u64 currentTime = SDL_GetPerformanceCounter();
 	u64 cpuFrequency = SDL_GetPerformanceFrequency();
 
-	/*SDL_Log("Output example");
-	SDL_LogVerbose(0,"Verbose Logging");
-	SDL_LogDebug(0, "Debug Logging");
-	SDL_LogInfo(0, "Info Logging");
-	SDL_LogWarn(0, "Warn Logging");
-	SDL_LogError(0, "Error Logging");
-	SDL_LogCritical(0, "Critical Logging");*/
-
 	SDL_Log("----- Hardware Information -----");
 	SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
 	SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
@@ -191,26 +195,39 @@ int main(int, char*[])
 
 	while (GameIsRunning)
 	{
+		// Needs to happen on the main thread
 		PollEvents();
 		lastTime = currentTime;
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
 
+		// Start Update of frame N
+		Job* frameJob = JobSystem::CreateJob(UpdateOneFrame);
+		*(Cube**)(frameJob->data) = &cube;
+		JobSystem::Run(frameJob);
+
+		// Render Frame N-1
 		glClearColor(0.7f, 0.3f, 0.6f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		cube.transform.rot.y += 0.01f;
-		cube.transform.rot.x += 0.01f;
-		shader.bind();
-		shader.update(camera, cube);
-		cube.draw();
+		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));		
+		shader.bind();		
+
+		for(Cube& render_cube : LastFrameData.renderQueue)
+		{
+			shader.update(camera, render_cube);
+			render_cube.draw();
+		}
 
 		// Wireframe 
 		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_LINE : GL_FILL);
 		SDL_GL_SwapWindow(Window);
 
+		JobSystem::Wait(frameJob);
 		currentFrame++;
+
+		LastFrameData = CurrentFrameData;
+		CurrentFrameData = FrameData();
 	}
 
 

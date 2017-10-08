@@ -114,6 +114,11 @@ namespace DG
 		}		
 	}
 
+	bool Job::CheckIsDone()
+	{
+		return SDL_AtomicGet(&unfinishedJobs) == 0;
+	}
+
 	Job* JobSystem::CreateJob(JobFunction function)
 	{
 		u32 index = LocalJobBufferIndex & JOB_MASK;
@@ -149,7 +154,7 @@ namespace DG
 	void JobSystem::Wait(Job* job)
 	{
 		// wait until the job has completed. in the meantime, work on any other job.
-		while (SDL_AtomicGet(&job->unfinishedJobs) != 0)
+		while (!job->CheckIsDone())
 		{
 			Job* jobToBeDone = LocalQueue.GetJob();
 			if (jobToBeDone)
@@ -191,10 +196,13 @@ namespace DG
 		return true;
 	}
 
-	int JobSystem::JobQueueWorkerFunction(void* data)
+	void JobSystem::RunCurrentThreadAsWorker()
 	{
-		if (!RegisterWorker())
-			return -1;
+		RunWorker();
+	}
+
+	void JobSystem::RunWorker()
+	{
 		while (!g_JobQueueShutdownRequested)
 		{
 			Job* job = LocalQueue.GetJob();
@@ -210,6 +218,13 @@ namespace DG
 				SDL_UnlockMutex(_mutex);
 			}
 		}
+	}
+
+	int JobSystem::JobQueueWorkerFunction(void* data)
+	{
+		if (!RegisterWorker())
+			return -1;
+		RunWorker();
 		return 0;
 	}
 }

@@ -14,7 +14,7 @@ namespace DG
 
 	public:
 
-		Primitive() 
+		Primitive()
 		{
 		};
 		virtual ~Primitive() {};
@@ -32,6 +32,13 @@ namespace DG
 	class Cube : public Primitive
 	{
 	public:
+		Cube(const Cube &obj)
+		{
+			VAO = obj.VAO;
+			VBO_points = obj.VBO_points;
+			VBO_colors = obj.VBO_colors;
+			transform = obj.transform;
+		}
 
 		Cube()
 		{

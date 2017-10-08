@@ -15,6 +15,7 @@ namespace DG
 		Job *parent;
 		SDL_atomic_t unfinishedJobs{ 0 };
 		char data[44]; // Padded to be 64 byte in size!
+		bool CheckIsDone();
 	};
 	static_assert((sizeof(Job::function) + sizeof(Job::parent) + sizeof(Job::unfinishedJobs) + sizeof(Job::data)) == 64, "sizeof(Job) needs to be a multiple of 64Bytes");
 
@@ -31,6 +32,8 @@ namespace DG
 		static void CreateAndRegisterWorker();
 		static bool RegisterWorker();
 		
+		static void RunCurrentThreadAsWorker();
+
 		class JobWorkQueue
 		{
 			friend class JobSystem;
@@ -52,6 +55,7 @@ namespace DG
 		};
 
 	private:
+		static void RunWorker();
 		static int JobQueueWorkerFunction(void *data);
 	};
 }
