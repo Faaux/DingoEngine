@@ -1,4 +1,3 @@
-#define RCR_EXPORT
 #include "DG_Profiler.h"
 
 #include <map>
@@ -48,6 +47,7 @@ namespace DG
 		static DebugEvent frameStartEvent(0, 0, "", Error);
 
 		static bool isFirst = true;
+#if 0
 		fprintf(output_stream,
 			"%s{\"name\": \"%s\", \"ph\": \"%s\", \"pid\": 0, \"tid\": %i, \"ts\": %f}\n",
 			isFirst ? "" : ",",
@@ -55,6 +55,7 @@ namespace DG
 			event.Type == FrameStart || event.Type == Start ? "B" : "E",
 			event.ThreadId,
 			event.Clock * 1000000 / profiler._processor_frequency);
+#endif
 
 		isFirst = false;
 		if (event.Type == FrameStart)
