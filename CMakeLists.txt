@@ -106,6 +106,7 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_SDLHelper.cpp
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
+					src/DG_Profiler.cpp
 					)
 
 #Header Files
@@ -119,6 +120,7 @@ set (HEADER_FILES	include/DG_Job.h
 					include/DG_Shader.h
 					include/DG_Transform.h
 					include/DG_InputSystem.h
+					include/DG_Profiler.h
 					)
 
 #Shader Files

@@ -1,4 +1,7 @@
 #include <SDL.h>
+#include <stdio.h>
+#include <time.h>
+
 #include "DG_Include.h"
 #include "DG_SDLHelper.h"
 #include "DG_Job.h"
@@ -8,6 +11,7 @@
 #include "DG_Mesh.h"
 #include "DG_Camera.h"
 #include "DG_InputSystem.h"
+#include "DG_Profiler.h"
 
 namespace DG
 {
@@ -22,6 +26,41 @@ namespace DG
 	bool GameIsRunning = true;
 	bool IsWireframe = false;
 	SDL_Window* Window;
+
+#define LOGNAME_FORMAT "%Y%m%d_%H%M%S_Profiler.txt"
+#define LOGNAME_SIZE 30
+
+	FILE* logfile()
+	{
+		static char name[LOGNAME_SIZE];
+		time_t now = time(0);
+		strftime(name, sizeof(name), LOGNAME_FORMAT, localtime(&now));
+		FILE* result = fopen(name, "w");
+		return result;
+	}
+
+	int DoProfilerWork(void*)
+	{
+		SDL_sem *sem = nullptr;
+		FILE * pFile;
+		pFile = logfile();
+		fprintf(pFile, "[");
+		while (GameIsRunning)
+		{
+			if (sem)
+				SDL_SemWait(sem);
+			ProfilerWork(&sem, pFile);
+		}
+		int result = 0;
+		while(result == 0)
+		{
+			result = ProfilerWork(&sem, pFile);
+		}
+		fprintf(pFile, "]");
+		fclose(pFile);
+
+		return 0;
+	}
 
 	bool InitSDL()
 	{
@@ -95,6 +134,9 @@ namespace DG
 
 	bool InitWorkerThreads()
 	{
+		// Init Profiler Thread
+		SDL_Thread* profilerThread = SDL_CreateThread(DoProfilerWork, "Profiler", nullptr);
+
 		// Register Main Thread
 		JobSystem::RegisterWorker();
 
@@ -112,7 +154,7 @@ namespace DG
 		LogCleanup();
 	}
 
-	
+
 	void UpdateOneFrame(Job* job, const void * data)
 	{
 		Cube *cube = ((Cube**)data)[0];
@@ -120,6 +162,13 @@ namespace DG
 		cube->transform.rot.x += 0.01f;
 
 		CurrentFrameData.renderQueue.push_back(*cube);
+	}
+
+	SDL_atomic_t work;
+	void empty_work(Job* job, const void * idx)
+	{
+		TIMED_FUNCTION();
+		SDL_AtomicAdd(&work, 1);
 	}
 }
 
@@ -167,12 +216,14 @@ int main(int, char*[])
 
 	while (!inputSystem.IsQuitRequested())
 	{
+		FRAME_START()
 		// Needs to happen on the main thread
 		inputSystem.Update();
 		lastTime = currentTime;
 		currentTime = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<r32>(currentTime - lastTime) * 1000.f / static_cast<r32>(cpuFrequency);
-
+		SDL_Log("%f", deltaTime);
+		BEGIN_BLOCK("TEST");
 		// Start Update of frame N
 		Job* frameJob = JobSystem::CreateJob(UpdateOneFrame);
 		*(Cube**)(frameJob->data) = &cube;
@@ -182,10 +233,24 @@ int main(int, char*[])
 		glClearColor(0.7f, 0.3f, 0.6f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));		
-		shader.bind();		
 
-		for(Cube& render_cube : LastFrameData.renderQueue)
+		if (currentFrame % 1000 == 0)
+			SDL_Log("Current Frame: %i", currentFrame);
+
+		Job* firstJob = JobSystem::CreateJob(&empty_work);
+		for (int i = 0; i < 100; ++i)
+		{
+			Job* job = JobSystem::CreateJobAsChild(firstJob, &empty_work);
+			JobSystem::Run(job);
+		}
+		JobSystem::Run(firstJob);
+		JobSystem::Wait(firstJob);
+
+
+		camera.setView(glm::vec3(0.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		shader.bind();
+
+		for (Cube& render_cube : LastFrameData.renderQueue)
 		{
 			shader.update(camera, render_cube);
 			render_cube.draw();
@@ -194,17 +259,21 @@ int main(int, char*[])
 		// Wireframe 
 		glPolygonMode(GL_FRONT_AND_BACK, IsWireframe ? GL_LINE : GL_FILL);
 		SDL_GL_SwapWindow(Window);
-
+		END_BLOCK();
 		JobSystem::Wait(frameJob);
 		currentFrame++;
 
 		LastFrameData = CurrentFrameData;
 		CurrentFrameData = FrameData();
+		FRAME_END()
 	}
+	GameIsRunning = false;
 
 
 	g_JobQueueShutdownRequested = true;
 	Cleanup();
+
+	
 
 	return 0;
 }
