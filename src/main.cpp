@@ -166,10 +166,7 @@ void Cleanup()
 
 void Update(r32 dtSeconds)
 {
-    g_DebugDrawManager.AddTriangle(vec3(0.0f, 0.5f, 0.0f), vec3(0.5f, -0.5f, 0.0f),
-                                   vec3(-0.5f, -0.5f, 0.0f), Color(1, 0, 0, 1));
-    g_DebugDrawManager.AddTriangle(vec3(0.0f, 1.5f, 0.0f), vec3(0.5f, 0.5f, 0.0f),
-                                   vec3(-0.5f, 0.5f, 0.0f), Color(1, 0, 0, 1));
+    g_DebugDrawManager.AddCircle(vec3(0, -1, 0), normalize(vec3(0, 1, 1)), Color(1));
 }
 
 }  // namespace DG
@@ -206,7 +203,7 @@ int main(int, char* [])
     GraphicsSystem graphicsSystem(Window);
 
     // ToDo: Remove
-    Camera camera(vec3(0, 2, -3));
+    Camera camera(vec3(0, 0, -3));
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -232,8 +229,8 @@ int main(int, char* [])
         Update(dtSeconds);
 
         // Other Logic
-        graphicsSystem.Render(camera, g_CurrentRenderContext);
-        g_CurrentRenderContext.ResetRenderContext();
+        graphicsSystem.Render(camera, g_CurrentRenderContext, g_CurrentDebugRenderContext);
+        g_CurrentDebugRenderContext.Reset();
         currentFrame++;
 
         LastFrameData = CurrentFrameData;
