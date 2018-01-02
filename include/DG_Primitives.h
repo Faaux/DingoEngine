@@ -1,9 +1,5 @@
-#ifndef PRIMITIVES_H
-#define PRIMITIVES_H
-
+#pragma once
 #include <GL/glew.h>
-
-
 
 namespace DG
 {
@@ -101,5 +97,4 @@ namespace DG
 	};
 
 }
-#endif
 

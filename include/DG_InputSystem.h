@@ -3,37 +3,38 @@
 
 namespace DG
 {
-	class Key
-	{
-		friend class InputSystem;
-	public:
-		bool isDown() const;
-		bool isUp() const;
-		int wasPressed() const;
-		int wasReleased() const;
+class Key
+{
+    friend class InputSystem;
 
-	private:
-		void Reset();
+   public:
+    bool isDown() const;
+    bool isUp() const;
+    int wasPressed() const;
+    int wasReleased() const;
 
-		bool _wasPressed = false;
-		bool _wasReleased = false;
-		bool _isDown = false;
-	};
+   private:
+    void Reset();
 
-	class InputSystem
-	{
-	public:
-		void Update();
+    bool _wasPressed = false;
+    bool _wasReleased = false;
+    bool _isDown = false;
+};
 
-		bool IsQuitRequested() const;
+class InputSystem
+{
+   public:
+    void Update();
 
-		Key operator [](int i) const { return _keys[i]; }
-		Key& operator [](int i) { return _keys[i]; }
-	private:
-		char _textInput[SDL_TEXTINPUTEVENT_TEXT_SIZE];
-		bool _quitRequested = false;
+    bool IsQuitRequested() const;
 
-		Key _keys[SDL_NUM_SCANCODES];
-		
-	};
-}
+    Key operator[](int i) const { return _keys[i]; }
+    Key& operator[](int i) { return _keys[i]; }
+
+   private:
+    char _textInput[SDL_TEXTINPUTEVENT_TEXT_SIZE];
+    bool _quitRequested = false;
+
+    Key _keys[SDL_NUM_SCANCODES];
+};
+}  // namespace DG

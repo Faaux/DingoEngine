@@ -1,44 +1,34 @@
-#ifndef TRANSFORM_H
-#define TRANSFORM_H
-
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <iostream>
+#pragma once
+#include "DG_Include.h"
 
 namespace DG
 {
-	class Transform
-	{
-	public:
-		Transform(const glm::vec3& p = glm::vec3(), const glm::vec3& r = glm::vec3(), const glm::vec3& s = glm::vec3(1, 1, 1)) :
-			pos(p),
-			rot(r),
-			scale(s)
-		{
-		};
+class Transform
+{
+   public:
+    Transform(const vec3& p = vec3(), const vec3& r = vec3(), const vec3& s = vec3(1, 1, 1))
+        : pos(p), rot(r), scale(s){};
 
-		glm::mat4 getModel() const {
-			glm::mat4 posMatrix = glm::translate(pos);
-			glm::mat4 rotXMatrix = glm::rotate(rot.x, glm::vec3(1, 0, 0));
-			glm::mat4 rotYMatrix = glm::rotate(rot.y, glm::vec3(0, 1, 0));
-			glm::mat4 rotZMatrix = glm::rotate(rot.z, glm::vec3(0, 0, 1));
-			glm::mat4 scaleMatrix = glm::scale(scale);
-			glm::mat4 rotMatrix = rotZMatrix * rotYMatrix * rotXMatrix;
-			return posMatrix * rotMatrix * scaleMatrix;
-		}
+    mat4 getModel() const
+    {
+        // ToDo: Cache this?
+        mat4 posMatrix = translate(pos);
+        mat4 rotXMatrix = rotate(rot.x, vec3(1, 0, 0));
+        mat4 rotYMatrix = rotate(rot.y, vec3(0, 1, 0));
+        mat4 rotZMatrix = rotate(rot.z, vec3(0, 0, 1));
+        mat4 scaleMatrix = glm::scale(scale);
+        mat4 rotMatrix = rotZMatrix * rotYMatrix * rotXMatrix;
+        return posMatrix * rotMatrix * scaleMatrix;
+    }
 
-		glm::vec3& getPos() { return pos; }
-		glm::vec3& getRot() { return rot; }
-		glm::vec3& getScale() { return scale; }
+    vec3& getPos() { return pos; }
+    vec3& getRot() { return rot; }
+    vec3& getScale() { return scale; }
 
-		glm::vec3 pos;
-		glm::vec3 rot;
-		glm::vec3 scale;
+    vec3 pos;
+    vec3 rot;
+    vec3 scale;
 
-
-
-	private:
-	};
-}
-
-#endif // !TRANSFORM_H
+   private:
+};
+}  // namespace DG
