@@ -164,7 +164,13 @@ void Cleanup()
     LogCleanup();
 }
 
-void Update(r32 dtSeconds) {}
+void Update(r32 dtSeconds)
+{
+    g_DebugDrawManager.AddTriangle(vec3(0.0f, 0.5f, 0.0f), vec3(0.5f, -0.5f, 0.0f),
+                                   vec3(-0.5f, -0.5f, 0.0f), Color(1, 0, 0, 1));
+    g_DebugDrawManager.AddTriangle(vec3(0.0f, 1.5f, 0.0f), vec3(0.5f, 0.5f, 0.0f),
+                                   vec3(-0.5f, 0.5f, 0.0f), Color(1, 0, 0, 1));
+}
 
 }  // namespace DG
 
@@ -197,7 +203,10 @@ int main(int, char* [])
     u64 currentFrame = 1;
 
     InputSystem inputSystem;
-    GraphicsSystem graphicsSystem;
+    GraphicsSystem graphicsSystem(Window);
+
+    // ToDo: Remove
+    Camera camera(vec3(0, 2, -3));
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -215,7 +224,7 @@ int main(int, char* [])
         if (dtSeconds > 2.0f)
             dtSeconds = 1.0f / TargetFrameRate;
 
-        SDL_Log("%.3f ms", dtSeconds * 1000.f);
+        // SDL_Log("%.3f ms", dtSeconds * 1000.f);
         g_RealTimeClock.Update(dtSeconds);
         g_InGameClock.Update(dtSeconds);
 
@@ -223,7 +232,8 @@ int main(int, char* [])
         Update(dtSeconds);
 
         // Other Logic
-        SDL_GL_SwapWindow(Window);
+        graphicsSystem.Render(camera, g_CurrentRenderContext);
+        g_CurrentRenderContext.ResetRenderContext();
         currentFrame++;
 
         LastFrameData = CurrentFrameData;
