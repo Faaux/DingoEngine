@@ -1,6 +1,7 @@
 #include "DG_InputSystem.h"
 #include <cstring>
 #include "DG_Include.h"
+#include "imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
@@ -30,6 +31,7 @@ void InputSystem::Update()
     u32 currentIndex = 0;
     while (SDL_PollEvent(&event))
     {
+        ImGui_ImplSdlGL3_ProcessEvent(&event);
         if (event.type == SDL_QUIT)
         {
             _quitRequested = true;

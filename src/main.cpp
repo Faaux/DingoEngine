@@ -13,6 +13,7 @@
 #include "DG_Mesh.h"
 #include "DG_Profiler.h"
 #include "DG_Shader.h"
+#include "imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
@@ -26,6 +27,7 @@ FrameData CurrentFrameData;
 bool GameIsRunning = true;
 bool IsWireframe = false;
 SDL_Window* Window;
+SDL_GLContext GLContext;
 
 #define LOGNAME_FORMAT "%Y%m%d_%H%M%S_Profiler.txt"
 #define LOGNAME_SIZE 30
@@ -111,8 +113,8 @@ bool InitOpenGL()
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
     // Create context
-    SDL_GLContext gContext = SDL_GL_CreateContext(Window);
-    if (gContext == NULL)
+    GLContext = SDL_GL_CreateContext(Window);
+    if (GLContext == NULL)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO,
                         "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
@@ -142,6 +144,13 @@ bool InitOpenGL()
     return true;
 }
 
+bool InitImgui()
+{
+    ImGui_ImplSdlGL3_Init(Window);
+    ImGui::StyleColorsDark();
+    return true;
+}
+
 bool InitWorkerThreads()
 {
     // Init Profiler Thread
@@ -160,6 +169,8 @@ bool InitWorkerThreads()
 
 void Cleanup()
 {
+    ImGui_ImplSdlGL3_Shutdown();
+    SDL_GL_DeleteContext(GLContext);
     SDL_Quit();
     LogCleanup();
 }
@@ -183,6 +194,9 @@ int main(int, char* [])
         return -1;
 
     if (!InitOpenGL())
+        return -1;
+
+    if (!InitImgui())
         return -1;
 
     if (!InitWorkerThreads())

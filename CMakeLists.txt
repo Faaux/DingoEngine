@@ -87,10 +87,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 			glew
 		)
 		
+	## IMGUI
+		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
+									ThirdParty/imgui/imgui_draw.cpp)
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
 									ThirdParty/glm
-									ThirdParty/glew/include)
+									ThirdParty/glew/include
+									ThirdParty/imgui)
 		
 		
 		set(THIRD_PARTY_LIBS 		${SDL_LIBS}
@@ -109,6 +113,7 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_Profiler.cpp
 					src/DG_Clock.cpp
 					src/DG_GraphicsSystem.cpp
+					src/imgui_impl_sdl_gl3.cpp
 					)
 
 #Header Files
@@ -125,6 +130,7 @@ set (HEADER_FILES	include/DG_Job.h
 					include/DG_Profiler.h
 					include/DG_Clock.h
 					include/DG_GraphicsSystem.h
+					include/imgui_impl_sdl_gl3.h
 					)
 
 #Shader Files
@@ -132,7 +138,7 @@ set(SHADERS shaders/fragment_shader.fs
 			shaders/vertex_shader.vs)	
 
 #Executable
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} ${SHADERS})
+add_executable(${PROJECT_NAME} ${IMGUI_SOURCE_FILES} ${SOURCE_FILES} ${HEADER_FILES} ${SHADERS})
 source_group("shaders" FILES ${SHADERS})
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS})
 target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LIST_DIR})

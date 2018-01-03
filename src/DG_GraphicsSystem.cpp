@@ -1,4 +1,5 @@
 #include "DG_GraphicsSystem.h"
+#include "imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
@@ -72,13 +73,24 @@ inline void CheckGLError(const char* file, const int line)
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
-    glClearColor(0.7f, 0.3f, 0.6f, 1.f);
+    static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
+
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPolygonMode(GL_FRONT_AND_BACK, context.IsWireframe() ? GL_LINE : GL_FILL);
 
+    ImGui_ImplSdlGL3_NewFrame(_window);
+
+    ImGui::ColorEdit3("clear color",
+                      reinterpret_cast<r32*>(&clearColor));  // Edit 3 floats as a color
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                ImGui::GetIO().Framerate);
+
     // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
+    ImGui::Render();
 
     SDL_GL_SwapWindow(_window);
 }

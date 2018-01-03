@@ -1,6 +1,6 @@
-prefix=C:/Users/Faaux/CMakeBuilds/95170066-4438-7e33-a713-b518eb9e0d6c/install/x64-Debug
+prefix=C:/Program Files/DingoEngine
 exec_prefix=${prefix}
-libdir=C:/Users/Faaux/CMakeBuilds/95170066-4438-7e33-a713-b518eb9e0d6c/install/x64-Debug/lib
+libdir=C:/Program Files/DingoEngine/lib
 includedir=${prefix}/include
 
 Name: glew
