@@ -175,9 +175,9 @@ void Cleanup()
     LogCleanup();
 }
 
-void Update(r32 dtSeconds)
+void Update(f32 dtSeconds)
 {
-    g_DebugDrawManager.AddCircle(vec3(0, -1, 0), normalize(vec3(0, 1, 1)), Color(1));
+    g_DebugDrawManager.AddCircle(glm::vec3(0, -1, 0), glm::normalize(glm::vec3(0, 1, 1)), Color(1));
 }
 
 }  // namespace DG
@@ -208,8 +208,8 @@ int main(int, char* [])
     SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
     u64 currentTime = SDL_GetPerformanceCounter();
-    r32 cpuFrequency = static_cast<r32>(SDL_GetPerformanceFrequency());
-    r32 dtSeconds;
+    f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
+    f32 dtSeconds;
     u64 lastTime;
     u64 currentFrame = 1;
 
@@ -217,7 +217,7 @@ int main(int, char* [])
     GraphicsSystem graphicsSystem(Window);
 
     // ToDo: Remove
-    Camera camera(vec3(0, 0, -3));
+    Camera camera(glm::vec3(0, 0, -3));
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -229,7 +229,7 @@ int main(int, char* [])
         // Measure time and update clocks!
         lastTime = currentTime;
         currentTime = SDL_GetPerformanceCounter();
-        dtSeconds = static_cast<r32>(currentTime - lastTime) / cpuFrequency;
+        dtSeconds = static_cast<f32>(currentTime - lastTime) / cpuFrequency;
 
         // This usually happens once we hit a breakpoint when debugging
         if (dtSeconds > 2.0f)

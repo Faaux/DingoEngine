@@ -5,24 +5,24 @@ Clock g_RealTimeClock;
 Clock g_InGameClock;
 Clock g_AnimationClock;
 
-r32 Clock::_cyclesPerSecond;
+f32 Clock::_cyclesPerSecond;
 
-void Clock::Init() { _cyclesPerSecond = (r32)SDL_GetPerformanceFrequency(); }
+void Clock::Init() { _cyclesPerSecond = (f32)SDL_GetPerformanceFrequency(); }
 
-Clock::Clock(r32 startTime)
+Clock::Clock(f32 startTime)
     : _timeCycles(SecondsToCycles(startTime)), _timeScale(1.0f), _isPaused(false)
 {
 }
 
 u64 Clock::GetTimeCycles() const { return _timeCycles; }
 
-r32 Clock::CalcDeltaSeconds(const Clock& other) const
+f32 Clock::CalcDeltaSeconds(const Clock& other) const
 {
     u64 dt = _timeCycles - other._timeCycles;
     return CyclesToSeconds(dt);
 }
 
-void Clock::Update(r32 dtRealSeconds)
+void Clock::Update(f32 dtRealSeconds)
 {
     if (!_isPaused)
     {
@@ -35,9 +35,9 @@ void Clock::SetPaused(bool wantPaused) { _isPaused = wantPaused; }
 
 bool Clock::IsPaused() const { return _isPaused; }
 
-void Clock::SetTimeScale(r32 wantedTimeScale) { _timeScale = wantedTimeScale; }
+void Clock::SetTimeScale(f32 wantedTimeScale) { _timeScale = wantedTimeScale; }
 
-r32 Clock::GetTimeScale() const { return _timeScale; }
+f32 Clock::GetTimeScale() const { return _timeScale; }
 
 void Clock::SingleStep()
 {
@@ -48,9 +48,9 @@ void Clock::SingleStep()
     }
 }
 
-u64 inline Clock::SecondsToCycles(r32 seconds) { return (u64)(seconds * _cyclesPerSecond); }
+u64 inline Clock::SecondsToCycles(f32 seconds) { return (u64)(seconds * _cyclesPerSecond); }
 
-r32 Clock::CyclesToSeconds(u64 cycles) { return (r32)(cycles / _cyclesPerSecond); }
+f32 Clock::CyclesToSeconds(u64 cycles) { return (f32)(cycles / _cyclesPerSecond); }
 
 void InitClocks()
 {

@@ -5,7 +5,6 @@
 
 namespace DG
 {
-using namespace glm;
 #define Assert(predicate) SDL_assert(predicate)
 #define BUFFER_OFFSET(i) ((char *)0 + (i))
 #define ArrayCount(arr) ((sizeof(arr)) / (sizeof(arr[0])))
@@ -31,12 +30,12 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef float r32;
-typedef double r64;
+typedef float f32;
+typedef double f64;
 
-typedef vec4 Color;
+typedef glm::vec4 Color;
 
-const r32 PI = 3.14159265358979323846f;
-const r32 PI_2 = 1.57079632679489661923f;
-const r32 TargetFrameRate = 60.0f;
+const f32 PI = 3.14159265358979323846f;
+const f32 PI_2 = 1.57079632679489661923f;
+const f32 TargetFrameRate = 60.0f;
 }  // namespace DG
