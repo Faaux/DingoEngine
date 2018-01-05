@@ -178,6 +178,11 @@ void Cleanup()
 void Update(f32 dtSeconds)
 {
     g_DebugDrawManager.AddCircle(vec3(0, -1, 0), normalize(vec3(0, 1, 1)), Color(1));
+    for (int i = 0; i < 100; ++i)
+    {
+        g_DebugDrawManager.AddSphere(vec3(i * 0.01f), Color(1));
+    }
+    g_DebugDrawManager.AddSphere(vec3(100 * 0.01f), Color(1,0,0,0));
 }
 
 }  // namespace DG

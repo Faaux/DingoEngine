@@ -69,6 +69,8 @@ class DebugRenderSystem
     void RenderDebugLines(const Camera &camera, bool depthEnabled,
                           const std::vector<DebugLine> &lines) const;
 
+    void RenderDebugLines(const Camera &camera, bool depthEnabled, const std::vector<DebugLine>::iterator iterator);
+
     GLuint linePointVAO = -1;
     GLuint linePointVBO = -1;
     GLuint linePointProgram = -1;
@@ -91,9 +93,9 @@ class GraphicsSystem
 class DebugDrawManager
 {
    public:
-    enum
+    enum : size_t
     {
-        DebugDrawMaxLineSize = 3000
+        DebugDrawBufferSize = 3000
     };
     void AddLine(const vec3 &fromPosition, const vec3 &toPosition, Color color,
                  f32 lineWidth = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);

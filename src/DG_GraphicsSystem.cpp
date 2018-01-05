@@ -136,7 +136,7 @@ void DebugRenderSystem::SetupVertexBuffers()
 
     // RenderInterface will never be called with a batch larger than
     // DEBUG_DRAW_VERTEX_BUFFER_SIZE vertexes, so we can allocate the same amount here.
-    glBufferData(GL_ARRAY_BUFFER, DebugDrawManager::DebugDrawMaxLineSize * sizeof(DebugLine),
+    glBufferData(GL_ARRAY_BUFFER, DebugDrawManager::DebugDrawBufferSize * sizeof(DebugLine),
                  nullptr, GL_STREAM_DRAW);
     CheckGLError(__FILE__, __LINE__);
 
@@ -247,17 +247,12 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     if (lines.empty())
         return;
 
-    Assert(lines.size() <= DebugDrawManager::DebugDrawMaxLineSize);
-
     auto mvp = camera.getProjection() * camera.getView();
 
     glBindVertexArray(linePointVAO);
     glUseProgram(linePointProgram);
 
     glUniformMatrix4fv(linePointProgram_MvpMatrixLocation, 1, GL_FALSE, &mvp[0][0]);
-
-    glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(DebugLine), lines.data());
 
     if (depthEnabled)
     {
@@ -268,13 +263,22 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
         glDisable(GL_DEPTH_TEST);
     }
 
-    // Issue the draw call:
-    for (size_t i = 0; i < lines.size(); i++)
+    glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
+
+    auto size_left = lines.size();
+    auto size_drawn = 0;
+    while (size_left != 0)
     {
-        glDrawArrays(GL_LINES, i * 2, 2);
+        const auto size_to_draw = size_left > DebugDrawManager::DebugDrawBufferSize
+                                      ? DebugDrawManager::DebugDrawBufferSize
+                                      : size_left;
+        glBufferSubData(GL_ARRAY_BUFFER, 0, size_to_draw * sizeof(DebugLine),
+                        lines.data() + size_drawn);
+
+        glDrawArrays(GL_LINES, 0, size_to_draw * 2);
+        size_drawn += size_to_draw;
+        size_left -= size_to_draw;
     }
-    SDL_Log("Lines: %u", lines.size());
-    // glDrawArrays(GL_LINES, 0, lines.size() * 2);
 
     glUseProgram(0);
     glBindVertexArray(0);
