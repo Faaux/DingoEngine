@@ -177,7 +177,7 @@ void Cleanup()
 
 void Update(f32 dtSeconds)
 {
-    g_DebugDrawManager.AddCircle(glm::vec3(0, -1, 0), glm::normalize(glm::vec3(0, 1, 1)), Color(1));
+    g_DebugDrawManager.AddCircle(vec3(0, -1, 0), normalize(vec3(0, 1, 1)), Color(1));
 }
 
 }  // namespace DG
@@ -217,7 +217,7 @@ int main(int, char* [])
     GraphicsSystem graphicsSystem(Window);
 
     // ToDo: Remove
-    Camera camera(glm::vec3(0, 0, -3));
+    Camera camera(vec3(0, 0, -3));
 
     while (!inputSystem.IsQuitRequested())
     {

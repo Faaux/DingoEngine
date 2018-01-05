@@ -9,13 +9,13 @@ namespace DG
 {
 struct DebugPoint
 {
-    glm::vec3 position;
+    vec3 position;
     Color color;
 };
 
 struct DebugLine
 {
-    DebugLine(const glm::vec3 &vertex0, const glm::vec3 &vertex1, const Color &color)
+    DebugLine(const vec3 &vertex0, const vec3 &vertex1, const Color &color)
     {
         start.position = vertex0;
         start.color = color;
@@ -29,7 +29,7 @@ struct DebugLine
 class DebugRenderContext
 {
    public:
-    void AddLine(const glm::vec3 &vertex0, const glm::vec3 &vertex1, const Color &color, bool depthEnabled);
+    void AddLine(const vec3 &vertex0, const vec3 &vertex1, const Color &color, bool depthEnabled);
 
     void Reset();
     const std::vector<DebugLine> &GetDebugLines(bool depthEnabled) const;
@@ -95,28 +95,28 @@ class DebugDrawManager
     {
         DebugDrawMaxLineSize = 3000
     };
-    void AddLine(const glm::vec3 &fromPosition, const glm::vec3 &toPosition, Color color,
+    void AddLine(const vec3 &fromPosition, const vec3 &toPosition, Color color,
                  f32 lineWidth = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddCross(const glm::vec3 &position, Color color, f32 size = 1.0f, f32 lineWidth = 1.0f,
+    void AddCross(const vec3 &position, Color color, f32 size = 1.0f, f32 lineWidth = 1.0f,
                   float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddSphere(const glm::vec3 &centerPosition, Color color, f32 radius = 1.0f,
+    void AddSphere(const vec3 &centerPosition, Color color, f32 radius = 1.0f,
                    float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddCircle(const glm::vec3 &centerPosition, const glm::vec3 &planeNormal, Color color,
+    void AddCircle(const vec3 &centerPosition, const vec3 &planeNormal, Color color,
                    f32 radius = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddAxes(const Transform &transform, f32 size = 1.0f, f32 lineWidth = 1.0f,
                  float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddTriangle(const glm::vec3 &vertex0, const glm::vec3 &vertex1, const glm::vec3 &vertex2, Color color,
+    void AddTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2, Color color,
                      f32 lineWidth = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddAABB(const glm::vec3 &minCoords, const glm::vec3 &maxCoords, Color color, f32 lineWidth = 1.0f,
+    void AddAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color, f32 lineWidth = 1.0f,
                  float durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddString(const glm::vec3 &position, const char *text, Color color,
+    void AddString(const vec3 &position, const char *text, Color color,
                    float durationSeconds = 0.0f, bool depthEnabled = true);
 };
 

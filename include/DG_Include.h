@@ -33,7 +33,12 @@ typedef uint64_t u64;
 typedef float f32;
 typedef double f64;
 
-typedef glm::vec4 Color;
+typedef glm::vec4 vec4;
+typedef glm::vec3 vec3;
+typedef glm::vec2 vec2;
+typedef glm::mat4 mat4;
+    
+typedef vec4 Color;
 
 const f32 PI = 3.14159265358979323846f;
 const f32 PI_2 = 1.57079632679489661923f;

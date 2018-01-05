@@ -73,7 +73,7 @@ inline void CheckGLError(const char* file, const int line)
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
-    static Color clearColor(0.7f, 0.3f, 0.6f, 1.f);
+    static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
 
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -103,7 +103,7 @@ DebugRenderSystem::DebugRenderSystem()
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
 
-void DebugRenderContext::AddLine(const glm::vec3& vertex0, const glm::vec3& vertex1, const Color& color,
+void DebugRenderContext::AddLine(const vec3& vertex0, const vec3& vertex1, const Color& color,
                                  bool depthEnabled)
 {
     if (depthEnabled)
@@ -150,7 +150,7 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
         /* offset    = */ reinterpret_cast<void*>(offset));
-    offset += sizeof(glm::vec3);
+    offset += sizeof(vec3);
     glEnableVertexAttribArray(1);  // in_ColorPointSize (vec4)
     glVertexAttribPointer(
         /* index     = */ 1,
@@ -282,34 +282,34 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     CheckGLError(__FILE__, __LINE__);
 }
 
-void DebugDrawManager::AddLine(const glm::vec3& fromPosition, const glm::vec3& toPosition, Color color,
+void DebugDrawManager::AddLine(const vec3& fromPosition, const vec3& toPosition, Color color,
                                f32 lineWidth, float durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     g_CurrentDebugRenderContext.AddLine(fromPosition, toPosition, color, depthEnabled);
 }
 
-void DebugDrawManager::AddCross(const glm::vec3& position, Color color, f32 size, f32 lineWidth,
+void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32 lineWidth,
                                 float durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     f32 halfSize = size / 2.0f;
-    g_CurrentDebugRenderContext.AddLine(position - glm::vec3(halfSize, 0, 0),
-                                        position + glm::vec3(halfSize, 0, 0), color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(position - glm::vec3(0, halfSize, 0),
-                                        position + glm::vec3(0, halfSize, 0), color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(position - glm::vec3(0, 0, halfSize),
-                                        position + glm::vec3(0, 0, halfSize), color, depthEnabled);
+    g_CurrentDebugRenderContext.AddLine(position - vec3(halfSize, 0, 0),
+                                        position + vec3(halfSize, 0, 0), color, depthEnabled);
+    g_CurrentDebugRenderContext.AddLine(position - vec3(0, halfSize, 0),
+                                        position + vec3(0, halfSize, 0), color, depthEnabled);
+    g_CurrentDebugRenderContext.AddLine(position - vec3(0, 0, halfSize),
+                                        position + vec3(0, 0, halfSize), color, depthEnabled);
 }
 
-void DebugDrawManager::AddSphere(const glm::vec3& centerPosition, Color color, f32 radius,
+void DebugDrawManager::AddSphere(const vec3& centerPosition, Color color, f32 radius,
                                  float durationSeconds, bool depthEnabled)
 {
     // ToDo: Export these lines and just scale and move them appropriately, no need to calculate
     // each time
     static const int stepSize = 30;
-    glm::vec3 cache[360 / stepSize];
-    glm::vec3 radiusVec(0.0f, 0.0f, radius);
+    vec3 cache[360 / stepSize];
+    vec3 radiusVec(0.0f, 0.0f, radius);
 
     cache[0] = centerPosition + radiusVec;
 
@@ -318,7 +318,7 @@ void DebugDrawManager::AddSphere(const glm::vec3& centerPosition, Color color, f
         cache[n] = cache[0];
     }
 
-    glm::vec3 lastPoint, temp;
+    vec3 lastPoint, temp;
     for (int i = stepSize; i <= 180; i += stepSize)
     {
         const float rad = glm::radians(static_cast<f32>(i));
@@ -345,27 +345,27 @@ void DebugDrawManager::AddSphere(const glm::vec3& centerPosition, Color color, f
     }
 }
 
-void DebugDrawManager::AddCircle(const glm::vec3& centerPosition, const glm::vec3& planeNormal, Color color,
+void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNormal, Color color,
                                  f32 radius, float durationSeconds, bool depthEnabled)
 {
     // Find 2 orthogonal vectors (Orthogonal --> DotProduct is Zero)
-    glm::vec3 vecX(1.0f, -planeNormal.x / planeNormal.y, 0.0f);
-    glm::vec3 vecZ = cross(planeNormal, vecX) * radius;
+    vec3 vecX(1.0f, -planeNormal.x / planeNormal.y, 0.0f);
+    vec3 vecZ = cross(planeNormal, vecX) * radius;
 
     vecX *= radius;
     vecZ *= radius;
 
     static const int stepSize = 15;
-    glm::vec3 cache[360 / stepSize];
+    vec3 cache[360 / stepSize];
 
-    glm::vec3 lastPoint = centerPosition + vecZ;
+    vec3 lastPoint = centerPosition + vecZ;
     for (int i = stepSize; i <= 360; i += stepSize)
     {
         const float rad = glm::radians(static_cast<f32>(i));
         const float s = glm::sin(rad);
         const float c = glm::cos(rad);
 
-        glm::vec3 point = centerPosition + vecX * s + vecZ * c;
+        vec3 point = centerPosition + vecX * s + vecZ * c;
 
         g_CurrentDebugRenderContext.AddLine(lastPoint, point, color, depthEnabled);
         g_CurrentDebugRenderContext.AddLine(lastPoint, centerPosition, color, depthEnabled);
@@ -378,9 +378,9 @@ void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWid
                                float durationSeconds, bool depthEnabled)
 {
     auto modelMatrix = transform.getModel();
-    const glm::vec3 right(-modelMatrix[0]);
-    const glm::vec3 up(modelMatrix[1]);
-    const glm::vec3 forward(modelMatrix[2]);
+    const vec3 right(-modelMatrix[0]);
+    const vec3 up(modelMatrix[1]);
+    const vec3 forward(modelMatrix[2]);
     g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(right) * size,
                                         Color(1, 0, 0, lineWidth), depthEnabled);
     g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(up) * size,
@@ -389,7 +389,7 @@ void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWid
                                         Color(0, 0, 1, lineWidth), depthEnabled);
 }
 
-void DebugDrawManager::AddTriangle(const glm::vec3& vertex0, const glm::vec3& vertex1, const glm::vec3& vertex2,
+void DebugDrawManager::AddTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vertex2,
                                    Color color, f32 lineWidth, float durationSeconds,
                                    bool depthEnabled)
 {
@@ -401,12 +401,12 @@ void DebugDrawManager::AddTriangle(const glm::vec3& vertex0, const glm::vec3& ve
     // ToDo: Post event to message system if time is still valid for assumed next frame
 }
 
-void DebugDrawManager::AddAABB(const glm::vec3& minCoords, const glm::vec3& maxCoords, Color color,
+void DebugDrawManager::AddAABB(const vec3& minCoords, const vec3& maxCoords, Color color,
                                f32 lineWidth, float durationSeconds, bool depthEnabled)
 {
 }
 
-void DebugDrawManager::AddString(const glm::vec3& position, const char* text, Color color,
+void DebugDrawManager::AddString(const vec3& position, const char* text, Color color,
                                  float durationSeconds, bool depthEnabled)
 {
 }
