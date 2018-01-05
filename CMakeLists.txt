@@ -73,32 +73,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	## GLM
 		# Nothing needed just added the includes to THIRD_PARTY_INCLUDES
 		
-	## GLEW
-		set(BUILD_UTILS OFF CACHE BOOL "" FORCE)
-		add_subdirectory(ThirdParty/glew/build/cmake)
-		set_target_properties (glew PROPERTIES
-			FOLDER ThirdParty/glew
-		)
-		set_target_properties (glew_s PROPERTIES
-			FOLDER ThirdParty/glew
-		)
-		
-		set(GLEW_LIBS
-			glew
-		)
-		
 	## IMGUI
 		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
 									ThirdParty/imgui/imgui_draw.cpp)
+									
+	## GLAD
+		set (GLAD_SOURCE_FILES 		ThirdParty/glad/src/glad.c)
+									
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
 									ThirdParty/glm
-									ThirdParty/glew/include
+									ThirdParty/glad/include
 									ThirdParty/imgui)
 		
 		
-		set(THIRD_PARTY_LIBS 		${SDL_LIBS}
-									${GLEW_LIBS})
+		set(THIRD_PARTY_LIBS 		${SDL_LIBS})
 	
 
 # Includes
@@ -138,7 +127,7 @@ set(SHADERS shaders/fragment_shader.fs
 			shaders/vertex_shader.vs)	
 
 #Executable
-add_executable(${PROJECT_NAME} ${IMGUI_SOURCE_FILES} ${SOURCE_FILES} ${HEADER_FILES} ${SHADERS})
+add_executable(${PROJECT_NAME} ${GLAD_SOURCE_FILES} ${IMGUI_SOURCE_FILES} ${SOURCE_FILES} ${HEADER_FILES} ${SHADERS})
 source_group("shaders" FILES ${SHADERS})
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS})
 target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LIST_DIR})

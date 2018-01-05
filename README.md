@@ -4,16 +4,15 @@
 - Install CMAKE 3.9 (Add it to your PATH variable) https://cmake.org/download/
 
 #### For Windows:
-- Run init_win.bat
+- Run init_win.bat (CMAKE Shortcut)
 
 #### ToDo:
-- Vulkan (Primitives)
-  - Debug UI
+-  OpenGL
+  - Debug UI (IMGUI is in use, need system to do this in rendering phase)
+  - General Rendering
 - Memory Allocators
   - Pool Allocator
-- Entity Component System
-  - Handles
-  - Components
-  - System Dependency Tree
+  - Stack Allocator
 - Profiler (chrome://tracing)
 - HID
+- Replace GLAD Debug with GLAD (disable pre and post hooks to opengl calls)

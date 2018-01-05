@@ -52,23 +52,11 @@ inline const char* ErrorToString(const GLenum errorCode)
             return "GL_INVALID_OPERATION";
         case GL_OUT_OF_MEMORY:
             return "GL_OUT_OF_MEMORY";
-        case GL_STACK_UNDERFLOW:
-            return "GL_STACK_UNDERFLOW";  // Legacy; not used on GL3+
-        case GL_STACK_OVERFLOW:
-            return "GL_STACK_OVERFLOW";  // Legacy; not used on GL3+
         default:
             return "Unknown GL error";
     }  // switch (errorCode)
 }
 
-inline void CheckGLError(const char* file, const int line)
-{
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR)
-    {
-        SDL_LogError(0, "%s(%d) : GL_Error=0x%X - %s", file, line, err, ErrorToString(err));
-    }
-}
 
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
@@ -129,7 +117,6 @@ void DebugRenderSystem::SetupVertexBuffers()
 {
     glGenVertexArrays(1, &linePointVAO);
     glGenBuffers(1, &linePointVBO);
-    CheckGLError(__FILE__, __LINE__);
 
     glBindVertexArray(linePointVAO);
     glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
@@ -138,7 +125,6 @@ void DebugRenderSystem::SetupVertexBuffers()
     // DEBUG_DRAW_VERTEX_BUFFER_SIZE vertexes, so we can allocate the same amount here.
     glBufferData(GL_ARRAY_BUFFER, DebugDrawManager::DebugDrawBufferSize * sizeof(DebugLine),
                  nullptr, GL_STREAM_DRAW);
-    CheckGLError(__FILE__, __LINE__);
 
     size_t offset = 0;
 
@@ -159,8 +145,6 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
         /* offset    = */ reinterpret_cast<void*>(offset));
-
-    CheckGLError(__FILE__, __LINE__);
 
     // VAOs can be a pain in the neck if left enabled...
     glBindVertexArray(0);
@@ -190,17 +174,14 @@ void DebugRenderSystem::SetupShaders()
     {
         SDL_LogError(0, "Unable to get u_MvpMatrix uniform location!");
     }
-    CheckGLError(__FILE__, __LINE__);
 }
 
 void DebugRenderSystem::CompilerShader(const GLuint shader)
 {
     glCompileShader(shader);
-    CheckGLError(__FILE__, __LINE__);
 
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    CheckGLError(__FILE__, __LINE__);
 
     if (status == GL_FALSE)
     {
@@ -213,11 +194,9 @@ void DebugRenderSystem::CompilerShader(const GLuint shader)
 void DebugRenderSystem::LinkShaderProgram(const GLuint program)
 {
     glLinkProgram(program);
-    CheckGLError(__FILE__, __LINE__);
 
     GLint status;
     glGetProgramiv(program, GL_LINK_STATUS, &status);
-    CheckGLError(__FILE__, __LINE__);
 
     if (status == GL_FALSE)
     {
@@ -283,7 +262,6 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     glUseProgram(0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    CheckGLError(__FILE__, __LINE__);
 }
 
 void DebugDrawManager::AddLine(const vec3& fromPosition, const vec3& toPosition, Color color,
@@ -413,5 +391,14 @@ void DebugDrawManager::AddAABB(const vec3& minCoords, const vec3& maxCoords, Col
 void DebugDrawManager::AddString(const vec3& position, const char* text, Color color,
                                  float durationSeconds, bool depthEnabled)
 {
+}
+
+void CheckOpenGLError(const char* file, const int line)
+{
+    GLenum err;
+    while ((err = glad_glGetError()) != GL_NO_ERROR)
+    {
+        SDL_LogError(0, "%s(%d) : GL_Error=0x%X - %s", file, line, err, ErrorToString(err));
+    }
 }
 }  // namespace DG

@@ -1,5 +1,5 @@
 #pragma once
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <vector>
 #include "DG_Camera.h"
 #include "DG_Include.h"
@@ -123,4 +123,6 @@ class DebugDrawManager
 };
 
 extern DebugDrawManager g_DebugDrawManager;
+
+void CheckOpenGLError(const char* file, const int line);
 }  // namespace DG

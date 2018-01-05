@@ -1,6 +1,6 @@
 #include <SDL.h>
-#include <stdio.h>
-#include <time.h>
+#include <cstdio>
+#include <ctime>
 
 #include "DG_Include.h"
 #include "DG_Job.h"
@@ -99,6 +99,18 @@ bool InitWindow()
     return true;
 }
 
+#ifdef GLAD_DEBUG
+void pre_gl_call(const char* name, void* funcptr, int len_args, ...)
+{
+    printf("Calling: %s (%d arguments)\n", name, len_args);
+}
+
+void post_gl_call(const char* name, void* funcptr, int len_args, ...)
+{
+    CheckOpenGLError("PostHook", 0);
+}
+#endif
+
 bool InitOpenGL()
 {
     // Configure OpenGL
@@ -121,18 +133,26 @@ bool InitOpenGL()
         return false;
     }
 
-    glewExperimental = GL_TRUE;
-    glewInit();
+    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
+    {
+        SDL_LogError(0, "I did load GL with no context!\n");
+        return false;
+    }
+
+    glad_set_post_callback(post_gl_call);
 
     SDL_DisplayMode current;
     int should_be_zero = SDL_GetCurrentDisplayMode(0, &current);
 
     if (should_be_zero != 0)
+    {
         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not get display mode for video display #%d: %s",
                      0, SDL_GetError());
-    else
-        SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "Display #%d: current display mode is %dx%dpx @ %dhz.",
-                    0, current.w, current.h, current.refresh_rate);
+        return false;
+    }
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "Display #%d: current display mode is %dx%dpx @ %dhz.", 0,
+                current.w, current.h, current.refresh_rate);
 
     // Use Vsync
     if (SDL_GL_SetSwapInterval(1) < 0)
@@ -182,7 +202,7 @@ void Update(f32 dtSeconds)
     {
         g_DebugDrawManager.AddSphere(vec3(i * 0.01f), Color(1));
     }
-    g_DebugDrawManager.AddSphere(vec3(100 * 0.01f), Color(1,0,0,0));
+    g_DebugDrawManager.AddSphere(vec3(100 * 0.01f), Color(1, 0, 0, 0));
 }
 
 }  // namespace DG
