@@ -32,13 +32,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG=1 /MTd /Od")
 	set(CMAKE_CXX_FLAGS_RELEASE "/MT")
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MT")
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-	
-	IF (DEFINED _DEV_USER)
-		ADD_DEFINITIONS(-D_DEV_USER=${_DEV_USER})
-	ENDIF()
-
-	
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)	
 endif()
 
 # Runtime folders for VS
@@ -93,12 +87,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 									
 	## GLAD
 		set (GLAD_SOURCE_FILES 		ThirdParty/glad/src/glad.c)
-									
+		
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
 									ThirdParty/glm
 									ThirdParty/glad/include
-									ThirdParty/imgui)
+									ThirdParty/imgui
+									ThirdParty/tinyGltf)
 		
 		
 		set(THIRD_PARTY_LIBS 		${SDL_LIBS})
@@ -116,6 +111,8 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_GraphicsSystem.cpp
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
+					src/DG_ResourceHelper.cpp
+					src/DG_Mesh.cpp
 					
 					src/misc/DG_Profiler.cpp
 					src/misc/DG_Clock.cpp
@@ -132,6 +129,7 @@ set (HEADER_FILES	include/DG_Job.h
 					include/DG_Transform.h
 					include/DG_InputSystem.h
 					include/DG_GraphicsSystem.h
+					include/DG_ResourceHelper.h
 					
 					include/misc/DG_Include.h
 					include/misc/DG_Profiler.h					

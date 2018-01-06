@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 #include <glm/glm.hpp>
+#include<glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
 namespace DG
@@ -37,6 +38,7 @@ typedef glm::vec4 vec4;
 typedef glm::vec3 vec3;
 typedef glm::vec2 vec2;
 typedef glm::mat4 mat4;
+typedef glm::quat quat;
     
 typedef vec4 Color;
 

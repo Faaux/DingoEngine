@@ -13,6 +13,7 @@
 #include "DG_Mesh.h"
 #include "DG_Profiler.h"
 #include "DG_Shader.h"
+#include "DG_ResourceHelper.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG
@@ -204,7 +205,6 @@ void Update(f32 dtSeconds)
     }
     g_DebugDrawManager.AddSphere(vec3(100 * 0.01f), Color(1, 0, 0, 0));
 }
-
 }  // namespace DG
 
 int main(int, char* [])
@@ -243,6 +243,7 @@ int main(int, char* [])
 
     // ToDo: Remove
     Camera camera(vec3(0, 0, -3));
+    Scene* scene = LoadGLTF("test.gltf");
 
     while (!inputSystem.IsQuitRequested())
     {
