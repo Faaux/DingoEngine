@@ -4,8 +4,11 @@
 #include "DG_Camera.h"
 #include "DG_Include.h"
 #include "DG_Transform.h"
+#include "DG_Shader.h"
 
 namespace DG
+{
+namespace graphics
 {
 struct DebugPoint
 {
@@ -62,19 +65,13 @@ class DebugRenderSystem
 
    private:
     void SetupVertexBuffers();
-    void SetupShaders();
-    void CompilerShader(const GLuint shader);
-    void LinkShaderProgram(const GLuint program);
 
     void RenderDebugLines(const Camera &camera, bool depthEnabled,
-                          const std::vector<DebugLine> &lines) const;
+                          const std::vector<DebugLine> &lines);
 
-    void RenderDebugLines(const Camera &camera, bool depthEnabled, const std::vector<DebugLine>::iterator iterator);
-
+    Shader _shader;
     GLuint linePointVAO = -1;
     GLuint linePointVBO = -1;
-    GLuint linePointProgram = -1;
-    GLint linePointProgram_MvpMatrixLocation = -1;
 };
 
 class GraphicsSystem
@@ -124,5 +121,6 @@ class DebugDrawManager
 
 extern DebugDrawManager g_DebugDrawManager;
 
-void CheckOpenGLError(const char* file, const int line);
+void CheckOpenGLError(const char *file, const int line);
+}  // namespace graphics
 }  // namespace DG

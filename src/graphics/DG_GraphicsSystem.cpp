@@ -1,14 +1,17 @@
 #include "DG_GraphicsSystem.h"
+#include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
-const char* linePointVertShaderSrc =
+namespace graphics
+{
+std::string_view linePointVertShaderSrc =
     "\n"
-    "#version 150\n"
+    "#version 440\n"
     "\n"
-    "in vec3 in_Position;\n"
-    "in vec4 in_ColorPointSize;\n"
+    "layout(location = 0) in vec3 in_Position;\n"
+    "layout(location = 1) in vec4 in_ColorPointSize;\n"
     "\n"
     "out vec4 v_Color;\n"
     "uniform mat4 u_MvpMatrix;\n"
@@ -20,9 +23,9 @@ const char* linePointVertShaderSrc =
     "    v_Color      = vec4(in_ColorPointSize.xyz, 1.0);\n"
     "}\n";
 
-const char* linePointFragShaderSrc =
+std::string_view linePointFragShaderSrc =
     "\n"
-    "#version 150\n"
+    "#version 440\n"
     "\n"
     "in  vec4 v_Color;\n"
     "out vec4 out_FragColor;\n"
@@ -38,6 +41,7 @@ RenderContext g_LastRenderContext;
 
 DebugRenderContext g_CurrentDebugRenderContext;
 DebugRenderContext g_LastDebugRenderContext;
+
 inline const char* ErrorToString(const GLenum errorCode)
 {
     switch (errorCode)
@@ -56,8 +60,13 @@ inline const char* ErrorToString(const GLenum errorCode)
             return "Unknown GL error";
     }  // switch (errorCode)
 }
-
-
+GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
+{
+    // Enable Depthtesting
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+}
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
@@ -81,12 +90,6 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     ImGui::Render();
 
     SDL_GL_SwapWindow(_window);
-}
-
-DebugRenderSystem::DebugRenderSystem()
-{
-    SetupVertexBuffers();
-    SetupShaders();
 }
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
@@ -113,6 +116,10 @@ const std::vector<DebugLine>& DebugRenderContext::GetDebugLines(bool depthEnable
     return _depthDisabledDebugLines;
 }
 
+DebugRenderSystem::DebugRenderSystem() : _shader(linePointVertShaderSrc, linePointFragShaderSrc)
+{
+    SetupVertexBuffers();
+}
 void DebugRenderSystem::SetupVertexBuffers()
 {
     glGenVertexArrays(1, &linePointVAO);
@@ -151,87 +158,23 @@ void DebugRenderSystem::SetupVertexBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void DebugRenderSystem::SetupShaders()
-{
-    GLuint linePointVS = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(linePointVS, 1, &linePointVertShaderSrc, nullptr);
-    CompilerShader(linePointVS);
-
-    GLint linePointFS = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(linePointFS, 1, &linePointFragShaderSrc, nullptr);
-    CompilerShader(linePointFS);
-
-    linePointProgram = glCreateProgram();
-    glAttachShader(linePointProgram, linePointVS);
-    glAttachShader(linePointProgram, linePointFS);
-
-    glBindAttribLocation(linePointProgram, 0, "in_Position");
-    glBindAttribLocation(linePointProgram, 1, "in_ColorPointSize");
-    LinkShaderProgram(linePointProgram);
-
-    linePointProgram_MvpMatrixLocation = glGetUniformLocation(linePointProgram, "u_MvpMatrix");
-    if (linePointProgram_MvpMatrixLocation < 0)
-    {
-        SDL_LogError(0, "Unable to get u_MvpMatrix uniform location!");
-    }
-}
-
-void DebugRenderSystem::CompilerShader(const GLuint shader)
-{
-    glCompileShader(shader);
-
-    GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-
-    if (status == GL_FALSE)
-    {
-        GLchar strInfoLog[1024] = {0};
-        glGetShaderInfoLog(shader, sizeof(strInfoLog) - 1, nullptr, strInfoLog);
-        SDL_LogError(0, "\n>>> Shader compiler errors:\n%s", strInfoLog);
-    }
-}
-
-void DebugRenderSystem::LinkShaderProgram(const GLuint program)
-{
-    glLinkProgram(program);
-
-    GLint status;
-    glGetProgramiv(program, GL_LINK_STATUS, &status);
-
-    if (status == GL_FALSE)
-    {
-        GLchar strInfoLog[1024] = {0};
-        glGetProgramInfoLog(program, sizeof(strInfoLog) - 1, nullptr, strInfoLog);
-        SDL_LogError(0, "\n>>> Program linker errors:\n%s", strInfoLog);
-    }
-}
-
 void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext& context)
 {
     RenderDebugLines(camera, true, context.GetDebugLines(true));
     RenderDebugLines(camera, false, context.GetDebugLines(false));
 }
 
-GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
-{
-    // Enable Depthtesting
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glDepthFunc(GL_LESS);
-}
-
 void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled,
-                                         const std::vector<DebugLine>& lines) const
+                                         const std::vector<DebugLine>& lines)
 {
     if (lines.empty())
         return;
 
-    auto mvp = camera.getProjection() * camera.getView();
+    const auto mvp = camera.getProjection() * camera.getView();
 
     glBindVertexArray(linePointVAO);
-    glUseProgram(linePointProgram);
-
-    glUniformMatrix4fv(linePointProgram_MvpMatrixLocation, 1, GL_FALSE, &mvp[0][0]);
+    _shader.Use();
+    _shader.SetUniform("u_MvpMatrix", mvp);
 
     if (depthEnabled)
     {
@@ -275,7 +218,7 @@ void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32
                                 float durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
-    f32 halfSize = size / 2.0f;
+    const f32 halfSize = size / 2.0f;
     g_CurrentDebugRenderContext.AddLine(position - vec3(halfSize, 0, 0),
                                         position + vec3(halfSize, 0, 0), color, depthEnabled);
     g_CurrentDebugRenderContext.AddLine(position - vec3(0, halfSize, 0),
@@ -338,7 +281,6 @@ void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNo
     vecZ *= radius;
 
     static const int stepSize = 15;
-    vec3 cache[360 / stepSize];
 
     vec3 lastPoint = centerPosition + vecZ;
     for (int i = stepSize; i <= 360; i += stepSize)
@@ -347,7 +289,7 @@ void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNo
         const float s = glm::sin(rad);
         const float c = glm::cos(rad);
 
-        vec3 point = centerPosition + vecX * s + vecZ * c;
+        const vec3 point = centerPosition + vecX * s + vecZ * c;
 
         g_CurrentDebugRenderContext.AddLine(lastPoint, point, color, depthEnabled);
         g_CurrentDebugRenderContext.AddLine(lastPoint, centerPosition, color, depthEnabled);
@@ -401,4 +343,5 @@ void CheckOpenGLError(const char* file, const int line)
         SDL_LogError(0, "%s(%d) : GL_Error=0x%X - %s", file, line, err, ErrorToString(err));
     }
 }
+}  // namespace graphics
 }  // namespace DG

@@ -100,6 +100,7 @@ struct Primitive
         TriangleStrip = GL_TRIANGLE_STRIP,
         TriangleFan = GL_TRIANGLE_FAN
     };
+
     std::array<Accessor*, Length> attributes;
     std::vector<std::array<Accessor*, 3>> targets;
 
@@ -121,7 +122,6 @@ struct Mesh
 struct Node
 {
     Node() = default;
-    ~Node() = default;
 
     Mesh* mesh;
     Skin* skin;
@@ -133,6 +133,18 @@ struct Node
 
 struct Scene
 {
-    std::vector<Node*> nodes;
+    ~Scene() { delete bufferMemory; }
+    bool isAvailableForRendering = false;
+    std::vector<Node*> children;
+
+    // Ptr for cleanup
+    u8* bufferMemory;
+    std::vector<Buffer> buffers;
+    std::vector<BufferView> bufferViews;
+    std::vector<Accessor> accessors;
+    std::vector<Material> materials;
+    std::vector<Skin> skins;
+    std::vector<Mesh> meshes;
+    std::vector<Node> nodes;
 };
 }  // namespace DG

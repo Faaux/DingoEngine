@@ -4,7 +4,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 # Specify the minimum CMAKE version required
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.10)
 
 # Project Name
 project(DingoEngine)
@@ -22,6 +22,9 @@ function(assign_source_group)
         source_group("${_source_path_msvc}" FILES "${_source}")
     endforeach()
 endfunction(assign_source_group)
+
+# Flags
+set (CMAKE_CXX_STANDARD 17)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_C_FLAGS "/Zi /MP")
@@ -103,16 +106,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	
 
 # Includes
-include_directories(include include/misc ${THIRD_PARTY_INCLUDES})
+include_directories(src 
+					src/misc 
+					src/graphics
+					${THIRD_PARTY_INCLUDES})
 
 #Source Files
 set (SOURCE_FILES 	src/main.cpp
 					src/DG_Job.cpp
-					src/DG_GraphicsSystem.cpp
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
 					src/DG_ResourceHelper.cpp
-					src/DG_Mesh.cpp
+					
+					src/graphics/DG_GraphicsSystem.cpp
+					src/graphics/DG_Shader.cpp
+					src/graphics/DG_Mesh.cpp
 					
 					src/misc/DG_Profiler.cpp
 					src/misc/DG_Clock.cpp
@@ -121,27 +129,29 @@ set (SOURCE_FILES 	src/main.cpp
 					)
 
 #Header Files
-set (HEADER_FILES	include/DG_Job.h
-					include/DG_Camera.h
-					include/DG_Mesh.h
-					include/DG_Primitives.h
-					include/DG_Shader.h
-					include/DG_Transform.h
-					include/DG_InputSystem.h
-					include/DG_GraphicsSystem.h
-					include/DG_ResourceHelper.h
+set (HEADER_FILES	src/DG_Job.h
+					src/DG_Camera.h
+					src/DG_Primitives.h
+					src/DG_Transform.h
+					src/DG_InputSystem.h
+					src/DG_ResourceHelper.h
 					
-					include/misc/DG_Include.h
-					include/misc/DG_Profiler.h					
-					include/misc/DG_Clock.h
-					include/misc/DG_SDLHelper.h
-					include/misc/DG_Windows.h
-					include/misc/imgui_impl_sdl_gl3.h
+					src/graphics/DG_GraphicsSystem.h
+					src/graphics/DG_Shader.h
+					src/graphics/DG_Mesh.h
+					
+					src/misc/DG_Include.h
+					src/misc/DG_Profiler.h					
+					src/misc/DG_Clock.h
+					src/misc/DG_SDLHelper.h
+					src/misc/DG_Windows.h
+					src/misc/imgui_impl_sdl_gl3.h
 					)
 
 #Shader Files
 set(SHADERS shaders/fragment_shader.fs
-			shaders/vertex_shader.vs)	
+			shaders/vertex_shader.vs
+			)	
 
 set(ALL_SOURCE_FILES 	${SOURCE_FILES}
 						${HEADER_FILES} 

@@ -32,8 +32,8 @@ struct CombinedEvaluatedDebugEvent
 {
     u64 TotalElapsedCycles = 0;
     u64 MaxElapsedCycles = 0;
-    std::string Name;
-    std::string FileName;
+    std::string_view Name;
+    std::string_view FileName;
     u32 LineNumber;
     u32 Counter;
 };
@@ -45,16 +45,16 @@ struct EvaluatedDebugEvent
 
     u32 Level = 0;
 
-    std::string Name;
-    std::string FileName;
+    std::string_view Name;
+    std::string_view FileName;
     u32 LineNumber;
     u32 Counter;
 };
 
 struct DebugEvent
 {
-    DebugEvent(u64 clock, u32 threadId, std::string guid, DebugEventType type,
-               std::string name = "", std::string file = "", u32 line = 0, u32 counter = 0)
+    DebugEvent(u64 clock, u32 threadId, std::string_view guid, DebugEventType type,
+               std::string_view name = "", std::string_view file = "", u32 line = 0, u32 counter = 0)
         : Clock(clock),
           ThreadId(threadId),
           GUID(guid),
@@ -68,10 +68,10 @@ struct DebugEvent
 
     u64 Clock;
     u32 ThreadId;
-    std::string GUID;
+    std::string_view GUID;
     DebugEventType Type;
-    std::string Name;
-    std::string FileName;
+    std::string_view Name;
+    std::string_view FileName;
     u32 LineNumber;
     u32 Counter;
 };
@@ -81,14 +81,14 @@ struct DebugFrame
     u64 FrameId = 0;
     u64 StartCycle = 0;
     u64 TotalCycles = 0;
-    std::map<u32, std::map<std::string, CombinedEvaluatedDebugEvent>> AveragedEvents;
+    std::map<u32, std::map<std::string_view, CombinedEvaluatedDebugEvent>> AveragedEvents;
     std::map<u32, std::vector<EvaluatedDebugEvent>> Events;
 };
 
 class DebugProfiler
 {
     friend int ProfilerWork(void* data, FILE* output_stream);
-    friend void PushEvent(DebugEventType type, std::string guid, std::string name, std::string file,
+    friend void PushEvent(DebugEventType type, std::string_view guid, std::string_view name, std::string_view file,
                           u32 line, u32 counter);
 
    public:
@@ -144,7 +144,7 @@ class DebugProfiler
     void operator=(const DebugProfiler&) = delete;
 
     std::map<u32, std::stack<DebugEvent>> _builderStacks;
-    std::map<u32, std::map<std::string, CombinedEvaluatedDebugEvent>> _concatenatedResultMap;
+    std::map<u32, std::map<std::string_view, CombinedEvaluatedDebugEvent>> _concatenatedResultMap;
     std::map<u32, std::vector<EvaluatedDebugEvent>> _resultMap;
     std::queue<DebugEvent> _queue;
     SDL_sem* _semaphore;
@@ -160,8 +160,8 @@ class DebugProfiler
 
 DebugProfiler* GetProfiler();
 
-inline void PushEvent(DebugEventType type, std::string guid, std::string name = "",
-                      std::string file = "", u32 line = 0, u32 counter = 0)
+inline void PushEvent(DebugEventType type, std::string_view guid, std::string_view name = "",
+                      std::string_view file = "", u32 line = 0, u32 counter = 0)
 {
     DebugProfiler* profiler = GetProfiler();
     Assert(profiler->_semaphore && profiler->_mutex);

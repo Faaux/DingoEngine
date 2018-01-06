@@ -12,10 +12,11 @@ namespace DG
 namespace fs = std::experimental::filesystem;
 namespace gltf = tinygltf;
 
-std::vector<fs::path> FoldersToSearch{fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).append("res")};
-std::string SearchForFile(const std::string& filename, const std::vector<fs::path>& basePaths)
+std::vector<fs::path> FoldersToSearch{fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).append("res"),
+                                      fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).append("shaders")};
+std::string SearchForFile(const std::string_view& filename, const std::vector<fs::path>& basePaths)
 {
-    fs::path filepath(filename);
+    fs::path filepath(filename.data());
     const fs::path filename_path = filepath.filename();
     for (auto& folder : basePaths)
     {
@@ -25,13 +26,13 @@ std::string SearchForFile(const std::string& filename, const std::vector<fs::pat
                 return p.path().string();
         }
     }
-    SDL_LogError(0, "ERROR: Could not find resource '%s'", filename.c_str());
+    SDL_LogError(0, "ERROR: Could not find resource '%s'", filename.data());
     return "";
 }
 
-Scene* LoadGLTF(const std::string& f)
+Scene* LoadGLTF(const std::string_view& f)
 {
-    const std::string filename = SearchForFile(f);
+    const std::string filename(SearchForFile(f).data());
     fs::path path(filename);
 
     gltf::Model model;
@@ -52,9 +53,10 @@ Scene* LoadGLTF(const std::string& f)
     if (!ret)
         SDL_LogError(0, "Failed to parse glTF\n");
 
+    Scene* result = new Scene();
+
     // Create Buffers
-    std::vector<Buffer*> buffers;
-    buffers.reserve(model.buffers.size());
+    result->buffers.reserve(model.buffers.size());
     {
         size_t neededSize = 0;
         for (auto& buffer : model.buffers)
@@ -63,7 +65,8 @@ Scene* LoadGLTF(const std::string& f)
         }
 
         size_t offset = 0;
-        u8* memory = static_cast<u8*>(malloc(neededSize));
+        u8* memory = new u8[neededSize];
+        result->bufferMemory = memory;
 
         for (auto& buffer : model.buffers)
         {
@@ -71,74 +74,69 @@ Scene* LoadGLTF(const std::string& f)
             u8* mem = memory + offset;
             std::memcpy(mem, buffer.data.data(), bufferSize);
 
-            buffers.emplace_back(new Buffer(bufferSize, mem));
+            result->buffers.emplace_back(bufferSize, mem);
             offset += bufferSize;
         }
     }
     // Create Buffer Views
-    std::vector<BufferView*> bufferViews;
-    bufferViews.reserve(model.bufferViews.size());
+    result->bufferViews.reserve(model.bufferViews.size());
     {
         for (auto& buffer : model.bufferViews)
         {
-            bufferViews.emplace_back(new BufferView(buffers[buffer.buffer], buffer.byteLength,
-                                                    buffer.byteStride, buffer.byteOffset));
+            result->bufferViews.emplace_back(&result->buffers[buffer.buffer], buffer.byteLength,
+                                             buffer.byteStride, buffer.byteOffset);
         }
     }
 
     // Create Accessors
-    std::vector<Accessor*> accessors;
-    accessors.reserve(model.accessors.size());
+    result->accessors.reserve(model.accessors.size());
     {
         for (auto& accessor : model.accessors)
         {
-            accessors.emplace_back(
-                new Accessor(bufferViews[accessor.bufferView], accessor.byteOffset, accessor.count,
-                             accessor.ByteStride(model.bufferViews[accessor.bufferView]),
-                             static_cast<Accessor::ComponentType>(accessor.componentType),
-                             static_cast<Accessor::Type>(accessor.type), accessor.normalized));
+            result->accessors.emplace_back(
+                &(result->bufferViews[accessor.bufferView]), accessor.byteOffset, accessor.count,
+                accessor.ByteStride(model.bufferViews[accessor.bufferView]),
+                static_cast<Accessor::ComponentType>(accessor.componentType),
+                static_cast<Accessor::Type>(accessor.type), accessor.normalized);
         }
     }
     // Material
-    std::vector<Material*> materials;
-    materials.reserve(model.materials.size());
+    result->materials.reserve(model.materials.size());
     {
         // ToDo
     }
 
     // Skins
-    std::vector<Skin*> skins;
-    skins.reserve(model.skins.size());
+    result->skins.reserve(model.skins.size());
     {
         // ToDo
     }
 
     // Create Mesh
-    std::vector<Mesh*> meshes;
-    meshes.reserve(model.meshes.size());
+    result->meshes.reserve(model.meshes.size());
     {
         for (auto& gltfMesh : model.meshes)
         {
             Assert(gltfMesh.targets.empty());
-            Mesh* mesh = new Mesh();
+            Mesh mesh;
 
             // Weights
-            mesh->weights.reserve(gltfMesh.weights.size());
+            mesh.weights.reserve(gltfMesh.weights.size());
             for (auto weight : gltfMesh.weights)
             {
-                mesh->weights.push_back(weight);
+                mesh.weights.push_back(weight);
             }
 
             // Primitives
-            mesh->primitives.resize(gltfMesh.primitives.size());
+            mesh.primitives.resize(gltfMesh.primitives.size());
             size_t currentIndex = 0;
             for (auto& gltfPrimitive : gltfMesh.primitives)
             {
-                Primitive& primitive = mesh->primitives[currentIndex];
+                Primitive& primitive = mesh.primitives[currentIndex];
                 if (gltfPrimitive.material != -1)
-                    primitive.material = materials[gltfPrimitive.material];
+                    primitive.material = &result->materials[gltfPrimitive.material];
                 if (gltfPrimitive.indices != -1)
-                    primitive.indices = accessors[gltfPrimitive.indices];
+                    primitive.indices = &result->accessors[gltfPrimitive.indices];
                 primitive.mode = static_cast<Primitive::Mode>(gltfPrimitive.mode);
 
                 // Parse attributes
@@ -148,35 +146,43 @@ Scene* LoadGLTF(const std::string& f)
                     const int value = pair.second;
                     if (key == "POSITION")
                     {
-                        primitive.attributes[Primitive::Attribute::Position] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Position] =
+                            &result->accessors[value];
                     }
                     else if (key == "NORMAL")
                     {
-                        primitive.attributes[Primitive::Attribute::Normal] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Normal] =
+                            &result->accessors[value];
                     }
                     else if (key == "TANGENT")
                     {
-                        primitive.attributes[Primitive::Attribute::Tangent] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Tangent] =
+                            &result->accessors[value];
                     }
                     else if (key == "TEXCOORD_0")
                     {
-                        primitive.attributes[Primitive::Attribute::TexCoord0] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::TexCoord0] =
+                            &result->accessors[value];
                     }
                     else if (key == "TEXCOORD_1")
                     {
-                        primitive.attributes[Primitive::Attribute::TexCoord1] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::TexCoord1] =
+                            &result->accessors[value];
                     }
                     else if (key == "COLOR_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Color0] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Color0] =
+                            &result->accessors[value];
                     }
                     else if (key == "JOINTS_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Joints0] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Joints0] =
+                            &result->accessors[value];
                     }
                     else if (key == "WEIGHTS_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Weights0] = accessors[value];
+                        primitive.attributes[Primitive::Attribute::Weights0] =
+                            &result->accessors[value];
                     }
                 }
 
@@ -190,15 +196,15 @@ Scene* LoadGLTF(const std::string& f)
                         const int value = pair.second;
                         if (key == "POSITION")
                         {
-                            targetArray[Primitive::Attribute::Position] = accessors[value];
+                            targetArray[Primitive::Attribute::Position] = &result->accessors[value];
                         }
                         else if (key == "NORMAL")
                         {
-                            targetArray[Primitive::Attribute::Normal] = accessors[value];
+                            targetArray[Primitive::Attribute::Normal] = &result->accessors[value];
                         }
                         else if (key == "TANGENT")
                         {
-                            targetArray[Primitive::Attribute::Tangent] = accessors[value];
+                            targetArray[Primitive::Attribute::Tangent] = &result->accessors[value];
                         }
                     }
                     primitive.targets.push_back(targetArray);
@@ -206,28 +212,22 @@ Scene* LoadGLTF(const std::string& f)
                 currentIndex++;
             }
 
-            meshes.push_back(mesh);
+            result->meshes.push_back(mesh);
         }
     }
 
     // Get Nodes
-    std::vector<Node*> nodes;
-    nodes.reserve(model.nodes.size());
+    result->nodes.resize(model.nodes.size());
     {
         // Create all first, since we are self referencing
-        for (auto& gltfNode : model.nodes)
-        {
-            Node* node = new Node();
-            nodes.push_back(node);
-        }
         size_t currentIndex = 0;
         for (auto& gltfNode : model.nodes)
         {
-            Node* node = nodes[currentIndex++];
+            Node& node = result->nodes[currentIndex++];
             if (gltfNode.mesh != -1)
-                node->mesh = meshes[gltfNode.mesh];
+                node.mesh = &result->meshes[gltfNode.mesh];
             if (gltfNode.skin != -1)
-                node->skin = skins[gltfNode.skin];
+                node.skin = &result->skins[gltfNode.skin];
 
             // Parse local transform
             if (gltfNode.matrix.size() == 16)
@@ -235,7 +235,7 @@ Scene* LoadGLTF(const std::string& f)
                 Assert(gltfNode.rotation.empty());
                 Assert(gltfNode.scale.empty());
                 Assert(gltfNode.translation.empty());
-                node->localMatrix = mat4(
+                node.localMatrix = mat4(
                     gltfNode.matrix[0], gltfNode.matrix[1], gltfNode.matrix[2], gltfNode.matrix[3],
                     gltfNode.matrix[4], gltfNode.matrix[5], gltfNode.matrix[6], gltfNode.matrix[7],
                     gltfNode.matrix[8], gltfNode.matrix[9], gltfNode.matrix[10],
@@ -266,33 +266,33 @@ Scene* LoadGLTF(const std::string& f)
                     rotation.w = gltfNode.rotation[3];
                 }
 
-                node->localMatrix =
+                node.localMatrix =
                     glm::translate(translation) * glm::mat4_cast(rotation) * glm::scale(scale);
             }
 
             // Add Children
             for (auto& child : gltfNode.children)
             {
-                node->children.push_back(nodes[child]);
+                node.children.push_back(&result->nodes[child]);
             }
 
             // Add weights
             for (auto& weight : gltfNode.weights)
             {
-                node->weights.push_back(weight);
+                node.weights.push_back(weight);
             }
         }
     }
 
     // Get Scene
-    Scene* result = new Scene();
+
     {
         Assert(model.scenes.size() == 1);
         auto& gltfScene = model.scenes[0];
 
         for (auto& node : gltfScene.nodes)
         {
-            result->nodes.push_back(nodes[node]);
+            result->children.push_back(&result->nodes[node]);
         }
     }
     return result;

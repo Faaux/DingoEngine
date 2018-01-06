@@ -12,12 +12,14 @@
 #include "DG_InputSystem.h"
 #include "DG_Mesh.h"
 #include "DG_Profiler.h"
-#include "DG_Shader.h"
 #include "DG_ResourceHelper.h"
+#include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
+#include "DG_Shader.h"
 
 namespace DG
 {
+    using namespace graphics;
 struct FrameData
 {
 };
@@ -100,18 +102,6 @@ bool InitWindow()
     return true;
 }
 
-#ifdef GLAD_DEBUG
-void pre_gl_call(const char* name, void* funcptr, int len_args, ...)
-{
-    printf("Calling: %s (%d arguments)\n", name, len_args);
-}
-
-void post_gl_call(const char* name, void* funcptr, int len_args, ...)
-{
-    CheckOpenGLError("PostHook", 0);
-}
-#endif
-
 bool InitOpenGL()
 {
     // Configure OpenGL
@@ -140,7 +130,6 @@ bool InitOpenGL()
         return false;
     }
 
-    glad_set_post_callback(post_gl_call);
 
     SDL_DisplayMode current;
     int should_be_zero = SDL_GetCurrentDisplayMode(0, &current);
@@ -198,12 +187,8 @@ void Cleanup()
 
 void Update(f32 dtSeconds)
 {
-    g_DebugDrawManager.AddCircle(vec3(0, -1, 0), normalize(vec3(0, 1, 1)), Color(1));
-    for (int i = 0; i < 100; ++i)
-    {
-        g_DebugDrawManager.AddSphere(vec3(i * 0.01f), Color(1));
-    }
-    g_DebugDrawManager.AddSphere(vec3(100 * 0.01f), Color(1, 0, 0, 0));
+
+    g_DebugDrawManager.AddSphere(vec3(), Color(1));
 }
 }  // namespace DG
 
@@ -243,7 +228,9 @@ int main(int, char* [])
 
     // ToDo: Remove
     Camera camera(vec3(0, 0, -3));
+
     Scene* scene = LoadGLTF("test.gltf");
+    Shader shader(SearchForFile("vertex_shader.vs"),SearchForFile("fragment_shader.fs"),"");
 
     while (!inputSystem.IsQuitRequested())
     {
