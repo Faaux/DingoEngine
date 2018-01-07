@@ -15,11 +15,10 @@
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
-#include "DG_Shader.h"
 
 namespace DG
 {
-    using namespace graphics;
+using namespace graphics;
 struct FrameData
 {
 };
@@ -130,7 +129,6 @@ bool InitOpenGL()
         return false;
     }
 
-
     SDL_DisplayMode current;
     int should_be_zero = SDL_GetCurrentDisplayMode(0, &current);
 
@@ -187,8 +185,8 @@ void Cleanup()
 
 void Update(f32 dtSeconds)
 {
-
-    g_DebugDrawManager.AddSphere(vec3(), Color(1));
+    g_DebugDrawManager.AddAxes(Transform(), 5.f, 3.f);
+    g_DebugDrawManager.AddXZGrid(vec2(0), -5, 5, 0);
 }
 }  // namespace DG
 
@@ -219,18 +217,17 @@ int main(int, char* [])
 
     u64 currentTime = SDL_GetPerformanceCounter();
     f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
-    f32 dtSeconds;
-    u64 lastTime;
     u64 currentFrame = 1;
 
     InputSystem inputSystem;
     GraphicsSystem graphicsSystem(Window);
 
     // ToDo: Remove
-    Camera camera(vec3(0, 0, -3));
+    Camera camera(vec3(0, 1, 3));
 
-    Scene* scene = LoadGLTF("test.gltf");
-    Shader shader(SearchForFile("vertex_shader.vs"),SearchForFile("fragment_shader.fs"),"");
+    GLTFScene* scene = LoadGLTF("duck.gltf");
+    Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
+    Model model(*scene, shader);
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -240,9 +237,9 @@ int main(int, char* [])
         inputSystem.Update();
 
         // Measure time and update clocks!
-        lastTime = currentTime;
+        const u64 lastTime = currentTime;
         currentTime = SDL_GetPerformanceCounter();
-        dtSeconds = static_cast<f32>(currentTime - lastTime) / cpuFrequency;
+        f32 dtSeconds = static_cast<f32>(currentTime - lastTime) / cpuFrequency;
 
         // This usually happens once we hit a breakpoint when debugging
         if (dtSeconds > 2.0f)
@@ -256,6 +253,7 @@ int main(int, char* [])
         Update(dtSeconds);
 
         // Other Logic
+        g_CurrentRenderContext.SetModelToRender(&model);
         graphicsSystem.Render(camera, g_CurrentRenderContext, g_CurrentDebugRenderContext);
         g_CurrentDebugRenderContext.Reset();
         currentFrame++;

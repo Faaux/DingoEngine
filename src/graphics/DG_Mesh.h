@@ -4,44 +4,52 @@
 #include <vector>
 #include "DG_Include.h"
 #include "DG_Primitives.h"
+#include "DG_Shader.h"
 #include "DG_Transform.h"
 
 namespace DG
 {
-struct Material
+struct GLTFMaterial
 {
 };
 
-struct Buffer
+struct GLTFBuffer
 {
-    Buffer(size_t byteLength, u8* data) : byteLength(byteLength), data(data) {}
+    GLTFBuffer(size_t byteLength, u8* data) : byteLength(byteLength), data(data) {}
     size_t byteLength;
     u8* data;
 };
 
-struct BufferView
+struct GLTFBufferView
 {
-    BufferView(Buffer* buffer, size_t byteLength, size_t byteStride, size_t byteOffset = 0)
-        : buffer(buffer), byteLength(byteLength), byteStride(byteStride), byteOffset(byteOffset)
+    GLTFBufferView(GLTFBuffer* buffer, GLenum target, size_t byteLength, size_t byteStride,
+                   size_t byteOffset = 0)
+        : buffer(buffer),
+          target(target),
+          byteLength(byteLength),
+          byteStride(byteStride),
+          byteOffset(byteOffset)
     {
     }
-    Buffer* buffer;
+    GLTFBuffer* buffer;
+    GLenum target;
     size_t byteLength;
     size_t byteStride;  // 0 == Tightly
     size_t byteOffset;
 };
 
-struct Accessor
+enum ComponentType : GLenum
 {
-    enum ComponentType : GLenum
-    {
-        Byte = GL_BYTE,
-        UnsignedByte = GL_UNSIGNED_BYTE,
-        Short = GL_SHORT,
-        UnsignedShort = GL_UNSIGNED_SHORT,
-        UnsignedInt = GL_UNSIGNED_INT,
-        Float = GL_FLOAT
-    };
+    Byte = GL_BYTE,
+    UnsignedByte = GL_UNSIGNED_BYTE,
+    Short = GL_SHORT,
+    UnsignedShort = GL_UNSIGNED_SHORT,
+    UnsignedInt = GL_UNSIGNED_INT,
+    Float = GL_FLOAT
+};
+
+struct GLTFAccessor
+{
     enum Type
     {
         Vec2 = 2,
@@ -52,9 +60,11 @@ struct Accessor
         Mat4 = (32 + 4),
         Scalar = (64 + 1)
     };
-    Accessor(BufferView* bufferView, size_t byteOffset, size_t count, size_t byteStride,
-             ComponentType componentType, Type type, bool normalized = false)
-        : bufferView(bufferView),
+    GLTFAccessor(size_t bufferViewIndex, GLTFBufferView* bufferView, size_t byteOffset,
+                 size_t count, size_t byteStride, ComponentType componentType, Type type,
+                 bool normalized = false)
+        : bufferViewIndex(bufferViewIndex),
+          bufferView(bufferView),
           byteOffset(byteOffset),
           count(count),
           byteStride(byteStride),
@@ -65,7 +75,8 @@ struct Accessor
     {
     }
 
-    BufferView* bufferView;
+    size_t bufferViewIndex;
+    GLTFBufferView* bufferView;
     size_t byteOffset;
     size_t count;
     size_t byteStride;
@@ -74,7 +85,7 @@ struct Accessor
     bool normalized;
 };
 
-struct Primitive
+struct GLTFPrimitive
 {
     enum Attribute
     {
@@ -101,50 +112,88 @@ struct Primitive
         TriangleFan = GL_TRIANGLE_FAN
     };
 
-    std::array<Accessor*, Length> attributes;
-    std::vector<std::array<Accessor*, 3>> targets;
+    std::array<GLTFAccessor*, Length> attributes;
+    std::vector<std::array<GLTFAccessor*, 3>> targets;
 
-    Material* material;
-    Accessor* indices;
+    GLTFMaterial* material;
+    GLTFAccessor* indices;
     Mode mode;
 };
 
-struct Skin
+struct GLTFSkin
 {
 };
 
-struct Mesh
+struct GLTFMesh
 {
-    std::vector<Primitive> primitives;
+    std::vector<GLTFPrimitive> primitives;
     std::vector<f32> weights;  // weights to be applied to the Morph Targets
 };
 
-struct Node
+struct GLTFNode
 {
-    Node() = default;
+    GLTFNode() = default;
 
-    Mesh* mesh;
-    Skin* skin;
+    GLTFMesh* mesh;
+    GLTFSkin* skin;
     mat4 localMatrix;
 
-    std::vector<Node*> children;
+    std::vector<GLTFNode*> children;
     std::vector<f32> weights;  // The weights of the instantiated Morph Target
 };
 
-struct Scene
+struct GLTFScene
 {
-    ~Scene() { delete bufferMemory; }
+    ~GLTFScene() { delete bufferMemory; }
     bool isAvailableForRendering = false;
-    std::vector<Node*> children;
+    std::vector<GLTFNode*> children;
 
     // Ptr for cleanup
     u8* bufferMemory;
-    std::vector<Buffer> buffers;
+    std::vector<GLTFBuffer> buffers;
+    std::vector<GLTFBufferView> bufferViews;
+    std::vector<GLTFAccessor> accessors;
+    std::vector<GLTFMaterial> materials;
+    std::vector<GLTFSkin> skins;
+    std::vector<GLTFMesh> meshes;
+    std::vector<GLTFNode> nodes;
+};
+
+class BufferView
+{
+   public:
+    BufferView(const GLTFBufferView& view);
+
+    GLenum target;
+    GLuint vb;
+};
+
+class Model;
+class Mesh
+{
+   public:
+    Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& mesh,
+         const mat4& localTransform);
+
+    // Indices draw variables
+    size_t count;  // Number of indices
+    size_t byteOffset;
+    GLenum drawMode;
+    ComponentType type;
+    GLuint vao = -1;
+    std::vector<Mesh> childMeshes;
+    mat4 localTransform;
+};
+
+class Model
+{
+   public:
+    Model(const GLTFScene& scene, graphics::Shader& shader);
+    const std::vector<BufferView>& GetBufferViews() const;
+
+    graphics::Shader& shader;
+
     std::vector<BufferView> bufferViews;
-    std::vector<Accessor> accessors;
-    std::vector<Material> materials;
-    std::vector<Skin> skins;
     std::vector<Mesh> meshes;
-    std::vector<Node> nodes;
 };
 }  // namespace DG

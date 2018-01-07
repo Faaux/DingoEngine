@@ -17,22 +17,46 @@ std::vector<fs::path> FoldersToSearch{fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).app
 std::string SearchForFile(const std::string_view& filename, const std::vector<fs::path>& basePaths)
 {
     fs::path filepath(filename.data());
-    const fs::path filename_path = filepath.filename();
     for (auto& folder : basePaths)
     {
         for (auto& p : fs::recursive_directory_iterator(folder))
         {
-            if (p.path().filename() == filename_path)
-                return p.path().string();
+            auto candidatePath = p.path();
+            auto localFilePath = filepath;
+            if (candidatePath.filename() == localFilePath.filename())
+            {
+                // Check if all subdirectoreis fit
+                bool candidateHasFilename = candidatePath.has_filename();
+                bool fileHasFilename = localFilePath.has_filename();
+                bool foundMismatch = false;
+                while (candidateHasFilename == fileHasFilename && fileHasFilename)
+                {
+                    candidatePath = candidatePath.parent_path();
+                    localFilePath = localFilePath.parent_path();
+
+                    candidateHasFilename = candidatePath.has_filename();
+                    fileHasFilename = localFilePath.has_filename();
+
+                    if (fileHasFilename && candidateHasFilename &&
+                        candidatePath.filename() != localFilePath.filename())
+                    {
+                        foundMismatch = true;
+                        break;
+                    }
+                }
+
+                if (!foundMismatch)
+                    return p.path().string();
+            }
         }
     }
     SDL_LogError(0, "ERROR: Could not find resource '%s'", filename.data());
     return "";
 }
 
-Scene* LoadGLTF(const std::string_view& f)
+GLTFScene* LoadGLTF(const std::string_view& f)
 {
-    const std::string filename(SearchForFile(f).data());
+    const std::string filename(SearchForFile(f));
     fs::path path(filename);
 
     gltf::Model model;
@@ -53,7 +77,7 @@ Scene* LoadGLTF(const std::string_view& f)
     if (!ret)
         SDL_LogError(0, "Failed to parse glTF\n");
 
-    Scene* result = new Scene();
+    GLTFScene* result = new GLTFScene();
 
     // Create Buffers
     result->buffers.reserve(model.buffers.size());
@@ -83,8 +107,9 @@ Scene* LoadGLTF(const std::string_view& f)
     {
         for (auto& buffer : model.bufferViews)
         {
-            result->bufferViews.emplace_back(&result->buffers[buffer.buffer], buffer.byteLength,
-                                             buffer.byteStride, buffer.byteOffset);
+            result->bufferViews.emplace_back(&result->buffers[buffer.buffer], buffer.target,
+                                             buffer.byteLength, buffer.byteStride,
+                                             buffer.byteOffset);
         }
     }
 
@@ -94,10 +119,11 @@ Scene* LoadGLTF(const std::string_view& f)
         for (auto& accessor : model.accessors)
         {
             result->accessors.emplace_back(
-                &(result->bufferViews[accessor.bufferView]), accessor.byteOffset, accessor.count,
+                accessor.bufferView, &(result->bufferViews[accessor.bufferView]),
+                accessor.byteOffset, accessor.count,
                 accessor.ByteStride(model.bufferViews[accessor.bufferView]),
-                static_cast<Accessor::ComponentType>(accessor.componentType),
-                static_cast<Accessor::Type>(accessor.type), accessor.normalized);
+                static_cast<ComponentType>(accessor.componentType),
+                static_cast<GLTFAccessor::Type>(accessor.type), accessor.normalized);
         }
     }
     // Material
@@ -118,7 +144,7 @@ Scene* LoadGLTF(const std::string_view& f)
         for (auto& gltfMesh : model.meshes)
         {
             Assert(gltfMesh.targets.empty());
-            Mesh mesh;
+            GLTFMesh mesh;
 
             // Weights
             mesh.weights.reserve(gltfMesh.weights.size());
@@ -132,12 +158,13 @@ Scene* LoadGLTF(const std::string_view& f)
             size_t currentIndex = 0;
             for (auto& gltfPrimitive : gltfMesh.primitives)
             {
-                Primitive& primitive = mesh.primitives[currentIndex];
-                if (gltfPrimitive.material != -1)
-                    primitive.material = &result->materials[gltfPrimitive.material];
+                GLTFPrimitive& primitive = mesh.primitives[currentIndex];
+                // ToDo: Materials
+                // if (gltfPrimitive.material != -1)
+                //     primitive.material = &result->materials[gltfPrimitive.material];
                 if (gltfPrimitive.indices != -1)
                     primitive.indices = &result->accessors[gltfPrimitive.indices];
-                primitive.mode = static_cast<Primitive::Mode>(gltfPrimitive.mode);
+                primitive.mode = static_cast<GLTFPrimitive::Mode>(gltfPrimitive.mode);
 
                 // Parse attributes
                 for (auto& pair : gltfPrimitive.attributes)
@@ -146,42 +173,42 @@ Scene* LoadGLTF(const std::string_view& f)
                     const int value = pair.second;
                     if (key == "POSITION")
                     {
-                        primitive.attributes[Primitive::Attribute::Position] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Position] =
                             &result->accessors[value];
                     }
                     else if (key == "NORMAL")
                     {
-                        primitive.attributes[Primitive::Attribute::Normal] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Normal] =
                             &result->accessors[value];
                     }
                     else if (key == "TANGENT")
                     {
-                        primitive.attributes[Primitive::Attribute::Tangent] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Tangent] =
                             &result->accessors[value];
                     }
                     else if (key == "TEXCOORD_0")
                     {
-                        primitive.attributes[Primitive::Attribute::TexCoord0] =
+                        primitive.attributes[GLTFPrimitive::Attribute::TexCoord0] =
                             &result->accessors[value];
                     }
                     else if (key == "TEXCOORD_1")
                     {
-                        primitive.attributes[Primitive::Attribute::TexCoord1] =
+                        primitive.attributes[GLTFPrimitive::Attribute::TexCoord1] =
                             &result->accessors[value];
                     }
                     else if (key == "COLOR_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Color0] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Color0] =
                             &result->accessors[value];
                     }
                     else if (key == "JOINTS_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Joints0] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Joints0] =
                             &result->accessors[value];
                     }
                     else if (key == "WEIGHTS_0")
                     {
-                        primitive.attributes[Primitive::Attribute::Weights0] =
+                        primitive.attributes[GLTFPrimitive::Attribute::Weights0] =
                             &result->accessors[value];
                     }
                 }
@@ -189,22 +216,25 @@ Scene* LoadGLTF(const std::string_view& f)
                 // Parse targets
                 for (auto& target : gltfPrimitive.targets)
                 {
-                    std::array<Accessor*, 3> targetArray{};
+                    std::array<GLTFAccessor*, 3> targetArray{};
                     for (auto& pair : target)
                     {
                         const std::string& key = pair.first;
                         const int value = pair.second;
                         if (key == "POSITION")
                         {
-                            targetArray[Primitive::Attribute::Position] = &result->accessors[value];
+                            targetArray[GLTFPrimitive::Attribute::Position] =
+                                &result->accessors[value];
                         }
                         else if (key == "NORMAL")
                         {
-                            targetArray[Primitive::Attribute::Normal] = &result->accessors[value];
+                            targetArray[GLTFPrimitive::Attribute::Normal] =
+                                &result->accessors[value];
                         }
                         else if (key == "TANGENT")
                         {
-                            targetArray[Primitive::Attribute::Tangent] = &result->accessors[value];
+                            targetArray[GLTFPrimitive::Attribute::Tangent] =
+                                &result->accessors[value];
                         }
                     }
                     primitive.targets.push_back(targetArray);
@@ -223,7 +253,7 @@ Scene* LoadGLTF(const std::string_view& f)
         size_t currentIndex = 0;
         for (auto& gltfNode : model.nodes)
         {
-            Node& node = result->nodes[currentIndex++];
+            GLTFNode& node = result->nodes[currentIndex++];
             if (gltfNode.mesh != -1)
                 node.mesh = &result->meshes[gltfNode.mesh];
             if (gltfNode.skin != -1)

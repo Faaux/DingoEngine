@@ -1,4 +1,5 @@
 #include "DG_GraphicsSystem.h"
+#include "DG_Clock.h"
 #include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
 
@@ -77,10 +78,72 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
 
     glPolygonMode(GL_FRONT_AND_BACK, context.IsWireframe() ? GL_LINE : GL_FILL);
 
+    auto model = context.GetModelToRender();
+    if (model)
+    {
+        model->shader.Use();
+        for (auto& mesh : model->meshes)
+        {
+            const auto mvp = camera.getProjection() * camera.getView() * mesh.localTransform;
+            model->shader.SetUniform("modViewProj", mvp);
+            glBindVertexArray(mesh.vao);
+            glDrawElements(mesh.drawMode, mesh.count, mesh.type,
+                           reinterpret_cast<void*>(mesh.byteOffset));
+        }
+        glBindVertexArray(0);
+        CheckOpenGLError(__FILE__, __LINE__);
+    }
     ImGui_ImplSdlGL3_NewFrame(_window);
 
-    ImGui::ColorEdit3("clear color",
-                      reinterpret_cast<f32*>(&clearColor));  // Edit 3 floats as a color
+    static vec3 camPos(camera.getPosition()), camTarget(0);
+    static f32 rotSpeed = .6f, radius = 3.f;
+    static bool autoRotate = true;
+    bool cameraChanged = false;
+
+    ImGui::Checkbox("Wireframe?", const_cast<bool*>(&context._isWireframe));
+
+    if (ImGui::DragFloat3("Camera Target", reinterpret_cast<f32*>(&camTarget), 0.05f))
+        cameraChanged = true;
+    ImGui::Checkbox("Auto Rotate around camera target?", &autoRotate);
+    if (!autoRotate)
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+    }
+    ImGui::DragFloat("Rotation Speed", &rotSpeed, 0.01f);
+    ImGui::DragFloat("Rotation Radius", &radius, 0.01f);
+    if (!autoRotate)
+    {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+    }
+
+    if (autoRotate)
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+    }
+
+    if (ImGui::DragFloat3("Camera Pos", reinterpret_cast<f32*>(&camPos), 0.05f))
+        cameraChanged = true;
+
+    if (autoRotate)
+    {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+
+        // Do auto rotate
+
+        static f32 timeAccum = 0.f;
+        timeAccum += g_RealTimeClock.GetLastDtSeconds() * rotSpeed;
+        while (timeAccum > 2 * PI) timeAccum -= 2 * PI;
+
+        camPos = vec3(cosf(timeAccum), 1.f, sinf(timeAccum)) * radius + camTarget;
+        cameraChanged = true;
+    }
+
+    if (cameraChanged)
+        const_cast<Camera&>(camera).setView(camPos, camTarget, vec3(0, 1, 0));
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
@@ -91,6 +154,10 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
 
     SDL_GL_SwapWindow(_window);
 }
+
+void RenderContext::SetModelToRender(const Model* model) { _model = model; }
+
+const Model* RenderContext::GetModelToRender() const { return _model; }
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
 
@@ -208,14 +275,14 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
 }
 
 void DebugDrawManager::AddLine(const vec3& fromPosition, const vec3& toPosition, Color color,
-                               f32 lineWidth, float durationSeconds, bool depthEnabled)
+                               f32 lineWidth, f32 durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     g_CurrentDebugRenderContext.AddLine(fromPosition, toPosition, color, depthEnabled);
 }
 
 void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32 lineWidth,
-                                float durationSeconds, bool depthEnabled)
+                                f32 durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     const f32 halfSize = size / 2.0f;
@@ -228,7 +295,7 @@ void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32
 }
 
 void DebugDrawManager::AddSphere(const vec3& centerPosition, Color color, f32 radius,
-                                 float durationSeconds, bool depthEnabled)
+                                 f32 durationSeconds, bool depthEnabled)
 {
     // ToDo: Export these lines and just scale and move them appropriately, no need to calculate
     // each time
@@ -271,7 +338,7 @@ void DebugDrawManager::AddSphere(const vec3& centerPosition, Color color, f32 ra
 }
 
 void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNormal, Color color,
-                                 f32 radius, float durationSeconds, bool depthEnabled)
+                                 f32 radius, f32 durationSeconds, bool depthEnabled)
 {
     // Find 2 orthogonal vectors (Orthogonal --> DotProduct is Zero)
     vec3 vecX(1.0f, -planeNormal.x / planeNormal.y, 0.0f);
@@ -299,10 +366,10 @@ void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNo
 }
 
 void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWidth,
-                               float durationSeconds, bool depthEnabled)
+                               f32 durationSeconds, bool depthEnabled)
 {
     auto modelMatrix = transform.getModel();
-    const vec3 right(-modelMatrix[0]);
+    const vec3 right(modelMatrix[0]);
     const vec3 up(modelMatrix[1]);
     const vec3 forward(modelMatrix[2]);
     g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(right) * size,
@@ -314,7 +381,7 @@ void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWid
 }
 
 void DebugDrawManager::AddTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vertex2,
-                                   Color color, f32 lineWidth, float durationSeconds,
+                                   Color color, f32 lineWidth, f32 durationSeconds,
                                    bool depthEnabled)
 {
     color.w = lineWidth;
@@ -326,13 +393,60 @@ void DebugDrawManager::AddTriangle(const vec3& vertex0, const vec3& vertex1, con
 }
 
 void DebugDrawManager::AddAABB(const vec3& minCoords, const vec3& maxCoords, Color color,
-                               f32 lineWidth, float durationSeconds, bool depthEnabled)
+                               f32 lineWidth, f32 durationSeconds, bool depthEnabled)
 {
 }
 
 void DebugDrawManager::AddString(const vec3& position, const char* text, Color color,
-                                 float durationSeconds, bool depthEnabled)
+                                 f32 durationSeconds, bool depthEnabled)
 {
+}
+
+void DebugDrawManager::AddXZGrid(const vec2& center, const f32 min, const f32 max, const f32 height,
+                                 f32 step, Color color, f32 lineWidth, f32 durationSeconds,
+                                 bool depthEnabled)
+{
+    // Line at min
+    {
+        // Horizontal Line
+        const vec3 from(center.x + min, height, center.y + min);
+        const vec3 to(center.x + max, height, center.y + min);
+        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+    }
+    {
+        // Vertical Line
+        const vec3 from(center.y + min, height, center.x + min);
+        const vec3 to(center.y + min, height, center.x + max);
+        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+    }
+    for (f32 i = min + step; i < max; i += step)
+    {
+        {
+            // Horizontal Line
+            const vec3 from(center.x + min, height, center.y + i);
+            const vec3 to(center.x + max, height, center.y + i);
+            AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        }
+        {
+            // Vertical Line
+            const vec3 from(center.y + i, height, center.x + min);
+            const vec3 to(center.y + i, height, center.x + max);
+            AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        }
+    }
+    // Line at max
+    {
+        // Horizontal Line
+        const vec3 from(center.x + min, height, center.y + max);
+        const vec3 to(center.x + max, height, center.y + max);
+        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+    }
+    {
+        // Vertical Line
+        const vec3 from(center.y + max, height, center.x + min);
+        const vec3 to(center.y + max, height, center.x + max);
+        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+    }
 }
 
 void CheckOpenGLError(const char* file, const int line)

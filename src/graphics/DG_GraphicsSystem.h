@@ -3,8 +3,9 @@
 #include <vector>
 #include "DG_Camera.h"
 #include "DG_Include.h"
-#include "DG_Transform.h"
+#include "DG_Mesh.h"
 #include "DG_Shader.h"
+#include "DG_Transform.h"
 
 namespace DG
 {
@@ -48,10 +49,13 @@ extern DebugRenderContext g_LastDebugRenderContext;
 class RenderContext
 {
    public:
+    void SetModelToRender(const Model *model);
+    const Model *GetModelToRender() const;
     bool IsWireframe() const;
-
-   private:
     bool _isWireframe = false;
+   private:
+    const Model *_model;
+    
 };
 
 extern RenderContext g_CurrentRenderContext;
@@ -95,28 +99,32 @@ class DebugDrawManager
         DebugDrawBufferSize = 3000
     };
     void AddLine(const vec3 &fromPosition, const vec3 &toPosition, Color color,
-                 f32 lineWidth = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
+                 f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddCross(const vec3 &position, Color color, f32 size = 1.0f, f32 lineWidth = 1.0f,
-                  float durationSeconds = 0.0f, bool depthEnabled = true);
+                  f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddSphere(const vec3 &centerPosition, Color color, f32 radius = 1.0f,
-                   float durationSeconds = 0.0f, bool depthEnabled = true);
+                   f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddCircle(const vec3 &centerPosition, const vec3 &planeNormal, Color color,
-                   f32 radius = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
+                   f32 radius = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddAxes(const Transform &transform, f32 size = 1.0f, f32 lineWidth = 1.0f,
-                 float durationSeconds = 0.0f, bool depthEnabled = true);
+                 f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2, Color color,
-                     f32 lineWidth = 1.0f, float durationSeconds = 0.0f, bool depthEnabled = true);
+                     f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
     void AddAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color, f32 lineWidth = 1.0f,
-                 float durationSeconds = 0.0f, bool depthEnabled = true);
+                 f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddString(const vec3 &position, const char *text, Color color,
-                   float durationSeconds = 0.0f, bool depthEnabled = true);
+    void AddString(const vec3 &position, const char *text, Color color, f32 durationSeconds = 0.0f,
+                   bool depthEnabled = true);
+
+    void AddXZGrid(const vec2 &center, const f32 min, const f32 max, const f32 height,
+                   f32 step = 1.f, Color color = Color(1), f32 lineWidth = 1.0f,
+                   f32 durationSeconds = 0.f, bool depthEnabled = true);
 };
 
 extern DebugDrawManager g_DebugDrawManager;

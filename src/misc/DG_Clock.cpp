@@ -27,8 +27,16 @@ void Clock::Update(f32 dtRealSeconds)
     if (!_isPaused)
     {
         u64 dtScaled = SecondsToCycles(dtRealSeconds * _timeScale);
+        _lastDtSeconds = dtRealSeconds;
         _timeCycles += dtScaled;
     }
+}
+
+f32 Clock::GetLastDtSeconds() const
+{
+    if(_isPaused)
+        return 0.f;
+    return _lastDtSeconds;
 }
 
 void Clock::SetPaused(bool wantPaused) { _isPaused = wantPaused; }

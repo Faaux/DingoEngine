@@ -13,7 +13,7 @@ class Clock
     f32 CalcDeltaSeconds(const Clock& other) const;
 
     void Update(f32 dtRealSeconds);
-
+    f32 GetLastDtSeconds() const;
     void SetPaused(bool wantPaused);
     bool IsPaused() const;
 
@@ -25,6 +25,7 @@ class Clock
    private:
     u64 _timeCycles;
     f32 _timeScale;
+    f32 _lastDtSeconds;
     bool _isPaused;
 
     static f32 _cyclesPerSecond;

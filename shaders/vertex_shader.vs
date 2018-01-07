@@ -10,5 +10,5 @@ out vec3 frag_colors;
 void main(){
 
     gl_Position = modViewProj * vec4(vp, 1.0);
-    frag_colors = vp;
+    frag_colors = vec3(1);
 }
