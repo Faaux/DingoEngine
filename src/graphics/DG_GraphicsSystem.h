@@ -13,21 +13,47 @@ namespace graphics
 {
 struct DebugPoint
 {
-    vec3 position;
+    vec3 start;
+    vec3 end;
     Color color;
+    f32 direction;
 };
 
 struct DebugLine
 {
-    DebugLine(const vec3 &vertex0, const vec3 &vertex1, const Color &color)
+    DebugLine(const vec3 &start, const vec3 &end, const Color &color)
     {
-        start.position = vertex0;
-        start.color = color;
-        end.position = vertex1;
-        end.color = color;
+        startUp.direction = -1.0f;
+        startUp.start = start;
+        startUp.end = end;
+        startUp.color = color;
+
+        startDown.direction = 1.0f;
+        startDown.start = start;
+        startDown.end = end;
+        startDown.color = color;
+
+        endUp.direction = -1.0f;
+        endUp.start = end;
+        endUp.end = start;
+        endUp.color  = color;
+
+        endDown.direction = 1.0f;
+        endDown.start = end;
+        endDown.end = start;
+        endDown.color = color;
+
+        startDown2 = endUp;
+        endUp2 = startUp;
     }
-    DebugPoint start;
-    DebugPoint end;
+    DebugPoint startUp;
+    DebugPoint startDown;
+    DebugPoint endUp;
+
+    DebugPoint startDown2;
+    DebugPoint endDown;   
+    DebugPoint endUp2;
+    
 };
 
 class DebugRenderContext
@@ -53,9 +79,9 @@ class RenderContext
     const Model *GetModelToRender() const;
     bool IsWireframe() const;
     bool _isWireframe = false;
+
    private:
     const Model *_model;
-    
 };
 
 extern RenderContext g_CurrentRenderContext;
@@ -63,6 +89,11 @@ extern RenderContext g_LastRenderContext;
 
 class DebugRenderSystem
 {
+    enum : size_t
+    {
+        DebugDrawBufferSize = 3000
+    };
+
    public:
     DebugRenderSystem();
     void Render(const Camera &camera, const DebugRenderContext &context);
@@ -91,43 +122,33 @@ class GraphicsSystem
     SDL_Window *_window;
 };
 
-class DebugDrawManager
-{
-   public:
-    enum : size_t
-    {
-        DebugDrawBufferSize = 3000
-    };
-    void AddLine(const vec3 &fromPosition, const vec3 &toPosition, Color color,
-                 f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugLine(const vec3 &fromPosition, const vec3 &toPosition, Color color = Color(0.7f),
+                  f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddCross(const vec3 &position, Color color, f32 size = 1.0f, f32 lineWidth = 1.0f,
-                  f32 durationSeconds = 0.0f, bool depthEnabled = true);
-
-    void AddSphere(const vec3 &centerPosition, Color color, f32 radius = 1.0f,
+void AddDebugCross(const vec3 &position, Color color = Color(0.7f), f32 size = 1.0f, f32 lineWidth = 1.0f,
                    f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddCircle(const vec3 &centerPosition, const vec3 &planeNormal, Color color,
-                   f32 radius = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugSphere(const vec3 &centerPosition, Color color = Color(0.7f), f32 radius = 1.0f,
+                    f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddAxes(const Transform &transform, f32 size = 1.0f, f32 lineWidth = 1.0f,
-                 f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugCircle(const vec3 &centerPosition, const vec3 &planeNormal, Color color = Color(0.7f),
+                    f32 radius = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2, Color color,
-                     f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugAxes(const Transform &transform, f32 size = 1.0f, f32 lineWidth = 1.0f,
+                  f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color, f32 lineWidth = 1.0f,
-                 f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2, Color color = Color(0.7f),
+                      f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddString(const vec3 &position, const char *text, Color color, f32 durationSeconds = 0.0f,
-                   bool depthEnabled = true);
+void AddDebugAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color = Color(0.7f), f32 lineWidth = 1.0f,
+                  f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-    void AddXZGrid(const vec2 &center, const f32 min, const f32 max, const f32 height,
-                   f32 step = 1.f, Color color = Color(1), f32 lineWidth = 1.0f,
-                   f32 durationSeconds = 0.f, bool depthEnabled = true);
-};
+void AddDebugText(const vec3 &position, const char *text, Color color = Color(0.7f), f32 durationSeconds = 0.0f,
+                  bool depthEnabled = true);
 
-extern DebugDrawManager g_DebugDrawManager;
+void AddDebugXZGrid(const vec2 &center, const f32 min, const f32 max, const f32 height,
+                    f32 step = 1.f, Color color = Color(0.7f), f32 lineWidth = 1.0f,
+                    f32 durationSeconds = 0.f, bool depthEnabled = true);
 
 void CheckOpenGLError(const char *file, const int line);
 }  // namespace graphics

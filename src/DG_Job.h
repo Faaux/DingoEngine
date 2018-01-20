@@ -14,12 +14,12 @@ struct Job
     JobFunction function;
     Job* parent;
     SDL_atomic_t unfinishedJobs{0};
-    char data[44];  // Padded to be 64 byte in size!
+    char data[12];  // Padded to be 32 byte in size!
     bool CheckIsDone();
 };
 static_assert((sizeof(Job::function) + sizeof(Job::parent) + sizeof(Job::unfinishedJobs) +
-               sizeof(Job::data)) == 64,
-              "sizeof(Job) needs to be a multiple of 64Bytes");
+               sizeof(Job::data)) == 32,
+              "sizeof(Job) needs to be a multiple of 32Bytes");
 
 class JobSystem
 {

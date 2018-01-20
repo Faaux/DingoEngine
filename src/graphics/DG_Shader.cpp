@@ -91,32 +91,26 @@ static u32 CompileShaderFromFile(s32 i, std::string_view filename)
 
 Shader::Shader(std::string_view vertexFilename, std::string_view fragmentFilename,
                std::string_view geometryFilename)
-    : _vertexFilename(vertexFilename.data()),
-      _fragmentFilename(fragmentFilename.data()),
-      _geometryFilename(geometryFilename.data())
+    : _vertexPath(vertexFilename.data()),
+      _fragmentPath(fragmentFilename.data()),
+      _geometryPath(geometryFilename.data())
 {
-    if (fs::exists(_vertexFilename))
-        _vertexFileTime = fs::last_write_time(_vertexFilename);
-    if (fs::exists(_fragmentFilename))
-        _fragmentFileTime = fs::last_write_time(_fragmentFilename);
-    if (fs::exists(_geometryFilename))
-        _geometryFileTime = fs::last_write_time(_geometryFilename);
+    if (fs::exists(_vertexPath))
+        _vertexFileTime = fs::last_write_time(_vertexPath);
+    if (fs::exists(_fragmentPath))
+        _fragmentFileTime = fs::last_write_time(_fragmentPath);
+    if (fs::exists(_geometryPath))
+        _geometryFileTime = fs::last_write_time(_geometryPath);
 
     ReloadShader();
-}
-
-Shader::Shader(std::string_view vertexShader, std::string_view fragmentShader)
-    : _hasFiles(false), _vertexFilename(""), _fragmentFilename(""), _geometryFilename("")
-{
-    ReloadShader(vertexShader, fragmentShader);
 }
 
 bool Shader::Use()
 {
     if (HasSourceChanged())
     {
-        SDL_LogWarn(SDL_LOG_CATEGORY_RENDER, "HotLoading Shader: %s  %s", _vertexFilename.c_str(),
-                    _fragmentFilename.c_str());
+        SDL_LogWarn(SDL_LOG_CATEGORY_RENDER, "HotLoading Shader: %s  %s",
+                    _vertexPath.string().c_str(), _fragmentPath.string().c_str());
         ReloadShader();
     }
     if (_isValid)
@@ -128,7 +122,7 @@ bool Shader::Use()
     return false;
 }
 
-void Shader::ReloadShader(std::string_view vertexShader, std::string_view fragmentShader)
+void Shader::ReloadShader()
 {
     if (_isValid)
         glDeleteProgram(_programId);
@@ -136,18 +130,11 @@ void Shader::ReloadShader(std::string_view vertexShader, std::string_view fragme
     u32 vertexId;
     u32 fragmentId;
     u32 geometryId = 0;
-    if (_hasFiles)
-    {
-        vertexId = CompileShaderFromFile(GL_VERTEX_SHADER, _vertexFilename.string());
-        fragmentId = CompileShaderFromFile(GL_FRAGMENT_SHADER, _fragmentFilename.string());
-        if (HasGeometryShader())
-            geometryId = CompileShaderFromFile(GL_GEOMETRY_SHADER, _geometryFilename.string());
-    }
-    else
-    {
-        vertexId = CompileShaderFromString(GL_VERTEX_SHADER, vertexShader.data());
-        fragmentId = CompileShaderFromString(GL_FRAGMENT_SHADER, fragmentShader.data());
-    }
+
+    vertexId = CompileShaderFromFile(GL_VERTEX_SHADER, _vertexPath.string());
+    fragmentId = CompileShaderFromFile(GL_FRAGMENT_SHADER, _fragmentPath.string());
+    if (HasGeometryShader())
+        geometryId = CompileShaderFromFile(GL_GEOMETRY_SHADER, _geometryPath.string());
 
     if (vertexId && fragmentId && (!HasGeometryShader() || geometryId))
     {
@@ -274,13 +261,13 @@ s32 Shader::GetUniformLocation(std::string_view name)
     return location;
 }
 
-bool Shader::HasGeometryShader() const { return fs::exists(_geometryFilename); }
+bool Shader::HasGeometryShader() const { return fs::exists(_geometryPath); }
 
 bool Shader::HasSourceChanged()
 {
-    const bool vChanged = CheckAndUpdateClocks(_vertexFilename, _vertexFileTime);
-    const bool fChanged = CheckAndUpdateClocks(_fragmentFilename, _fragmentFileTime);
-    const bool gChanged = CheckAndUpdateClocks(_geometryFilename, _geometryFileTime);
+    const bool vChanged = CheckAndUpdateClocks(_vertexPath, _vertexFileTime);
+    const bool fChanged = CheckAndUpdateClocks(_fragmentPath, _fragmentFileTime);
+    const bool gChanged = CheckAndUpdateClocks(_geometryPath, _geometryFileTime);
 
     return vChanged || fChanged || gChanged;
 }

@@ -151,6 +151,8 @@ set (HEADER_FILES	src/DG_Job.h
 #Shader Files
 set(SHADERS shaders/fragment_shader.fs
 			shaders/vertex_shader.vs
+			shaders/vertex_shader_debug_lines.vs
+			shaders/fragment_shader_debug_lines.fs
 			)	
 
 set(ALL_SOURCE_FILES 	${SOURCE_FILES}

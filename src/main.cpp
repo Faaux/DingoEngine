@@ -185,8 +185,9 @@ void Cleanup()
 
 void Update(f32 dtSeconds)
 {
-    g_DebugDrawManager.AddAxes(Transform(), 5.f, 3.f);
-    g_DebugDrawManager.AddXZGrid(vec2(0), -5, 5, 0);
+    //AddDebugLine(vec3(),vec3(1,0,0),Color(1,0,0,0));
+    AddDebugAxes(Transform(), 5.f, 3.f);
+    AddDebugXZGrid(vec2(0), -5, 5, 0);
 }
 }  // namespace DG
 

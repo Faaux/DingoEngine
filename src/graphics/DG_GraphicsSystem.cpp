@@ -1,5 +1,6 @@
 #include "DG_GraphicsSystem.h"
 #include "DG_Clock.h"
+#include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
 
@@ -7,36 +8,6 @@ namespace DG
 {
 namespace graphics
 {
-std::string_view linePointVertShaderSrc =
-    "\n"
-    "#version 440\n"
-    "\n"
-    "layout(location = 0) in vec3 in_Position;\n"
-    "layout(location = 1) in vec4 in_ColorPointSize;\n"
-    "\n"
-    "out vec4 v_Color;\n"
-    "uniform mat4 u_MvpMatrix;\n"
-    "\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position  = u_MvpMatrix * vec4(in_Position, 1.0);\n"
-    "    gl_PointSize = in_ColorPointSize.w;\n"
-    "    v_Color      = vec4(in_ColorPointSize.xyz, 1.0);\n"
-    "}\n";
-
-std::string_view linePointFragShaderSrc =
-    "\n"
-    "#version 440\n"
-    "\n"
-    "in  vec4 v_Color;\n"
-    "out vec4 out_FragColor;\n"
-    "\n"
-    "void main()\n"
-    "{\n"
-    "    out_FragColor = v_Color;\n"
-    "}\n";
-
-DebugDrawManager g_DebugDrawManager;
 RenderContext g_CurrentRenderContext;
 RenderContext g_LastRenderContext;
 
@@ -165,9 +136,13 @@ void DebugRenderContext::AddLine(const vec3& vertex0, const vec3& vertex1, const
                                  bool depthEnabled)
 {
     if (depthEnabled)
+    {
         _depthEnabledDebugLines.emplace_back(vertex0, vertex1, color);
+    }
     else
+    {
         _depthDisabledDebugLines.emplace_back(vertex0, vertex1, color);
+    }
 }
 
 void DebugRenderContext::Reset()
@@ -183,7 +158,9 @@ const std::vector<DebugLine>& DebugRenderContext::GetDebugLines(bool depthEnable
     return _depthDisabledDebugLines;
 }
 
-DebugRenderSystem::DebugRenderSystem() : _shader(linePointVertShaderSrc, linePointFragShaderSrc)
+DebugRenderSystem::DebugRenderSystem()
+    : _shader(SearchForFile("vertex_shader_debug_lines.vs"),
+              SearchForFile("fragment_shader_debug_lines.fs"), "")
 {
     SetupVertexBuffers();
 }
@@ -197,12 +174,11 @@ void DebugRenderSystem::SetupVertexBuffers()
 
     // RenderInterface will never be called with a batch larger than
     // DEBUG_DRAW_VERTEX_BUFFER_SIZE vertexes, so we can allocate the same amount here.
-    glBufferData(GL_ARRAY_BUFFER, DebugDrawManager::DebugDrawBufferSize * sizeof(DebugLine),
-                 nullptr, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, DebugDrawBufferSize * sizeof(DebugLine), nullptr, GL_STREAM_DRAW);
 
     size_t offset = 0;
 
-    glEnableVertexAttribArray(0);  // in_Position (vec3)
+    glEnableVertexAttribArray(0);  // in_first (vec3)
     glVertexAttribPointer(
         /* index     = */ 0,
         /* size      = */ 3,
@@ -211,14 +187,35 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* stride    = */ sizeof(DebugPoint),
         /* offset    = */ reinterpret_cast<void*>(offset));
     offset += sizeof(vec3);
-    glEnableVertexAttribArray(1);  // in_ColorPointSize (vec4)
+    glEnableVertexAttribArray(1);  // in_second (vec3)
     glVertexAttribPointer(
         /* index     = */ 1,
+        /* size      = */ 3,
+        /* type      = */ GL_FLOAT,
+        /* normalize = */ GL_FALSE,
+        /* stride    = */ sizeof(DebugPoint),
+        /* offset    = */ reinterpret_cast<void*>(offset));
+    offset += sizeof(vec3);
+    glEnableVertexAttribArray(2);  // in_ColorPointSize (vec4)
+    glVertexAttribPointer(
+        /* index     = */ 2,
         /* size      = */ 4,
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
         /* offset    = */ reinterpret_cast<void*>(offset));
+
+    offset += sizeof(vec4);
+    glEnableVertexAttribArray(3);  // direction (float)
+    glVertexAttribPointer(
+        /* index     = */ 3,
+        /* size      = */ 1,
+        /* type      = */ GL_FLOAT,
+        /* normalize = */ GL_FALSE,
+        /* stride    = */ sizeof(DebugPoint),
+        /* offset    = */ reinterpret_cast<void*>(offset));
+
+    CheckOpenGLError(__FILE__, __LINE__);
 
     // VAOs can be a pain in the neck if left enabled...
     glBindVertexArray(0);
@@ -237,11 +234,11 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     if (lines.empty())
         return;
 
-    const auto mvp = camera.getProjection() * camera.getView();
 
     glBindVertexArray(linePointVAO);
     _shader.Use();
-    _shader.SetUniform("u_MvpMatrix", mvp);
+    _shader.SetUniform("mv_Matrix", camera.getView());
+    _shader.SetUniform("p_Matrix", camera.getProjection());
 
     if (depthEnabled)
     {
@@ -253,18 +250,15 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
-
     auto size_left = lines.size();
     auto size_drawn = 0;
     while (size_left != 0)
     {
-        const auto size_to_draw = size_left > DebugDrawManager::DebugDrawBufferSize
-                                      ? DebugDrawManager::DebugDrawBufferSize
-                                      : size_left;
+        const auto size_to_draw = size_left > DebugDrawBufferSize ? DebugDrawBufferSize : size_left;
         glBufferSubData(GL_ARRAY_BUFFER, 0, size_to_draw * sizeof(DebugLine),
                         lines.data() + size_drawn);
 
-        glDrawArrays(GL_LINES, 0, size_to_draw * 2);
+        glDrawArrays(GL_TRIANGLES, 0, size_to_draw * 6);
         size_drawn += size_to_draw;
         size_left -= size_to_draw;
     }
@@ -274,15 +268,15 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void DebugDrawManager::AddLine(const vec3& fromPosition, const vec3& toPosition, Color color,
-                               f32 lineWidth, f32 durationSeconds, bool depthEnabled)
+void AddDebugLine(const vec3& fromPosition, const vec3& toPosition, Color color, f32 lineWidth,
+                  f32 durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     g_CurrentDebugRenderContext.AddLine(fromPosition, toPosition, color, depthEnabled);
 }
 
-void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32 lineWidth,
-                                f32 durationSeconds, bool depthEnabled)
+void AddDebugCross(const vec3& position, Color color, f32 size, f32 lineWidth, f32 durationSeconds,
+                   bool depthEnabled)
 {
     color.w = lineWidth;
     const f32 halfSize = size / 2.0f;
@@ -294,8 +288,8 @@ void DebugDrawManager::AddCross(const vec3& position, Color color, f32 size, f32
                                         position + vec3(0, 0, halfSize), color, depthEnabled);
 }
 
-void DebugDrawManager::AddSphere(const vec3& centerPosition, Color color, f32 radius,
-                                 f32 durationSeconds, bool depthEnabled)
+void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 durationSeconds,
+                    bool depthEnabled)
 {
     // ToDo: Export these lines and just scale and move them appropriately, no need to calculate
     // each time
@@ -337,8 +331,8 @@ void DebugDrawManager::AddSphere(const vec3& centerPosition, Color color, f32 ra
     }
 }
 
-void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNormal, Color color,
-                                 f32 radius, f32 durationSeconds, bool depthEnabled)
+void AddDebugCircle(const vec3& centerPosition, const vec3& planeNormal, Color color, f32 radius,
+                    f32 durationSeconds, bool depthEnabled)
 {
     // Find 2 orthogonal vectors (Orthogonal --> DotProduct is Zero)
     vec3 vecX(1.0f, -planeNormal.x / planeNormal.y, 0.0f);
@@ -365,8 +359,8 @@ void DebugDrawManager::AddCircle(const vec3& centerPosition, const vec3& planeNo
     }
 }
 
-void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWidth,
-                               f32 durationSeconds, bool depthEnabled)
+void AddDebugAxes(const Transform& transform, f32 size, f32 lineWidth, f32 durationSeconds,
+                  bool depthEnabled)
 {
     auto modelMatrix = transform.getModel();
     const vec3 right(modelMatrix[0]);
@@ -380,9 +374,8 @@ void DebugDrawManager::AddAxes(const Transform& transform, f32 size, f32 lineWid
                                         Color(0, 0, 1, lineWidth), depthEnabled);
 }
 
-void DebugDrawManager::AddTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vertex2,
-                                   Color color, f32 lineWidth, f32 durationSeconds,
-                                   bool depthEnabled)
+void AddDebugTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vertex2, Color color,
+                      f32 lineWidth, f32 durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
     g_CurrentDebugRenderContext.AddLine(vertex0, vertex1, color, depthEnabled);
@@ -392,32 +385,31 @@ void DebugDrawManager::AddTriangle(const vec3& vertex0, const vec3& vertex1, con
     // ToDo: Post event to message system if time is still valid for assumed next frame
 }
 
-void DebugDrawManager::AddAABB(const vec3& minCoords, const vec3& maxCoords, Color color,
-                               f32 lineWidth, f32 durationSeconds, bool depthEnabled)
+void AddDebugAABB(const vec3& minCoords, const vec3& maxCoords, Color color, f32 lineWidth,
+                  f32 durationSeconds, bool depthEnabled)
 {
 }
 
-void DebugDrawManager::AddString(const vec3& position, const char* text, Color color,
-                                 f32 durationSeconds, bool depthEnabled)
+void AddDebugText(const vec3& position, const char* text, Color color, f32 durationSeconds,
+                  bool depthEnabled)
 {
 }
 
-void DebugDrawManager::AddXZGrid(const vec2& center, const f32 min, const f32 max, const f32 height,
-                                 f32 step, Color color, f32 lineWidth, f32 durationSeconds,
-                                 bool depthEnabled)
+void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 height, f32 step,
+                    Color color, f32 lineWidth, f32 durationSeconds, bool depthEnabled)
 {
     // Line at min
     {
         // Horizontal Line
         const vec3 from(center.x + min, height, center.y + min);
         const vec3 to(center.x + max, height, center.y + min);
-        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
     }
     {
         // Vertical Line
-        const vec3 from(center.y + min, height, center.x + min);
-        const vec3 to(center.y + min, height, center.x + max);
-        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        const vec3 from(center.x + min, height, center.y + min);
+        const vec3 to(center.x + min, height, center.y + max);
+        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
     }
     for (f32 i = min + step; i < max; i += step)
     {
@@ -425,13 +417,13 @@ void DebugDrawManager::AddXZGrid(const vec2& center, const f32 min, const f32 ma
             // Horizontal Line
             const vec3 from(center.x + min, height, center.y + i);
             const vec3 to(center.x + max, height, center.y + i);
-            AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+            AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
         }
         {
             // Vertical Line
-            const vec3 from(center.y + i, height, center.x + min);
-            const vec3 to(center.y + i, height, center.x + max);
-            AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+            const vec3 from(center.x + i, height, center.y + min);
+            const vec3 to(center.x + i, height, center.y + max);
+            AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
         }
     }
     // Line at max
@@ -439,13 +431,13 @@ void DebugDrawManager::AddXZGrid(const vec2& center, const f32 min, const f32 ma
         // Horizontal Line
         const vec3 from(center.x + min, height, center.y + max);
         const vec3 to(center.x + max, height, center.y + max);
-        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
     }
     {
         // Vertical Line
-        const vec3 from(center.y + max, height, center.x + min);
-        const vec3 to(center.y + max, height, center.x + max);
-        AddLine(from, to, color, 1, durationSeconds, depthEnabled);
+        const vec3 from(center.x + max, height, center.y + min);
+        const vec3 to(center.x + max, height, center.y + max);
+        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
     }
 }
 
