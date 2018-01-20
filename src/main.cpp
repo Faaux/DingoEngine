@@ -225,7 +225,7 @@ int main(int, char* [])
     // ToDo: Remove
     Camera camera(vec3(0, 1, 3));
 
-    GLTFScene* scene = LoadGLTF("duck.gltf");
+    GLTFScene* scene = LoadGLTF("boxmaterial.gltf");
     Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
     Model model(*scene, shader);
 
