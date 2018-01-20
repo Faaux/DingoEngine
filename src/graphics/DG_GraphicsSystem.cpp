@@ -168,8 +168,30 @@ void DebugRenderSystem::SetupVertexBuffers()
 {
     glGenVertexArrays(1, &linePointVAO);
     glGenBuffers(1, &linePointVBO);
+    glGenBuffers(1, &linePointEBO);
 
     glBindVertexArray(linePointVAO);
+    // Index Buffer
+
+    u32 indices[DebugDrawBufferSize * 6];
+    u32 index = 0;
+    for (u32 i = 0; i < DebugDrawBufferSize; ++i)
+    {
+        // First Quad Triangle
+        indices[index++] = i * 4 + 0;
+        indices[index++] = i * 4 + 1;
+        indices[index++] = i * 4 + 2;
+
+        // Second Quad Triangle
+        indices[index++] = i * 4 + 2;
+        indices[index++] = i * 4 + 3;
+        indices[index++] = i * 4 + 0;
+    }
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, linePointEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Data Buffer
     glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
 
     // RenderInterface will never be called with a batch larger than
@@ -234,7 +256,6 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     if (lines.empty())
         return;
 
-
     glBindVertexArray(linePointVAO);
     _shader.Use();
     _shader.SetUniform("mv_Matrix", camera.getView());
@@ -258,7 +279,7 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
         glBufferSubData(GL_ARRAY_BUFFER, 0, size_to_draw * sizeof(DebugLine),
                         lines.data() + size_drawn);
 
-        glDrawArrays(GL_TRIANGLES, 0, size_to_draw * 6);
+        glDrawElements(GL_TRIANGLES, size_to_draw * 6, GL_UNSIGNED_INT, 0);
         size_drawn += size_to_draw;
         size_left -= size_to_draw;
     }

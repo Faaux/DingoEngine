@@ -42,17 +42,11 @@ struct DebugLine
         endDown.start = end;
         endDown.end = start;
         endDown.color = color;
-
-        startDown2 = endUp;
-        endUp2 = startUp;
     }
     DebugPoint startUp;
     DebugPoint startDown;
     DebugPoint endUp;
-
-    DebugPoint startDown2;
-    DebugPoint endDown;   
-    DebugPoint endUp2;
+    DebugPoint endDown; 
     
 };
 
@@ -107,6 +101,7 @@ class DebugRenderSystem
     Shader _shader;
     GLuint linePointVAO = -1;
     GLuint linePointVBO = -1;
+    GLuint linePointEBO = -1;
 };
 
 class GraphicsSystem
