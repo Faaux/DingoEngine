@@ -39,7 +39,7 @@ int ProfilerWork(void *data, FILE *output_stream)
     static DebugEvent frameStartEvent(0, 0, "", Error);
 
     static bool isFirst = true;
-#if 0
+#ifdef DG_SAVE_PROFILER
 		fprintf(output_stream,
 			"%s{\"name\": \"%s\", \"ph\": \"%s\", \"pid\": 0, \"tid\": %i, \"ts\": %f}\n",
 			isFirst ? "" : ",",

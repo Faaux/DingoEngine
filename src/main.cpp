@@ -141,21 +141,18 @@ SDL_GLContext GLContext;
 #define LOGNAME_FORMAT "%Y%m%d_%H%M%S_Profiler.txt"
 #define LOGNAME_SIZE 30
 
-FILE* logfile()
-{
-    static char name[LOGNAME_SIZE];
-    time_t now = time(0);
-    strftime(name, sizeof(name), LOGNAME_FORMAT, localtime(&now));
-    FILE* result = fopen(name, "w");
-    return result;
-}
-
 int DoProfilerWork(void*)
 {
     SDL_sem* sem = nullptr;
-    FILE* pFile;
-    pFile = logfile();
+    FILE* pFile = nullptr;
+#ifdef DG_SAVE_PROFILER
+    static char name[LOGNAME_SIZE];
+    time_t now = time(0);
+    strftime(name, sizeof(name), LOGNAME_FORMAT, localtime(&now));
+    pFile = fopen(name, "w");
+
     fprintf(pFile, "[");
+#endif
     while (GameIsRunning)
     {
         if (sem)
@@ -167,8 +164,10 @@ int DoProfilerWork(void*)
     {
         result = ProfilerWork(&sem, pFile);
     }
+#ifdef DG_SAVE_PROFILER
     fprintf(pFile, "]");
     fclose(pFile);
+#endif
 
     return 0;
 }
