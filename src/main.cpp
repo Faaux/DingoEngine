@@ -6,6 +6,7 @@
 #include "DG_Job.h"
 #include "DG_SDLHelper.h"
 
+#include <ft2build.h>
 #include "DG_Camera.h"
 #include "DG_Clock.h"
 #include "DG_GraphicsSystem.h"
@@ -14,11 +15,117 @@
 #include "DG_Profiler.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
-#include "imgui_impl_sdl_gl3.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+#include "imgui_impl_sdl_gl3.h"
+#include FT_FREETYPE_H
 namespace DG
 {
 using namespace graphics;
+struct Glyph
+{
+    u8 code;      // unicode value
+    u8 width;     // unicode value
+    u8 height;    // unicode value
+    u8 bearingY;  // y offset of top-left corner from y axis
+    f32 u;        // x pixel coord of the bitmap's bottom-left corner
+    f32 v;        // y pixel coord of the bitmap's bottom-left corner
+};
+class FakeTree
+{
+   public:
+    FakeTree(u32 posX, u32 posY, u32 width, u32 height)
+        : _width(width),
+          _height(height),
+          _posX(posX),
+          _posY(posY),
+          _isUsed(false),
+          _right(nullptr),
+          _down(nullptr)
+    {
+    }
+
+    void AddGlyph(Glyph& glyph, const FT_GlyphSlot& slot, u8* data, u32 width, u32 height)
+    {
+        if (!FindNode(glyph, slot, data, width, height))
+        {
+            // Well this is awkward...
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "FreeType: Packing - Couldn't find a slot to put the Glyph");
+        }
+    }
+
+    ~FakeTree()
+    {
+        delete _right;
+        delete _down;
+    }
+
+   private:
+    bool FindNode(Glyph& glyph, const FT_GlyphSlot& slot, u8* data, u32 width, u32 height)
+    {
+        if (_isUsed)
+        {
+            // This slot is taken, pass it down to the other nodes
+            return _right->FindNode(glyph, slot, data, width, height) ||
+                   _down->FindNode(glyph, slot, data, width, height);
+        }
+        const u32 glyphAdvance = slot->metrics.horiAdvance / 64;
+
+        if (glyphAdvance <= _width && glyph.height <= _height)
+        {
+            // Lets claim this slot, and resize accordingly
+            _isUsed = true;
+            _right = new FakeTree(_posX + glyphAdvance, _posY, _width - glyphAdvance, glyph.height);
+            _down = new FakeTree(_posX, _posY + glyph.height, _width, _height - glyph.height);
+
+            AddGlyphDataToArray(glyph, slot, data, width, height);
+            return true;
+        }
+        return false;
+    }
+
+    void AddGlyphDataToArray(Glyph& glyph, const FT_GlyphSlot& slot, u8* data, u32 width,
+                             u32 height) const
+    {
+        if (!_isUsed)
+            return;
+
+        // Find top left pixel
+        u8* topLeft = data + (_posX + _posY * width);
+
+        // Insert data
+        if (slot->bitmap.buffer)
+        {
+            u32 bearingX = slot->metrics.horiBearingX / 64;
+            for (int h = 0; h < glyph.height; ++h)
+            {
+                for (u32 w = bearingX; w < bearingX + glyph.width; ++w)
+                {
+                    u32 index = w + h * width;
+                    *(topLeft + index) = slot->bitmap.buffer[(w - bearingX) + h * glyph.width];
+                }
+            }
+        }
+
+        glyph.u = _posX / static_cast<f32>(width);
+        glyph.v = (height - _posY) / static_cast<f32>(height);
+    }
+
+    u32 _width;
+    u32 _height;
+    u32 _posX;
+    u32 _posY;
+
+    bool _isUsed;
+    FakeTree* _right;
+    FakeTree* _down;
+};  // namespace DG
+
+std::array<Glyph, 96> toRender;
+
 struct FrameData
 {
 };
@@ -175,6 +282,94 @@ bool InitWorkerThreads()
     return true;
 }
 
+bool InitFreetype()
+{
+    FT_Library library;
+    auto error = FT_Init_FreeType(&library);
+    if (error)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Freetype: Couldn't initialize");
+        return false;
+    }
+
+    FT_Face face;
+    error = FT_New_Face(library, SearchForFile("Roboto-Regular.ttf").c_str(), 0, &face);
+    if (error == FT_Err_Unknown_File_Format)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Freetype: Unsupported file format");
+        return false;
+    }
+    if (error)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Freetype: Couldn't open or read file");
+        return false;
+    }
+
+    error = FT_Set_Pixel_Sizes(face, /* handle to face object */
+                               0,    /* pixel_width           */
+                               32);  /* pixel_height          */
+
+    if (error)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Freetype: Setting font size failed");
+        return false;
+    }
+
+    u32 size = 256;
+    FakeTree tree(0, 0, size, size);
+    u8* packed = static_cast<u8*>(calloc(size * size, 1));
+
+    std::vector<std::tuple<char, u32>> tempSorting;
+    tempSorting.reserve(96);
+    for (int n = 32; n < 128; n++)
+    {
+        /* load glyph image into the slot (erase previous one) */
+        error = FT_Load_Char(face, char(n), FT_LOAD_RENDER);
+        if (error)
+        {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Freetype: Corrupt char: 0x%02X", n);
+            continue;
+        }
+
+        FT_GlyphSlot& slot = face->glyph;
+        tempSorting.emplace_back(char(n), slot->bitmap.width * slot->bitmap.rows);
+    }
+
+    std::sort(tempSorting.begin(), tempSorting.end(),
+              [](const std::tuple<char, u32>& a, const std::tuple<char, u32>& b) -> bool {
+                  return std::get<1>(a) > std::get<1>(b);
+              });
+
+    for (auto& codeToSize : tempSorting)
+    {
+        char n = std::get<0>(codeToSize);
+        FT_Load_Char(face, n, FT_LOAD_RENDER);
+
+        FT_GlyphSlot& slot = face->glyph;
+
+        auto& glyph = toRender[n - 32];
+        glyph.code = n;
+        if (slot->bitmap.buffer)
+        {
+            glyph.width = slot->bitmap.width;
+            glyph.height = slot->bitmap.rows;
+        }
+        else
+        {
+            glyph.width = slot->metrics.width / 64;
+            glyph.height = slot->metrics.height / 64;
+        }
+        glyph.bearingY = slot->metrics.horiBearingY / 64;
+
+        tree.AddGlyph(glyph, slot, packed, size, size);
+    }
+
+    stbi_write_bmp("Test.bmp", size, size, 1, packed);
+
+    free(packed);
+    return true;
+}
+
 void Cleanup()
 {
     ImGui_ImplSdlGL3_Shutdown();
@@ -185,7 +380,7 @@ void Cleanup()
 
 void Update(f32 dtSeconds)
 {
-    //AddDebugLine(vec3(),vec3(1,0,0),Color(1,0,0,0));
+    // AddDebugLine(vec3(),vec3(1,0,0),Color(1,0,0,0));
     AddDebugAxes(Transform(), 5.f, 3.f);
     AddDebugXZGrid(vec2(0), -5, 5, 0);
 }
@@ -209,6 +404,9 @@ int main(int, char* [])
         return -1;
 
     if (!InitWorkerThreads())
+        return -1;
+
+    if (!InitFreetype())
         return -1;
 
     InitClocks();

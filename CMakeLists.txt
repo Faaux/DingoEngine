@@ -65,7 +65,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 		set(SDL_STATIC ON CACHE BOOL "" FORCE)
 		set(LIBC ON CACHE BOOL "" FORCE)
+		
 		add_subdirectory(ThirdParty/SDL-mirror)
+		
 		set_target_properties (SDL2-static PROPERTIES
 			FOLDER ThirdParty/SDL
 		)
@@ -91,15 +93,27 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	## GLAD
 		set (GLAD_SOURCE_FILES 		ThirdParty/glad/src/glad.c)
 		
+	## FreeType
+		
+		
+		set(FREETYPE_LIBS bin/freetype)
+		configure_file(ThirdParty/freetype-2.9/freetype.lib bin/freetype.lib COPYONLY)
+		configure_file(ThirdParty/freetype-2.9/freetype.dll bin/freetype.dll COPYONLY)
+		configure_file(ThirdParty/freetype-2.9/freetype.pdb bin/freetype.pdb COPYONLY)
+		
+		
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
 									ThirdParty/glm
 									ThirdParty/glad/include
 									ThirdParty/imgui
-									ThirdParty/tinyGltf)
+									ThirdParty/tinyGltf
+									ThirdParty/freetype-2.9
+									ThirdParty/stb
+									)
 		
 		
-		set(THIRD_PARTY_LIBS 		${SDL_LIBS})
+		set(THIRD_PARTY_LIBS 		${SDL_LIBS} ${FREETYPE_LIBS})
 		
 		set(THIRD_PARTY_SRC_FILES   ${GLAD_SOURCE_FILES}
 									${IMGUI_SOURCE_FILES})
