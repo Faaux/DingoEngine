@@ -131,7 +131,9 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
 					src/DG_ResourceHelper.cpp
+					src/DG_FontGenerator.cpp
 					
+					src/graphics/DG_Texture.cpp
 					src/graphics/DG_GraphicsSystem.cpp
 					src/graphics/DG_Shader.cpp
 					src/graphics/DG_Mesh.cpp
@@ -149,7 +151,9 @@ set (HEADER_FILES	src/DG_Job.h
 					src/DG_Transform.h
 					src/DG_InputSystem.h
 					src/DG_ResourceHelper.h
+					src/DG_FontGenerator.h
 					
+					src/graphics/DG_Texture.h
 					src/graphics/DG_GraphicsSystem.h
 					src/graphics/DG_Shader.h
 					src/graphics/DG_Mesh.h
@@ -165,6 +169,10 @@ set (HEADER_FILES	src/DG_Job.h
 #Shader Files
 set(SHADERS shaders/fragment_shader.fs
 			shaders/vertex_shader.vs
+			
+			shaders/fragment_shader_font.fs
+			shaders/vertex_shader_font.vs
+			
 			shaders/vertex_shader_debug_lines.vs
 			shaders/fragment_shader_debug_lines.fs
 			)	

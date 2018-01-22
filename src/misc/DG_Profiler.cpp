@@ -43,7 +43,7 @@ int ProfilerWork(void *data, FILE *output_stream)
 		fprintf(output_stream,
 			"%s{\"name\": \"%s\", \"ph\": \"%s\", \"pid\": 0, \"tid\": %i, \"ts\": %f}\n",
 			isFirst ? "" : ",",
-			event.Name.c_str(),
+			event.Name.data(),
 			event.Type == FrameStart || event.Type == Start ? "B" : "E",
 			event.ThreadId,
 			event.Clock * 1000000 / profiler._processor_frequency);
@@ -112,7 +112,7 @@ int ProfilerWork(void *data, FILE *output_stream)
             }
             else
             {
-                Assert(stack.size() > 0);
+                Assert(!stack.empty());
                 DebugEvent start = stack.top();
                 stack.pop();
 

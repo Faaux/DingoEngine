@@ -1,5 +1,6 @@
 #include "DG_GraphicsSystem.h"
 #include "DG_Clock.h"
+#include "DG_FontGenerator.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
@@ -48,7 +49,7 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPolygonMode(GL_FRONT_AND_BACK, context.IsWireframe() ? GL_LINE : GL_FILL);
-
+    glEnable(GL_DEPTH_TEST);
     auto model = context.GetModelToRender();
     if (model)
     {
@@ -121,6 +122,7 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
 
     // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
+    RenderSomeText();  // ToDo: Refactor
     ImGui::Render();
 
     SDL_GL_SwapWindow(_window);
@@ -301,12 +303,12 @@ void AddDebugCross(const vec3& position, Color color, f32 size, f32 lineWidth, f
 {
     color.w = lineWidth;
     const f32 halfSize = size / 2.0f;
-    g_CurrentDebugRenderContext.AddLine(position - vec3(halfSize, 0, 0),
-                                        position + vec3(halfSize, 0, 0), color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(position - vec3(0, halfSize, 0),
-                                        position + vec3(0, halfSize, 0), color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(position - vec3(0, 0, halfSize),
-                                        position + vec3(0, 0, halfSize), color, depthEnabled);
+    AddDebugLine(position - vec3(halfSize, 0, 0), position + vec3(halfSize, 0, 0), color, lineWidth,
+                 durationSeconds, depthEnabled);
+    AddDebugLine(position - vec3(0, halfSize, 0), position + vec3(0, halfSize, 0), color, lineWidth,
+                 durationSeconds, depthEnabled);
+    AddDebugLine(position - vec3(0, 0, halfSize), position + vec3(0, 0, halfSize), color, lineWidth,
+                 durationSeconds, depthEnabled);
 }
 
 void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 durationSeconds,
@@ -343,8 +345,8 @@ void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 dur
             temp.y = centerPosition.y + glm::cos(radTemp) * radius * s;
             temp.z = lastPoint.z;
 
-            g_CurrentDebugRenderContext.AddLine(lastPoint, temp, color, depthEnabled);
-            g_CurrentDebugRenderContext.AddLine(lastPoint, cache[n], color, depthEnabled);
+            AddDebugLine(lastPoint, temp, color, 1, durationSeconds, depthEnabled);
+            AddDebugLine(lastPoint, cache[n], color, 1, durationSeconds, depthEnabled);
 
             cache[n] = lastPoint;
             lastPoint = temp;
@@ -373,8 +375,8 @@ void AddDebugCircle(const vec3& centerPosition, const vec3& planeNormal, Color c
 
         const vec3 point = centerPosition + vecX * s + vecZ * c;
 
-        g_CurrentDebugRenderContext.AddLine(lastPoint, point, color, depthEnabled);
-        g_CurrentDebugRenderContext.AddLine(lastPoint, centerPosition, color, depthEnabled);
+        AddDebugLine(lastPoint, point, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(lastPoint, centerPosition, color, 1, durationSeconds, depthEnabled);
 
         lastPoint = point;
     }
@@ -387,21 +389,21 @@ void AddDebugAxes(const Transform& transform, f32 size, f32 lineWidth, f32 durat
     const vec3 right(modelMatrix[0]);
     const vec3 up(modelMatrix[1]);
     const vec3 forward(modelMatrix[2]);
-    g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(right) * size,
-                                        Color(1, 0, 0, lineWidth), depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(up) * size,
-                                        Color(0, 1, 0, lineWidth), depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(transform.pos, transform.pos + normalize(forward) * size,
-                                        Color(0, 0, 1, lineWidth), depthEnabled);
+    AddDebugLine(transform.pos, transform.pos + normalize(right) * size, Color(1, 0, 0, lineWidth),
+                 lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(transform.pos, transform.pos + normalize(up) * size, Color(0, 1, 0, lineWidth),
+                 lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(transform.pos, transform.pos + normalize(forward) * size,
+                 Color(0, 0, 1, lineWidth), lineWidth, durationSeconds, depthEnabled);
 }
 
 void AddDebugTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vertex2, Color color,
                       f32 lineWidth, f32 durationSeconds, bool depthEnabled)
 {
     color.w = lineWidth;
-    g_CurrentDebugRenderContext.AddLine(vertex0, vertex1, color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(vertex1, vertex2, color, depthEnabled);
-    g_CurrentDebugRenderContext.AddLine(vertex2, vertex0, color, depthEnabled);
+    AddDebugLine(vertex0, vertex1, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(vertex1, vertex2, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(vertex2, vertex0, color, lineWidth, durationSeconds, depthEnabled);
 
     // ToDo: Post event to message system if time is still valid for assumed next frame
 }
@@ -424,13 +426,13 @@ void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 
         // Horizontal Line
         const vec3 from(center.x + min, height, center.y + min);
         const vec3 to(center.x + max, height, center.y + min);
-        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
     }
     {
         // Vertical Line
         const vec3 from(center.x + min, height, center.y + min);
         const vec3 to(center.x + min, height, center.y + max);
-        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
     }
     for (f32 i = min + step; i < max; i += step)
     {
@@ -438,13 +440,13 @@ void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 
             // Horizontal Line
             const vec3 from(center.x + min, height, center.y + i);
             const vec3 to(center.x + max, height, center.y + i);
-            AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+            AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
         }
         {
             // Vertical Line
-            const vec3 from(center.x + i, height, center.y + min);
+            const vec3 from(center.x + i, height, center.y + min); 
             const vec3 to(center.x + i, height, center.y + max);
-            AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+            AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
         }
     }
     // Line at max
@@ -452,13 +454,13 @@ void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 
         // Horizontal Line
         const vec3 from(center.x + min, height, center.y + max);
         const vec3 to(center.x + max, height, center.y + max);
-        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
     }
     {
         // Vertical Line
         const vec3 from(center.x + max, height, center.y + min);
         const vec3 to(center.x + max, height, center.y + max);
-        AddDebugLine(from, to, color, 1, durationSeconds, depthEnabled);
+        AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
     }
 }
 
