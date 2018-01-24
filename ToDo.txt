@@ -1,0 +1,35 @@
+GLTF (Low Level Rendering)
+	1.) Materials
+	2.) Textures
+	3.) Directional Lighting
+	4.) Animations
+	5.) Morph
+	
+Resource Manager
+	- Manage Assets so that they arent loaded twice into memory
+	- Keep track of used memory
+	
+Messaging (Mediator) (System)
+	1.) Inputs
+	2.) System specific communication
+	
+Frame Structure
+Pass one object to each phase which has all neccessary information to run its task
+	- Update
+		- Sub1
+		- Sub2
+	- Pre-Render
+		- Sub1
+		- Sub2
+	- Render
+		- Sub1
+		- Sub2
+	
+
+High Level Renderer
+	1.) Culling
+	2.) Animations
+		1.) Simple
+		2.) Skeletal
+	
+own_string_class
