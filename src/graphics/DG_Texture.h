@@ -1,7 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include "DG_Include.h"
-namespace DG
+namespace DG::graphics
 {
 class Texture
 {
@@ -14,4 +14,4 @@ class Texture
     bool _isValid = false;
     GLuint textureId = 0;
 };
-}  // namespace DG
+}  // namespace DG::graphics

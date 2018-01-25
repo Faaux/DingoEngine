@@ -1,4 +1,4 @@
-#include "DG_FontGenerator.h"
+#include "DG_Font.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "DG_GraphicsSystem.h"
@@ -6,7 +6,7 @@
 #include "DG_Texture.h"
 #include "stb_image_write.h"
 
-namespace DG
+namespace DG::graphics
 {
 Font::Font() : _isValid(false), _fontCache() {}
 
@@ -373,4 +373,4 @@ void GlyphPacker::AddGlyphDataToArray(Glyph& glyph, const FT_GlyphSlot& slot, u8
     glyph.vBottomRight = _posY / static_cast<f32>(height);
 }
 
-}  // namespace DG
+}  // namespace DG::graphics

@@ -7,7 +7,7 @@
 #include "DG_Shader.h"
 #include "DG_Transform.h"
 
-namespace DG
+namespace DG::graphics
 {
 struct GLTFMaterial
 {
@@ -196,4 +196,4 @@ class Model
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;
 };
-}  // namespace DG
+}  // namespace DG::graphics

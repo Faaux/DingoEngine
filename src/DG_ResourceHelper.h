@@ -9,8 +9,10 @@
 namespace DG
 {
 extern std::vector<std::experimental::filesystem::path> FoldersToSearch;
+
 std::string SearchForFile(
     const std::string_view& filename,
     const std::vector<std::experimental::filesystem::path>& basePaths = FoldersToSearch);
-GLTFScene* LoadGLTF(const std::string_view& filename);
+
+graphics::GLTFScene* LoadGLTF(const std::string_view& filename);
 }  // namespace DG

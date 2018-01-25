@@ -7,9 +7,7 @@
 #include "DG_Shader.h"
 #include "DG_Transform.h"
 
-namespace DG
-{
-namespace graphics
+namespace DG::graphics
 {
 struct DebugPoint
 {
@@ -183,5 +181,4 @@ void AddDebugXZGrid(const vec2 &center, const f32 min, const f32 max, const f32 
                     f32 durationSeconds = 0.f, bool depthEnabled = true);
 
 void CheckOpenGLError(const char *file, const int line);
-}  // namespace graphics
-}  // namespace DG
+}  // namespace DG::graphics

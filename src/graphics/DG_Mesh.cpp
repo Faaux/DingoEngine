@@ -2,7 +2,7 @@
 #include "DG_GraphicsSystem.h"
 #include "DG_Include.h"
 
-namespace DG
+namespace DG::graphics
 {
 BufferView::BufferView(const GLTFBufferView& view) : target(view.target)
 {
@@ -119,4 +119,4 @@ Model::Model(const GLTFScene& scene, graphics::Shader& shader) : shader(shader)
 }
 
 const std::vector<BufferView>& Model::GetBufferViews() const { return bufferViews; }
-}  // namespace DG
+}  // namespace DG::graphics

@@ -9,7 +9,7 @@
 #include "DG_Camera.h"
 #include "DG_Texture.h"
 
-namespace DG
+namespace DG::graphics
 {
 struct DebugCharacter
 {
@@ -97,4 +97,4 @@ class GlyphPacker
     GlyphPacker* _down;
 };  // namespace DG
 
-}  // namespace DG
+}  // namespace DG::graphics

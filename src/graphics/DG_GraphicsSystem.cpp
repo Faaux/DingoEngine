@@ -1,13 +1,11 @@
 #include "DG_GraphicsSystem.h"
 #include "DG_Clock.h"
-#include "DG_FontGenerator.h"
+#include "DG_Font.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 #include "imgui_impl_sdl_gl3.h"
 
-namespace DG
-{
-namespace graphics
+namespace DG::graphics
 {
 RenderContext g_CurrentRenderContext;
 RenderContext g_LastRenderContext;
@@ -536,5 +534,4 @@ void CheckOpenGLError(const char* file, const int line)
         SDL_LogError(0, "%s(%d) : GL_Error=0x%X - %s", file, line, err, ErrorToString(err));
     }
 }
-}  // namespace graphics
-}  // namespace DG
+}  // namespace DG::graphics

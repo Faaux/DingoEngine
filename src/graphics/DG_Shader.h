@@ -3,9 +3,7 @@
 #include <string>
 #include "DG_Include.h"
 
-namespace DG
-{
-namespace graphics
+namespace DG::graphics
 {
 class Shader
 {
@@ -49,6 +47,5 @@ class Shader
     std::experimental::filesystem::file_time_type _fragmentFileTime;
     std::experimental::filesystem::file_time_type _geometryFileTime;
 };
-}  // namespace graphics
 
-}  // namespace DG
+}  // namespace DG::graphics

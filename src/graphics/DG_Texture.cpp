@@ -1,6 +1,6 @@
 #include "DG_Texture.h"
 
-namespace DG
+namespace DG::graphics
 {
 void Texture::InitTexture(const u8* data, const u32 width, const u32 height)
 {
@@ -25,4 +25,4 @@ void Texture::Bind() const
     }
     glBindTexture(GL_TEXTURE_2D, textureId);
 }
-}  // namespace DG
+}  // namespace DG::graphics

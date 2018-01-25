@@ -4,9 +4,7 @@
 #include <sstream>
 #include "DG_GraphicsSystem.h"
 
-namespace DG
-{
-namespace graphics
+namespace DG::graphics
 {
 namespace fs = std::experimental::filesystem;
 bool CheckAndLogProgramErrors(u32 handle)
@@ -271,5 +269,4 @@ bool Shader::HasSourceChanged()
 
     return vChanged || fChanged || gChanged;
 }
-}  // namespace graphics
-}  // namespace DG
+}  // namespace DG::graphics

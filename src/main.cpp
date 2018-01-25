@@ -1,6 +1,4 @@
 #include <SDL.h>
-#include <cstdio>
-#include <ctime>
 
 #include "DG_Include.h"
 #include "DG_Job.h"
@@ -14,7 +12,6 @@
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 
-#include "DG_FontGenerator.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG

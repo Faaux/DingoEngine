@@ -9,6 +9,7 @@
 
 namespace DG
 {
+using namespace DG::graphics;
 namespace fs = std::experimental::filesystem;
 namespace gltf = tinygltf;
 
