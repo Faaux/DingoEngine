@@ -51,8 +51,9 @@ class Font
     Font();
     bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
     void RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
-                                  const vec3& position);
-    void RenderTextScreen(const std::string& textToRender, const vec2& screenPos);
+                                  const vec3& position, const Color& color = Color(1));
+    void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
+                          const Color& color = Color(1));
 
    private:
     std::vector<DebugCharacter> CreateFontVertices(const std::string& textToRender, vec2 position);

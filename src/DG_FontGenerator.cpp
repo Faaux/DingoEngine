@@ -111,7 +111,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 }
 
 void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
-                                    const vec3& worldPos)
+                                    const vec3& worldPos, const Color& color)
 {
     if (!_isValid)
     {
@@ -142,6 +142,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
 
     // Shader Setup
     BillboardWorldFontShader.Use();
+    BillboardWorldFontShader.SetUniform("color", color);
     BillboardWorldFontShader.SetUniform("screenSize", vec2(1280, 720));
     vec4 hcsPos = camera.getProjection() * camera.getView() * vec4(worldPos, 1.0);
     vec2 ndsPos(hcsPos.x / hcsPos.w, hcsPos.y / hcsPos.w);
@@ -152,7 +153,8 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
     Render(textBufferData);
 }
 
-void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenPos)
+void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
+                            const Color& color)
 {
     if (!_isValid)
     {
@@ -169,6 +171,7 @@ void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenP
 
     // Setup Shader
     ScreenSpaceFontShader.Use();
+    ScreenSpaceFontShader.SetUniform("color", color);
     ScreenSpaceFontShader.SetUniform("screenSize", vec2(1280, 720));
 
     // Render

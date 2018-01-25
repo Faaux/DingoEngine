@@ -36,7 +36,7 @@ struct DebugLine
         endUp.direction = -1.0f;
         endUp.start = end;
         endUp.end = start;
-        endUp.color  = color;
+        endUp.color = color;
 
         endDown.direction = 1.0f;
         endDown.start = end;
@@ -46,19 +46,52 @@ struct DebugLine
     DebugPoint startUp;
     DebugPoint startDown;
     DebugPoint endUp;
-    DebugPoint endDown; 
-    
+    DebugPoint endDown;
+};
+
+struct DebugTextScreen
+{
+    DebugTextScreen(Color color, vec2 position, const std::string &text)
+        : color(color), position(position), text(text)
+    {
+    }
+
+    Color color;
+    vec2 position;
+    std::string text;
+};
+struct DebugTextWorld
+{
+    DebugTextWorld(Color color, vec3 position, const std::string &text)
+        : color(color), position(position), text(text)
+    {
+    }
+    Color color;
+    vec3 position;
+    std::string text;
 };
 
 class DebugRenderContext
 {
    public:
     void AddLine(const vec3 &vertex0, const vec3 &vertex1, const Color &color, bool depthEnabled);
+    void AddTextScreen(const vec2 &position, const std::string &text, Color color = Color(0.7f),
+                       bool depthEnabled = true);
+    void AddTextWorld(const vec3 &position, const std::string &text, Color color = Color(0.7f),
+                      bool depthEnabled = true);
 
     void Reset();
     const std::vector<DebugLine> &GetDebugLines(bool depthEnabled) const;
+    const std::vector<DebugTextScreen> &GetDebugTextScreen(bool depthEnabled) const;
+    const std::vector<DebugTextWorld> &GetDebugTextWorld(bool depthEnabled) const;
 
    private:
+    std::vector<DebugTextWorld> _depthEnabledDebugTextWorld;
+    std::vector<DebugTextWorld> _depthDisabledDebugTextWorld;
+
+    std::vector<DebugTextScreen> _depthEnabledDebugTextScreen;
+    std::vector<DebugTextScreen> _depthDisabledDebugTextScreen;
+
     std::vector<DebugLine> _depthEnabledDebugLines;
     std::vector<DebugLine> _depthDisabledDebugLines;
 };
@@ -120,8 +153,8 @@ class GraphicsSystem
 void AddDebugLine(const vec3 &fromPosition, const vec3 &toPosition, Color color = Color(0.7f),
                   f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-void AddDebugCross(const vec3 &position, Color color = Color(0.7f), f32 size = 1.0f, f32 lineWidth = 1.0f,
-                   f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugCross(const vec3 &position, Color color = Color(0.7f), f32 size = 1.0f,
+                   f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
 void AddDebugSphere(const vec3 &centerPosition, Color color = Color(0.7f), f32 radius = 1.0f,
                     f32 durationSeconds = 0.0f, bool depthEnabled = true);
@@ -132,14 +165,18 @@ void AddDebugCircle(const vec3 &centerPosition, const vec3 &planeNormal, Color c
 void AddDebugAxes(const Transform &transform, f32 size = 1.0f, f32 lineWidth = 1.0f,
                   f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-void AddDebugTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2, Color color = Color(0.7f),
-                      f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugTriangle(const vec3 &vertex0, const vec3 &vertex1, const vec3 &vertex2,
+                      Color color = Color(0.7f), f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f,
+                      bool depthEnabled = true);
 
-void AddDebugAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color = Color(0.7f), f32 lineWidth = 1.0f,
-                  f32 durationSeconds = 0.0f, bool depthEnabled = true);
+void AddDebugAABB(const vec3 &minCoords, const vec3 &maxCoords, Color color = Color(0.7f),
+                  f32 lineWidth = 1.0f, f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
-void AddDebugText(const vec3 &position, const char *text, Color color = Color(0.7f), f32 durationSeconds = 0.0f,
-                  bool depthEnabled = true);
+void AddDebugTextWorld(const vec3 &position, const std::string &text, Color color = Color(0.7f),
+                       f32 durationSeconds = 0.0f, bool depthEnabled = true);
+
+void AddDebugTextScreen(const vec2 &position, const std::string &text, Color color = Color(0.7f),
+                        f32 durationSeconds = 0.0f, bool depthEnabled = true);
 
 void AddDebugXZGrid(const vec2 &center, const f32 min, const f32 max, const f32 height,
                     f32 step = 1.f, Color color = Color(0.7f), f32 lineWidth = 1.0f,

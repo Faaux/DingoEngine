@@ -43,11 +43,6 @@ GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
-    static bool isFontInit = false;
-    static Font font;
-    if (!isFontInit)
-        font.Init("Roboto-Regular.ttf", 32);
-
     static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
 
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
@@ -126,13 +121,10 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
 
-    ImGui::DragFloat3("Text World Position", reinterpret_cast<f32*>(&textWorldPosition), 0.05f);
+    ImGui::DragFloat3("Clear Color", reinterpret_cast<f32*>(&clearColor), 0.05f);
 
     // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
-    font.RenderTextWorldBillboard("This is some general text which you should render.", camera,
-                                  textWorldPosition);
-    font.RenderTextScreen("SCREEN SPACE", vec2());
     ImGui::Render();
 
     SDL_GL_SwapWindow(_window);
@@ -157,10 +149,30 @@ void DebugRenderContext::AddLine(const vec3& vertex0, const vec3& vertex1, const
     }
 }
 
+void DebugRenderContext::AddTextScreen(const vec2& position, const std::string& text, Color color,
+                                       bool depthEnabled)
+{
+    auto& vectorToAdd = depthEnabled ? _depthEnabledDebugTextScreen : _depthDisabledDebugTextScreen;
+    vectorToAdd.emplace_back(color, position, text);
+}
+
+void DebugRenderContext::AddTextWorld(const vec3& position, const std::string& text, Color color,
+                                      bool depthEnabled)
+{
+    auto& vectorToAdd = depthEnabled ? _depthEnabledDebugTextWorld : _depthDisabledDebugTextWorld;
+    vectorToAdd.emplace_back(color, position, text);
+}
+
 void DebugRenderContext::Reset()
 {
     _depthEnabledDebugLines.clear();
     _depthDisabledDebugLines.clear();
+
+    _depthEnabledDebugTextWorld.clear();
+    _depthDisabledDebugTextWorld.clear();
+
+    _depthEnabledDebugTextScreen.clear();
+    _depthDisabledDebugTextScreen.clear();
 }
 
 const std::vector<DebugLine>& DebugRenderContext::GetDebugLines(bool depthEnabled) const
@@ -168,6 +180,16 @@ const std::vector<DebugLine>& DebugRenderContext::GetDebugLines(bool depthEnable
     if (depthEnabled)
         return _depthEnabledDebugLines;
     return _depthDisabledDebugLines;
+}
+
+const std::vector<DebugTextScreen>& DebugRenderContext::GetDebugTextScreen(bool depthEnabled) const
+{
+    return depthEnabled ? _depthEnabledDebugTextScreen : _depthDisabledDebugTextScreen;
+}
+
+const std::vector<DebugTextWorld>& DebugRenderContext::GetDebugTextWorld(bool depthEnabled) const
+{
+    return depthEnabled ? _depthEnabledDebugTextWorld : _depthDisabledDebugTextWorld;
 }
 
 DebugRenderSystem::DebugRenderSystem()
@@ -258,8 +280,33 @@ void DebugRenderSystem::SetupVertexBuffers()
 
 void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext& context)
 {
+    static bool isFontInit = false;
+    static Font font;
+    if (!isFontInit)
+        font.Init("Roboto-Regular.ttf", 32);
+
     RenderDebugLines(camera, true, context.GetDebugLines(true));
     RenderDebugLines(camera, false, context.GetDebugLines(false));
+
+    glDisable(GL_DEPTH_TEST);
+    for (auto& text : context.GetDebugTextScreen(false))
+    {
+        font.RenderTextScreen(text.text, text.position, text.color);
+    }
+    for (auto& text : context.GetDebugTextWorld(false))
+    {
+        font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    for (auto& text : context.GetDebugTextScreen(true))
+    {
+        font.RenderTextScreen(text.text, text.position, text.color);
+    }
+    for (auto& text : context.GetDebugTextWorld(true))
+    {
+        font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
+    }
 }
 
 void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled,
@@ -423,9 +470,16 @@ void AddDebugAABB(const vec3& minCoords, const vec3& maxCoords, Color color, f32
 {
 }
 
-void AddDebugText(const vec3& position, const char* text, Color color, f32 durationSeconds,
-                  bool depthEnabled)
+void AddDebugTextWorld(const vec3& position, const std::string& text, Color color,
+                       f32 durationSeconds, bool depthEnabled)
 {
+    g_CurrentDebugRenderContext.AddTextWorld(position, text, color, depthEnabled);
+}
+
+void AddDebugTextScreen(const vec2& position, const std::string& text, Color color,
+                        f32 durationSeconds, bool depthEnabled)
+{
+    g_CurrentDebugRenderContext.AddTextScreen(position, text, color, depthEnabled);
 }
 
 void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 height, f32 step,

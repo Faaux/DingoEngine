@@ -192,6 +192,8 @@ void Update(f32 dtSeconds)
     AddDebugXZGrid(vec2(0), -5, 5, 0);
     AddDebugSphere(vec3(5, 0, 0), Color(1), 2.f);
     AddDebugSphere(vec3(0, 5, 0), Color(1), 2.f);
+    AddDebugTextScreen(vec2(), "Test for screen", Color(0, 1, 0, 1));
+    AddDebugTextWorld(vec3(0, 5, 0), "Test for world (0,5,0)", Color(1, 0, 0, 1));
 }
 }  // namespace DG
 
