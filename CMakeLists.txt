@@ -138,7 +138,6 @@ set (SOURCE_FILES 	src/main.cpp
 					src/graphics/DG_Shader.cpp
 					src/graphics/DG_Mesh.cpp
 					
-					src/misc/DG_Profiler.cpp
 					src/misc/DG_Clock.cpp
 					src/misc/DG_SDLHelper.cpp
 					src/misc/imgui_impl_sdl_gl3.cpp
@@ -159,7 +158,6 @@ set (HEADER_FILES	src/DG_Job.h
 					src/graphics/DG_Mesh.h
 					
 					src/misc/DG_Include.h
-					src/misc/DG_Profiler.h					
 					src/misc/DG_Clock.h
 					src/misc/DG_SDLHelper.h
 					src/misc/DG_Windows.h

@@ -11,7 +11,6 @@
 #include "DG_GraphicsSystem.h"
 #include "DG_InputSystem.h"
 #include "DG_Mesh.h"
-#include "DG_Profiler.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 
@@ -36,37 +35,6 @@ SDL_GLContext GLContext;
 
 #define LOGNAME_FORMAT "%Y%m%d_%H%M%S_Profiler.txt"
 #define LOGNAME_SIZE 30
-
-int DoProfilerWork(void*)
-{
-    SDL_sem* sem = nullptr;
-    FILE* pFile = nullptr;
-#ifdef DG_SAVE_PROFILER
-    static char name[LOGNAME_SIZE];
-    time_t now = time(0);
-    strftime(name, sizeof(name), LOGNAME_FORMAT, localtime(&now));
-    pFile = fopen(name, "w");
-
-    fprintf(pFile, "[");
-#endif
-    while (GameIsRunning)
-    {
-        if (sem)
-            SDL_SemWait(sem);
-        ProfilerWork(&sem, pFile);
-    }
-    int result = 0;
-    while (result == 0)
-    {
-        result = ProfilerWork(&sem, pFile);
-    }
-#ifdef DG_SAVE_PROFILER
-    fprintf(pFile, "]");
-    fclose(pFile);
-#endif
-
-    return 0;
-}
 
 bool InitSDL()
 {
@@ -163,9 +131,6 @@ bool InitImgui()
 
 bool InitWorkerThreads()
 {
-    // Init Profiler Thread
-    SDL_Thread* profilerThread = SDL_CreateThread(DoProfilerWork, "Profiler", nullptr);
-
     // Register Main Thread
     JobSystem::RegisterWorker();
 
@@ -238,8 +203,6 @@ int main(int, char* [])
 
     while (!inputSystem.IsQuitRequested())
     {
-        FRAME_START();
-
         // Poll Events and Update Input accordingly
         inputSystem.Update();
 
@@ -267,7 +230,6 @@ int main(int, char* [])
 
         LastFrameData = CurrentFrameData;
         CurrentFrameData = FrameData();
-        FRAME_END();
     }
     GameIsRunning = false;
 

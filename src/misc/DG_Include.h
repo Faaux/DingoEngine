@@ -14,8 +14,6 @@ namespace DG
 #error SOURCEPATH needs to be defined in CMake and sould point to the source root folder
 #endif
 
-// ToDo: Make this a collection of folders instead! And then search the folders test 123
-
 #define QUOTE(str) #str
 #define EXPAND_AND_QUOTE(str) QUOTE(str)
 
