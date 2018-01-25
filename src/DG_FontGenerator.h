@@ -2,9 +2,30 @@
 #include <ft2build.h>
 #include "DG_Include.h"
 #include FT_FREETYPE_H
+#include <glad/glad.h>
+#include <array>
+#include <string>
+#include <vector>
+#include "DG_Camera.h"
+#include "DG_Texture.h"
 
 namespace DG
 {
+struct DebugCharacter
+{
+    vec2 topLeft;
+    vec2 topLeftUV;
+
+    vec2 topRight;
+    vec2 topRightUV;
+
+    vec2 bottomLeft;
+    vec2 bottomLeftUV;
+
+    vec2 bottomRight;
+    vec2 bottomRightUV;
+};
+
 struct Glyph
 {
     u8 code;
@@ -18,19 +39,38 @@ struct Glyph
     f32 uBottomRight;
     f32 vBottomRight;
 };
+
+class Font
+{
+    enum
+    {
+        MaxTextLength = 128
+    };
+
+   public:
+    Font();
+    bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
+    void RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+                                  const vec3& position);
+    void RenderTextScreen(const std::string& textToRender, const vec2& screenPos);
+
+   private:
+    std::vector<DebugCharacter> CreateFontVertices(const std::string& textToRender, vec2 position);
+    void Render(const std::vector<DebugCharacter>& textBufferData) const;
+    void SetupBuffers();
+    bool _isValid;
+
+    GLuint _fontVAO = -1;
+    GLuint _fontVBO = -1;
+    GLuint _fontEBO = -1;
+    Texture _fontTexture;
+    std::array<Glyph, 96> _fontCache;
+};
+
 class GlyphPacker
 {
    public:
-    GlyphPacker(u32 posX, u32 posY, u32 width, u32 height)
-        : _width(width),
-          _height(height),
-          _posX(posX),
-          _posY(posY),
-          _isUsed(false),
-          _right(nullptr),
-          _down(nullptr)
-    {
-    }
+    GlyphPacker(u32 posX, u32 posY, u32 width, u32 height);
 
     void AddGlyph(Glyph& glyph, const FT_GlyphSlot& slot, u8* data, u32 width, u32 height);
 
@@ -56,7 +96,4 @@ class GlyphPacker
     GlyphPacker* _down;
 };  // namespace DG
 
-bool InitFreetype();
-
-    void RenderSomeText();
 }  // namespace DG

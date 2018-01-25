@@ -170,8 +170,10 @@ set (HEADER_FILES	src/DG_Job.h
 set(SHADERS shaders/fragment_shader.fs
 			shaders/vertex_shader.vs
 			
-			shaders/fragment_shader_font.fs
-			shaders/vertex_shader_font.vs
+			shaders/billboard_font.fs
+			shaders/billboard_font.vs
+			shaders/screen_font.fs
+			shaders/screen_font.vs
 			
 			shaders/vertex_shader_debug_lines.vs
 			shaders/fragment_shader_debug_lines.fs

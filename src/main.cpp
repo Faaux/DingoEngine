@@ -215,9 +215,6 @@ int main(int, char* [])
     if (!InitWorkerThreads())
         return -1;
 
-    if (!InitFreetype())
-        return -1;
-
     InitClocks();
 
     // When in fullscreen dont minimize when loosing focus! (Borderless windowed)

@@ -43,6 +43,11 @@ GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
 void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
+    static bool isFontInit = false;
+    static Font font;
+    if (!isFontInit)
+        font.Init("Roboto-Regular.ttf", 32);
+
     static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
 
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
@@ -68,6 +73,7 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     ImGui_ImplSdlGL3_NewFrame(_window);
 
     static vec3 camPos(camera.getPosition()), camTarget(0);
+    static vec3 textWorldPosition;
     static f32 rotSpeed = .6f, radius = 3.f;
     static bool autoRotate = true;
     bool cameraChanged = false;
@@ -120,9 +126,13 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
 
+    ImGui::DragFloat3("Text World Position", reinterpret_cast<f32*>(&textWorldPosition), 0.05f);
+
     // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
-    RenderSomeText();  // ToDo: Refactor
+    font.RenderTextWorldBillboard("This is some general text which you should render.", camera,
+                                  textWorldPosition);
+    font.RenderTextScreen("SCREEN SPACE", vec2());
     ImGui::Render();
 
     SDL_GL_SwapWindow(_window);
@@ -444,7 +454,7 @@ void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 
         }
         {
             // Vertical Line
-            const vec3 from(center.x + i, height, center.y + min); 
+            const vec3 from(center.x + i, height, center.y + min);
             const vec3 to(center.x + i, height, center.y + max);
             AddDebugLine(from, to, color, lineWidth, durationSeconds, depthEnabled);
         }
