@@ -145,7 +145,6 @@ set (SOURCE_FILES 	src/main.cpp
 #Header Files
 set (HEADER_FILES	src/DG_Job.h
 					src/DG_Camera.h
-					src/DG_Primitives.h
 					src/DG_Transform.h
 					src/DG_InputSystem.h
 					src/DG_ResourceHelper.h

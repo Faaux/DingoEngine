@@ -1,9 +1,9 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <array>
 #include <vector>
 #include "DG_Include.h"
-#include "DG_Primitives.h"
 #include "DG_Shader.h"
 #include "DG_Transform.h"
 
