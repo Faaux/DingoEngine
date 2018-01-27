@@ -29,13 +29,13 @@ class MessagingSystem
     template <class T>
     struct InternalMessage
     {
-        InternalMessage(u64 delay, const T& message) : delay(delay), message(message) {}
-        u64 delay;
+        InternalMessage(u64 delay, const T& message) : timeToSend(delay), message(message) {}
+        u64 timeToSend;
         T message;
         //        static_assert(sizeof(T) == 24, "sizeof(T) needs to be 24 bytes");
         friend inline bool operator<(const InternalMessage& lhs, const InternalMessage& rhs)
         {
-            return lhs.delay < rhs.delay;
+            return lhs.timeToSend > rhs.timeToSend;
         }
         friend inline bool operator>(const InternalMessage& lhs, const InternalMessage& rhs)
         {
@@ -53,6 +53,8 @@ class MessagingSystem
 
     const Clock& _clock;
 
+    std::vector<std::function<void(const Clock&)>> _updateCalls;
+
     template <class T>
     void InternalSend(const T& message);
 
@@ -61,6 +63,9 @@ class MessagingSystem
 
     template <class T>
     static std::vector<std::function<void(const T&)>> _messageCallbacks;
+
+    template <class T>
+    static void UpdateTypedMessageQueue(const Clock& clock);
 };
 template <class T>
 std::priority_queue<MessagingSystem::InternalMessage<T>> MessagingSystem::_messageQueue;
@@ -71,6 +76,13 @@ std::vector<std::function<void(const T&)>> MessagingSystem::_messageCallbacks;
 template <class T>
 void MessagingSystem::Send(const T& message, float delayInS)
 {
+    static bool didRegister = false;
+    if (!didRegister)
+    {
+        didRegister = true;
+        _updateCalls.push_back(&MessagingSystem::UpdateTypedMessageQueue<T>);
+    }
+
     if (delayInS == 0.0f)
     {
         InternalSend(message);
@@ -94,6 +106,22 @@ void MessagingSystem::InternalSend(const T& message)
     for (auto& callback : _messageCallbacks<T>)
     {
         callback(message);
+    }
+}
+
+template <class T>
+void MessagingSystem::UpdateTypedMessageQueue(const Clock& clock)
+{
+    const u64 currentTimeInCylces = clock.GetTimeCycles();
+    while (!_messageQueue<T>.empty())
+    {
+        const InternalMessage<T>& message = _messageQueue<T>.top();
+        if (message.timeToSend > currentTimeInCylces)
+            break;
+
+        for (auto& callback : _messageCallbacks<T>) callback(message.message);
+
+        _messageQueue<T>.pop();
     }
 }
 }  // namespace DG

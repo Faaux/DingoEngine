@@ -201,14 +201,18 @@ int main(int, char* [])
     Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
     Model model(*scene, shader);
 
-    MessagingSystem system(g_InGameClock);
+    MessagingSystem messagingSystem(g_InGameClock);
     // Register callback
-    system.RegisterCallback<StringMessage>(ShittyCallback);
+    messagingSystem.RegisterCallback<StringMessage>(ShittyCallback);
 
     // Send message
     StringMessage message;
     message.message = "Test123";
-    system.Send(message);
+    messagingSystem.Send(message);
+    message.message = "First";
+    messagingSystem.Send(message, 3);
+    message.message = "Second";
+    messagingSystem.Send(message, 4);
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -227,6 +231,7 @@ int main(int, char* [])
         // SDL_Log("%.3f ms", dtSeconds * 1000.f);
         g_RealTimeClock.Update(dtSeconds);
         g_InGameClock.Update(dtSeconds);
+        messagingSystem.Update();
 
         // Game Logic
         Update(dtSeconds);
