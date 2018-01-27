@@ -99,7 +99,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		set(FREETYPE_LIBS bin/freetype)
 		configure_file(ThirdParty/freetype-2.9/freetype.lib bin/freetype.lib COPYONLY)
 		configure_file(ThirdParty/freetype-2.9/freetype.dll bin/freetype.dll COPYONLY)
-		configure_file(ThirdParty/freetype-2.9/freetype.pdb bin/freetype.pdb COPYONLY)
 		
 		
 	## 3rd Party Includes

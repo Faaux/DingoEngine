@@ -30,9 +30,6 @@ bool IsWireframe = false;
 SDL_Window* Window;
 SDL_GLContext GLContext;
 
-#define LOGNAME_FORMAT "%Y%m%d_%H%M%S_Profiler.txt"
-#define LOGNAME_SIZE 30
-
 bool InitSDL()
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
