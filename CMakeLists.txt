@@ -130,6 +130,7 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
 					src/DG_ResourceHelper.cpp
+					src/DG_Messaging.cpp
 					
 					src/graphics/DG_Font.cpp
 					src/graphics/DG_Texture.cpp
@@ -148,6 +149,7 @@ set (HEADER_FILES	src/DG_Job.h
 					src/DG_Transform.h
 					src/DG_InputSystem.h
 					src/DG_ResourceHelper.h
+					src/DG_Messaging.h
 
 					src/graphics/DG_Font.h					
 					src/graphics/DG_Texture.h

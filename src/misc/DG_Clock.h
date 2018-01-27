@@ -22,6 +22,8 @@ class Clock
 
     void SingleStep();
 
+    u64 ToCycles(f32 seconds) const;
+
    private:
     u64 _timeCycles;
     f32 _timeScale;

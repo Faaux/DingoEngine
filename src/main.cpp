@@ -12,6 +12,7 @@
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 
+#include "DG_Messaging.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG
@@ -154,6 +155,11 @@ void Update(f32 dtSeconds)
     AddDebugTextScreen(vec2(), "Test for screen", Color(0, 1, 0, 1));
     AddDebugTextWorld(vec3(0, 5, 0), "Test for world (0,5,0)", Color(1, 0, 0, 1));
 }
+
+void ShittyCallback(const StringMessage& message)
+{
+    SDL_LogWarn(0, "Debug Message: %s", message.message.c_str());
+}
 }  // namespace DG
 
 int main(int, char* [])
@@ -194,6 +200,15 @@ int main(int, char* [])
     GLTFScene* scene = LoadGLTF("duck.gltf");
     Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
     Model model(*scene, shader);
+
+    MessagingSystem system(g_InGameClock);
+    // Register callback
+    system.RegisterCallback<StringMessage>(ShittyCallback);
+
+    // Send message
+    StringMessage message;
+    message.message = "Test123";
+    system.Send(message);
 
     while (!inputSystem.IsQuitRequested())
     {

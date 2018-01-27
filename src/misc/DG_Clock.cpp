@@ -34,7 +34,7 @@ void Clock::Update(f32 dtRealSeconds)
 
 f32 Clock::GetLastDtSeconds() const
 {
-    if(_isPaused)
+    if (_isPaused)
         return 0.f;
     return _lastDtSeconds;
 }
@@ -55,6 +55,8 @@ void Clock::SingleStep()
         _timeCycles += dtCycles;
     }
 }
+
+u64 Clock::ToCycles(f32 seconds) const { return SecondsToCycles(seconds); }
 
 u64 inline Clock::SecondsToCycles(f32 seconds) { return (u64)(seconds * _cyclesPerSecond); }
 
