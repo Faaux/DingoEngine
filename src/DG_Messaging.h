@@ -9,8 +9,6 @@ namespace DG
 struct StringMessage
 {
     std::string message;
-    // Padding
-    char data[16];
 };
 
 class MessagingSystem
@@ -32,7 +30,6 @@ class MessagingSystem
         InternalMessage(u64 delay, const T& message) : timeToSend(delay), message(message) {}
         u64 timeToSend;
         T message;
-        //        static_assert(sizeof(T) == 24, "sizeof(T) needs to be 24 bytes");
         friend inline bool operator<(const InternalMessage& lhs, const InternalMessage& rhs)
         {
             return lhs.timeToSend > rhs.timeToSend;

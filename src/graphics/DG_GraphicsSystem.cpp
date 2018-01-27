@@ -281,7 +281,10 @@ void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext& c
     static bool isFontInit = false;
     static Font font;
     if (!isFontInit)
+    {
         font.Init("Roboto-Regular.ttf", 32);
+        isFontInit = true;
+    }
 
     RenderDebugLines(camera, true, context.GetDebugLines(true));
     RenderDebugLines(camera, false, context.GetDebugLines(false));
