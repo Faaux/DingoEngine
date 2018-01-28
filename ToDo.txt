@@ -12,7 +12,7 @@ Resource Manager (includes fonts)
 	- Manage Assets so that they arent loaded twice into memory 
 	- Keep track of used memory
 	
-Messaging (Mediator) (System) (Chris)
+Messaging (Mediator) (System) (Chris) (Review!)
 	1.) Inputs
 	2.) System specific communication
 	

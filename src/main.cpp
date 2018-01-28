@@ -42,9 +42,12 @@ bool InitSDL()
 #if _DEBUG
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
 #else
-    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_ERROR);
+    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 #endif
     SDL_LogSetOutputFunction(LogOutput, nullptr);
+
+    // When in fullscreen dont minimize when loosing focus! (Borderless windowed)
+    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
     SDL_Log("----- Hardware Information -----");
     SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
@@ -184,8 +187,8 @@ int main(int, char* [])
 
     InitClocks();
 
-    // When in fullscreen dont minimize when loosing focus! (Borderless windowed)
-    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+    // Start Init Systems
+    g_MessagingSystem.Init(g_InGameClock);
 
     u64 currentTime = SDL_GetPerformanceCounter();
     f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
@@ -201,18 +204,17 @@ int main(int, char* [])
     Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
     Model model(*scene, shader);
 
-    MessagingSystem messagingSystem(g_InGameClock);
     // Register callback
-    messagingSystem.RegisterCallback<StringMessage>(ShittyCallback);
+    auto handle = g_MessagingSystem.RegisterCallback<StringMessage>(ShittyCallback);
 
     // Send message
     StringMessage message;
     message.message = "Test123";
-    messagingSystem.Send(message);
+    g_MessagingSystem.Send(message);
     message.message = "First";
-    messagingSystem.Send(message, 3);
+    g_MessagingSystem.Send(message, 3);
     message.message = "Second";
-    messagingSystem.Send(message, 4);
+    g_MessagingSystem.Send(message, 4);
 
     while (!inputSystem.IsQuitRequested())
     {
@@ -231,7 +233,7 @@ int main(int, char* [])
         // SDL_Log("%.3f ms", dtSeconds * 1000.f);
         g_RealTimeClock.Update(dtSeconds);
         g_InGameClock.Update(dtSeconds);
-        messagingSystem.Update();
+        g_MessagingSystem.Update();
 
         // Game Logic
         Update(dtSeconds);

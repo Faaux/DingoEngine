@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <optional>
 #include <queue>
 #include "DG_Clock.h"
 #include "DG_Include.h"
@@ -11,17 +12,39 @@ struct StringMessage
     std::string message;
 };
 
+template <class T>
+class CallbackHandle
+{
+    friend class MessagingSystem;
+
+   public:
+    CallbackHandle() = default;
+    CallbackHandle(const CallbackHandle&) = delete;
+    CallbackHandle(CallbackHandle&& other) noexcept : _index(other._index) { other._index.reset(); }
+    CallbackHandle& operator=(const CallbackHandle&) = delete;
+
+    bool IsValid() const { return _index.has_value(); }
+
+   private:
+    CallbackHandle(u32 index) : _index(index) {}
+
+    std::optional<u32> _index;
+};
+
 class MessagingSystem
 {
    public:
-    MessagingSystem(const Clock& clock) : _clock(clock){};
+    MessagingSystem() = default;
+    void Init(const Clock& clock);
     void Update();
 
     template <class T>
     void Send(const T& message, float delayInS = 0.0f);
 
     template <class T>
-    void RegisterCallback(std::function<void(const T&)> callback);
+    CallbackHandle<T> RegisterCallback(std::function<void(const T&)> callback);
+    template <class T>
+    void UnRegisterCallback(CallbackHandle<T>& handle);
 
    private:
     template <class T>
@@ -48,9 +71,9 @@ class MessagingSystem
         }
     };
 
-    const Clock& _clock;
+    const Clock* _clock = nullptr;
 
-    std::vector<std::function<void(const Clock&)>> _updateCalls;
+    std::vector<std::function<void(const Clock*)>> _updateCalls;
 
     template <class T>
     void InternalSend(const T& message);
@@ -62,8 +85,14 @@ class MessagingSystem
     static std::vector<std::function<void(const T&)>> _messageCallbacks;
 
     template <class T>
-    static void UpdateTypedMessageQueue(const Clock& clock);
+    static std::vector<u32> _messageCallbacksFreeList;
+
+    template <class T>
+    static void UpdateTypedMessageQueue(const Clock* clock);
 };
+template <class T>
+std::vector<u32> MessagingSystem::_messageCallbacksFreeList;
+
 template <class T>
 std::priority_queue<MessagingSystem::InternalMessage<T>> MessagingSystem::_messageQueue;
 
@@ -86,15 +115,39 @@ void MessagingSystem::Send(const T& message, float delayInS)
     }
     else
     {
-        u64 cycles = _clock.GetTimeCycles() + _clock.ToCycles(delayInS);
+        u64 cycles = _clock->GetTimeCycles() + _clock->ToCycles(delayInS);
         _messageQueue<T>.emplace(cycles, message);
     }
 }
 
 template <class T>
-void MessagingSystem::RegisterCallback(std::function<void(const T&)> callback)
+CallbackHandle<T> MessagingSystem::RegisterCallback(std::function<void(const T&)> callback)
 {
-    _messageCallbacks<T>.push_back(callback);
+    auto& callbacks = _messageCallbacks<T>;
+    auto& freeList = _messageCallbacksFreeList<T>;
+    if (!freeList.empty())
+    {
+        u32 index = freeList.back();
+        freeList.pop_back();
+
+        callbacks[index] = callback;
+        return CallbackHandle<T>(index);
+    }
+    else
+    {
+        callbacks.push_back(callback);
+        return CallbackHandle<T>(callbacks.size() - 1);
+    }
+}
+
+template <class T>
+void MessagingSystem::UnRegisterCallback(CallbackHandle<T>& handle)
+{
+    auto& index = handle._index.value();
+    _messageCallbacks<T>[index] = nullptr;
+    _messageCallbacksFreeList<T>.push_back(index);
+    handle._index.reset();
+    Assert(!handle.IsValid());
 }
 
 template <class T>
@@ -102,14 +155,15 @@ void MessagingSystem::InternalSend(const T& message)
 {
     for (auto& callback : _messageCallbacks<T>)
     {
-        callback(message);
+        if (callback)
+            callback(message);
     }
 }
 
 template <class T>
-void MessagingSystem::UpdateTypedMessageQueue(const Clock& clock)
+void MessagingSystem::UpdateTypedMessageQueue(const Clock* clock)
 {
-    const u64 currentTimeInCylces = clock.GetTimeCycles();
+    const u64 currentTimeInCylces = clock->GetTimeCycles();
     while (!_messageQueue<T>.empty())
     {
         const InternalMessage<T>& message = _messageQueue<T>.top();
@@ -121,4 +175,6 @@ void MessagingSystem::UpdateTypedMessageQueue(const Clock& clock)
         _messageQueue<T>.pop();
     }
 }
+
+extern MessagingSystem g_MessagingSystem;
 }  // namespace DG

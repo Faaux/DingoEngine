@@ -24,9 +24,8 @@ void InputSystem::Update()
     for (Key& key : _keys)
     {
         key.Reset();
-        SDL_memset(_textInput, 0, SDL_TEXTINPUTEVENT_TEXT_SIZE);
     }
-
+    SDL_memset(_textInput, 0, SDL_TEXTINPUTEVENT_TEXT_SIZE);
     SDL_Event event;
     u32 currentIndex = 0;
     while (SDL_PollEvent(&event))
