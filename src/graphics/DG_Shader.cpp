@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include "DG_GraphicsSystem.h"
+#include "DG_ResourceHelper.h"
 
 namespace DG::graphics
 {
@@ -89,9 +90,9 @@ static u32 CompileShaderFromFile(s32 i, std::string_view filename)
 
 Shader::Shader(std::string_view vertexFilename, std::string_view fragmentFilename,
                std::string_view geometryFilename)
-    : _vertexPath(vertexFilename.data()),
-      _fragmentPath(fragmentFilename.data()),
-      _geometryPath(geometryFilename.data())
+    : _vertexPath(SearchForFile(vertexFilename).data()),
+      _fragmentPath(SearchForFile(fragmentFilename).data()),
+      _geometryPath(SearchForFile(geometryFilename).data())
 {
     if (fs::exists(_vertexPath))
         _vertexFileTime = fs::last_write_time(_vertexPath);

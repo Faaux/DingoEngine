@@ -201,7 +201,7 @@ int main(int, char* [])
     Camera camera(vec3(0, 1, 3));
 
     GLTFScene* scene = LoadGLTF("duck.gltf");
-    Shader shader(SearchForFile("vertex_shader.vs"), SearchForFile("fragment_shader.fs"), "");
+    Shader shader("vertex_shader.vs", "fragment_shader.fs", "");
     Model model(*scene, shader);
 
     // Register callback

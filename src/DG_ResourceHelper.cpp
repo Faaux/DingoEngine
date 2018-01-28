@@ -17,6 +17,8 @@ std::vector<fs::path> FoldersToSearch{fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).app
                                       fs::path(EXPAND_AND_QUOTE(SOURCEPATH)).append("shaders")};
 std::string SearchForFile(const std::string_view& filename, const std::vector<fs::path>& basePaths)
 {
+    if (filename == "")
+        return "";
     fs::path filepath(filename.data());
     for (auto& folder : basePaths)
     {
