@@ -88,7 +88,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		
 	## IMGUI
 		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
-									ThirdParty/imgui/imgui_draw.cpp)
+									ThirdParty/imgui/imgui_draw.cpp
+									)
+	## IMGUI_GIZMO
+		set (IMGUI_GIZMO_SOURCE_FILES 	ThirdParty/imguiGizmo/ImGuizmo.cpp
+										ThirdParty/imguiGizmo/ImSequencer.cpp
+										)
 									
 	## GLAD
 		set (GLAD_SOURCE_FILES 		ThirdParty/glad/src/glad.c)
@@ -106,6 +111,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 									ThirdParty/glm
 									ThirdParty/glad/include
 									ThirdParty/imgui
+									ThirdParty/imguiGizmo
 									ThirdParty/tinyGltf
 									ThirdParty/freetype-2.9
 									ThirdParty/stb
@@ -115,7 +121,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		set(THIRD_PARTY_LIBS 		${SDL_LIBS} ${FREETYPE_LIBS})
 		
 		set(THIRD_PARTY_SRC_FILES   ${GLAD_SOURCE_FILES}
-									${IMGUI_SOURCE_FILES})
+									${IMGUI_SOURCE_FILES}
+									${IMGUI_GIZMO_SOURCE_FILES})
 	
 
 # Includes
@@ -131,6 +138,7 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_InputSystem.cpp
 					src/DG_ResourceHelper.cpp
 					src/DG_Messaging.cpp
+					src/DG_StringId.cpp
 					
 					src/graphics/DG_Font.cpp
 					src/graphics/DG_Texture.cpp
@@ -150,6 +158,7 @@ set (HEADER_FILES	src/DG_Job.h
 					src/DG_InputSystem.h
 					src/DG_ResourceHelper.h
 					src/DG_Messaging.h
+					src/DG_StringId.h
 
 					src/graphics/DG_Font.h					
 					src/graphics/DG_Texture.h
