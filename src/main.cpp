@@ -204,7 +204,7 @@ int main(int, char* [])
 {
     using namespace DG;
 
-    srand(21948219874);
+    srand(1337);
     if (!InitSDL())
         return -1;
 

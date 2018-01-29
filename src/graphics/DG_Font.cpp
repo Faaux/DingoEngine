@@ -78,7 +78,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 
         auto& glyph = _fontCache[unicode - 32];
         glyph.code = unicode;
-        glyph.advance = slot->metrics.horiAdvance / 64;
+        glyph.advance = static_cast<u8>(slot->metrics.horiAdvance / 64);
         if (slot->bitmap.buffer)
         {
             glyph.width = slot->bitmap.width;
@@ -86,11 +86,11 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
         }
         else
         {
-            glyph.width = slot->metrics.width / 64;
-            glyph.height = slot->metrics.height / 64;
+            glyph.width = static_cast<u8>(slot->metrics.width / 64);
+            glyph.height = static_cast<u8>(slot->metrics.height / 64);
         }
-        glyph.bearingX = slot->metrics.horiBearingX / 64;
-        glyph.bearingY = slot->metrics.horiBearingY / 64;
+        glyph.bearingX = static_cast<u8>(slot->metrics.horiBearingX / 64);
+        glyph.bearingY = static_cast<u8>(slot->metrics.horiBearingY / 64);
 
         tree.AddGlyph(glyph, slot, packed, textureSize, textureSize);
     }
@@ -220,14 +220,13 @@ void Font::Render(const std::vector<DebugCharacter>& textBufferData) const
     glActiveTexture(GL_TEXTURE0);
     _fontTexture.Bind();
     glBindBuffer(GL_ARRAY_BUFFER, _fontVBO);
-    auto size_left = textBufferData.size();
-    auto size_drawn = 0;
+    u32 size_left = static_cast<u32>(textBufferData.size());
+    u32 size_drawn = 0;
     while (size_left != 0)
     {
-        const auto size_to_draw = size_left > MaxTextLength ? MaxTextLength : size_left;
+        const s32 size_to_draw = size_left > MaxTextLength ? MaxTextLength : size_left;
         glBufferSubData(GL_ARRAY_BUFFER, 0, size_to_draw * sizeof(DebugCharacter),
                         textBufferData.data() + size_drawn);
-
         glDrawElements(GL_TRIANGLES, size_to_draw * 6, GL_UNSIGNED_INT, 0);
         size_drawn += size_to_draw;
         size_left -= size_to_draw;

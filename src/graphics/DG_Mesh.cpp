@@ -38,7 +38,7 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
         type = primitive.indices->componentType;
     }
     // Attribute Pointers!
-    for (size_t i = 0; i < primitive.attributes.size(); ++i)
+    for (u32 i = 0; i < primitive.attributes.size(); ++i)
     {
         auto& accessor = primitive.attributes[i];
         if (!accessor)
@@ -82,7 +82,7 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
             /* size      = */ count,
             /* type      = */ accessor->componentType,
             /* normalize = */ accessor->normalized,
-            /* stride    = */ accessor->byteStride,
+            /* stride    = */ static_cast<s32>(accessor->byteStride),
             /* offset    = */ reinterpret_cast<void*>(accessor->byteOffset));
         graphics::CheckOpenGLError(__FILE__, __LINE__);
     }

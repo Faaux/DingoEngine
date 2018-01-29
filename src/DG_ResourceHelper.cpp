@@ -153,7 +153,7 @@ GLTFScene* LoadGLTF(const std::string_view& f)
             mesh.weights.reserve(gltfMesh.weights.size());
             for (auto weight : gltfMesh.weights)
             {
-                mesh.weights.push_back(weight);
+                mesh.weights.push_back(static_cast<float>(weight));
             }
 
             // Primitives
@@ -281,22 +281,22 @@ GLTFScene* LoadGLTF(const std::string_view& f)
                 quat rotation(1, 0, 0, 0);
                 if (gltfNode.translation.size() == 3)
                 {
-                    translation.x = gltfNode.translation[0];
-                    translation.y = gltfNode.translation[1];
-                    translation.z = gltfNode.translation[2];
+                    translation.x = static_cast<float>(gltfNode.translation[0]);
+                    translation.y = static_cast<float>(gltfNode.translation[1]);
+                    translation.z = static_cast<float>(gltfNode.translation[2]);
                 }
                 if (gltfNode.scale.size() == 3)
                 {
-                    scale.x = gltfNode.scale[0];
-                    scale.y = gltfNode.scale[1];
-                    scale.z = gltfNode.scale[2];
+                    scale.x = static_cast<float>(gltfNode.scale[0]);
+                    scale.y = static_cast<float>(gltfNode.scale[1]);
+                    scale.z = static_cast<float>(gltfNode.scale[2]);
                 }
                 if (gltfNode.rotation.size() == 4)
                 {
-                    rotation.x = gltfNode.rotation[0];
-                    rotation.y = gltfNode.rotation[1];
-                    rotation.z = gltfNode.rotation[2];
-                    rotation.w = gltfNode.rotation[3];
+                    rotation.x = static_cast<float>(gltfNode.rotation[0]);
+                    rotation.y = static_cast<float>(gltfNode.rotation[1]);
+                    rotation.z = static_cast<float>(gltfNode.rotation[2]);
+                    rotation.w = static_cast<float>(gltfNode.rotation[3]);
                 }
 
                 node.localMatrix =
@@ -312,7 +312,7 @@ GLTFScene* LoadGLTF(const std::string_view& f)
             // Add weights
             for (auto& weight : gltfNode.weights)
             {
-                node.weights.push_back(weight);
+                node.weights.push_back(static_cast<float>(weight));
             }
         }
     }

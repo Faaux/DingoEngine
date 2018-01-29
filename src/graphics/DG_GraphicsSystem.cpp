@@ -121,7 +121,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
                              mesh.localTransform;
             model->shader.SetUniform("modViewProj", mvp);
             glBindVertexArray(mesh.vao);
-            glDrawElements(mesh.drawMode, mesh.count, mesh.type,
+            glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
                            reinterpret_cast<void*>(mesh.byteOffset));
         }
         glBindVertexArray(0);
@@ -408,11 +408,11 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
-    auto size_left = lines.size();
-    auto size_drawn = 0;
+    s32 size_left = static_cast<s32>(lines.size());
+    s32 size_drawn = 0;
     while (size_left != 0)
     {
-        const auto size_to_draw = size_left > DebugDrawBufferSize ? DebugDrawBufferSize : size_left;
+        const s32 size_to_draw = size_left > DebugDrawBufferSize ? DebugDrawBufferSize : size_left;
         glBufferSubData(GL_ARRAY_BUFFER, 0, size_to_draw * sizeof(DebugLine),
                         lines.data() + size_drawn);
 

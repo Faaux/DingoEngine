@@ -133,7 +133,7 @@ CallbackHandle<T> MessagingSystem::RegisterCallback(std::function<void(const T&)
     else
     {
         callbacks.push_back(callback);
-        return CallbackHandle<T>(callbacks.size() - 1);
+        return CallbackHandle<T>(static_cast<u32>(callbacks.size()) - 1);
     }
 }
 
