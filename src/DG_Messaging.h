@@ -19,9 +19,11 @@ class CallbackHandle
 
    public:
     CallbackHandle() = default;
+    ~CallbackHandle() = default;
     CallbackHandle(const CallbackHandle&) = delete;
     CallbackHandle(CallbackHandle&& other) noexcept : _index(other._index) { other._index.reset(); }
     CallbackHandle& operator=(const CallbackHandle&) = delete;
+    CallbackHandle& operator=(CallbackHandle&& other) noexcept = delete;
 
     bool IsValid() const { return _index.has_value(); }
 
