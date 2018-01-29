@@ -106,7 +106,7 @@ constexpr u32 crc32(const u8* data, size_t length) { return ~crc32_impl(data, le
 //    return result;
 //}
 
-inline StringId WSID(const char* str)
+inline StringId SID(const char* str)
 {
     StringId result;
     result.id = crc32((u8*)str, sizeof(str));
