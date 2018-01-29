@@ -13,6 +13,7 @@
 #include "DG_Shader.h"
 
 #include "DG_Messaging.h"
+#include "DG_memory.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG
@@ -21,7 +22,10 @@ using namespace graphics;
 
 struct FrameData
 {
+    char test[1024];
 };
+
+GameMemory Memory;
 
 FrameData LastFrameData;
 FrameData CurrentFrameData;
@@ -140,6 +144,27 @@ bool InitWorkerThreads()
     return true;
 }
 
+bool InitMemory()
+{
+    // Grab a 1GB of memory
+    const u32 TotalMemorySize = 1 * 1024 * 1024 * 1024;  // 1 GB
+    u8* memory = (u8*)VirtualAlloc(0, TotalMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!memory)
+    {
+        SDL_LogError(0, "Couldn't allocate game memory.");
+        return false;
+    }
+
+    // Assign 50 MB to Persistent, rest is transient
+    const u32 PersistentMemorySize = 50 * 1024 * 1024;  // 50 MB
+    Memory.PersistentMemory.Init(memory, PersistentMemorySize);
+
+    const u32 TransientMemorySize = TotalMemorySize - PersistentMemorySize;
+    Memory.TransientMemory.Init(memory + PersistentMemorySize, TransientMemorySize);
+
+    return true;
+}
+
 void Cleanup()
 {
     ImGui_ImplSdlGL3_Shutdown();
@@ -173,11 +198,6 @@ void Update(f32 dtSeconds)
     AddDebugTextScreen(vec2(), "Test for screen", Color(0, 1, 0, 1));
     AddDebugTextWorld(vec3(0, 5, 0), "Test for world (0,5,0)", Color(1, 0, 0, 1));
 }
-
-void ShittyCallback(const StringMessage& message)
-{
-    SDL_LogWarn(0, "Debug Message: %s", message.message.c_str());
-}
 }  // namespace DG
 
 int main(int, char* [])
@@ -198,6 +218,9 @@ int main(int, char* [])
         return -1;
 
     if (!InitWorkerThreads())
+        return -1;
+
+    if (!InitMemory())
         return -1;
 
     InitClocks();

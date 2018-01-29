@@ -140,6 +140,7 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_Messaging.cpp
 					src/DG_ResourceManager.cpp
 					src/DG_StringId.cpp
+					src/DG_memory.cpp
 					
 					src/graphics/DG_Font.cpp
 					src/graphics/DG_Texture.cpp
@@ -161,6 +162,7 @@ set (HEADER_FILES	src/DG_Job.h
 					src/DG_Messaging.h
 					src/DG_ResourceManager.h
 					src/DG_StringId.h
+					src/DG_memory.h
 
 					src/graphics/DG_Font.h					
 					src/graphics/DG_Texture.h
