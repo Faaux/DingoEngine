@@ -100,13 +100,13 @@ extern DebugRenderContext g_LastDebugRenderContext;
 class RenderContext
 {
    public:
-    void SetModelToRender(const Model *model);
-    const Model *GetModelToRender() const;
+    void SetModelToRender(Model *model);
+    Model *GetModelToRender();
     bool IsWireframe() const;
     bool _isWireframe = false;
 
    private:
-    const Model *_model;
+    Model *_model;
 };
 
 extern RenderContext g_CurrentRenderContext;
@@ -140,7 +140,7 @@ class GraphicsSystem
    public:
     GraphicsSystem(SDL_Window *window);
 
-    void Render(const Camera &camera, const RenderContext &context,
+    void Render(const Camera &camera, RenderContext &context,
                 const DebugRenderContext &debugContext);
 
    private:

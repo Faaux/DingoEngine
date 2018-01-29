@@ -1,4 +1,5 @@
 #include "DG_GraphicsSystem.h"
+#include <ImGuizmo.h>
 #include "DG_Clock.h"
 #include "DG_Font.h"
 #include "DG_ResourceHelper.h"
@@ -38,7 +39,69 @@ GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
 }
-void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
+
+void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& matrix)
+{
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+    static bool useSnap = false;
+    static float snap[3] = {1.f, 1.f, 1.f};
+
+    if (ImGui::IsKeyPressed(90))
+        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    if (ImGui::IsKeyPressed(69))
+        mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    if (ImGui::IsKeyPressed(82))  // r Key
+        mCurrentGizmoOperation = ImGuizmo::SCALE;
+    if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+        mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+        mCurrentGizmoOperation = ImGuizmo::SCALE;
+    float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+    ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], matrixTranslation, matrixRotation,
+                                          matrixScale);
+    ImGui::InputFloat3("Translation", matrixTranslation, 3);
+    ImGui::InputFloat3("Rotation", matrixRotation, 3);
+    ImGui::InputFloat3("Scale", matrixScale, 3);
+    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale,
+                                            &matrix[0][0]);
+
+    if (mCurrentGizmoOperation != ImGuizmo::SCALE)
+    {
+        if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+            mCurrentGizmoMode = ImGuizmo::LOCAL;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+            mCurrentGizmoMode = ImGuizmo::WORLD;
+    }
+    if (ImGui::IsKeyPressed(83))
+        useSnap = !useSnap;
+    ImGui::Checkbox("", &useSnap);
+    ImGui::SameLine();
+
+    switch (mCurrentGizmoOperation)
+    {
+        case ImGuizmo::TRANSLATE:
+            ImGui::InputFloat3("Snap", &snap[0]);
+            break;
+        case ImGuizmo::ROTATE:
+            ImGui::InputFloat("Angle Snap", &snap[0]);
+            break;
+        case ImGuizmo::SCALE:
+            ImGui::InputFloat("Scale Snap", &snap[0]);
+            break;
+    }
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    ImGuizmo::Manipulate(&cameraView[0][0], &cameraProjection[0][0], mCurrentGizmoOperation,
+                         mCurrentGizmoMode, &matrix[0][0], NULL, useSnap ? &snap[0] : NULL);
+}
+
+void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
                             const DebugRenderContext& debugContext)
 {
     static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
@@ -54,7 +117,8 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
         model->shader.Use();
         for (auto& mesh : model->meshes)
         {
-            const auto mvp = camera.getProjection() * camera.getView() * mesh.localTransform;
+            const auto mvp = camera.getProjection() * camera.getView() * model->modelTransform *
+                             mesh.localTransform;
             model->shader.SetUniform("modViewProj", mvp);
             glBindVertexArray(mesh.vao);
             glDrawElements(mesh.drawMode, mesh.count, mesh.type,
@@ -65,12 +129,16 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     }
     ImGui_ImplSdlGL3_NewFrame(_window);
 
+    ImGuizmo::BeginFrame();
+
     static vec3 camPos(camera.getPosition()), camTarget(0);
     static vec3 textWorldPosition;
     static f32 rotSpeed = .6f, radius = 3.f;
     static bool autoRotate = true;
+    static bool editModel = false;
     bool cameraChanged = false;
-
+    ImGui::Begin("Basic");
+    ImGui::Checkbox("Edit current model position", &editModel);
     ImGui::Checkbox("Wireframe?", const_cast<bool*>(&context._isWireframe));
 
     if (ImGui::DragFloat3("Camera Target", reinterpret_cast<f32*>(&camTarget), 0.05f))
@@ -120,7 +188,16 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
                 ImGui::GetIO().Framerate);
 
     ImGui::DragFloat3("Clear Color", reinterpret_cast<f32*>(&clearColor), 0.05f);
+    ImGui::End();
 
+    if (editModel)
+    {
+        // create a window and insert the inspector
+        ImGui::SetNextWindowSize(ImVec2(320, 240));
+        ImGui::Begin("Matrix Inspector");
+        EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
+        ImGui::End();
+    }
     // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
     ImGui::Render();
@@ -128,9 +205,9 @@ void GraphicsSystem::Render(const Camera& camera, const RenderContext& context,
     SDL_GL_SwapWindow(_window);
 }
 
-void RenderContext::SetModelToRender(const Model* model) { _model = model; }
+void RenderContext::SetModelToRender(Model* model) { _model = model; }
 
-const Model* RenderContext::GetModelToRender() const { return _model; }
+Model* RenderContext::GetModelToRender() { return _model; }
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
 

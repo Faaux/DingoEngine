@@ -5,7 +5,7 @@ GLTF (Low Level Rendering) (Mike)
 	
 GLTF (High Level Rendering) (Mike)
 	1.) Culling
-	2.) Animations (This is actually High level renderer)
+	2.) Animations
 	3.) Morph
 	
 Resource Manager (includes fonts)

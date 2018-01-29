@@ -192,7 +192,7 @@ class Model
     const std::vector<BufferView>& GetBufferViews() const;
 
     graphics::Shader& shader;
-
+    mat4 modelTransform;
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;
 };
