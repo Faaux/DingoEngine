@@ -14,13 +14,21 @@ struct StackAllocator
         _currentUse = 0;
     }
 
+    void* Push(u32 size, u32 alignment);
+    void Pop(void* ptr);
+
     template <typename T, typename... Args>
     T* PushAndConstruct(Args&&... args);
 
-    template <typename T>
+    template <typename T, u32 count = 1>
     T* Push();
 
    private:
+    struct StackHeader
+    {
+        u8 padding;
+    };
+
     bool _isInitialized = false;
     u8* _base = 0;
     u32 _currentUse = 0;
@@ -30,24 +38,16 @@ struct StackAllocator
 template <typename T, typename... Args>
 T* StackAllocator::PushAndConstruct(Args&&... args)
 {
-    Assert(_isInitialized);
-    Assert(_currentUse + sizeof(T) <= _size);
-
-    T* result = new (_base + _currentUse) T(std::forward(args)...);
-    _currentUse += sizeof(T);
-
-    return result;
+    void* memory = Push(sizeof(T), 4);
+    return new (memory) T(std::forward(args)...);
 }
 
-template <typename T>
+template <typename T, u32 count>
 T* StackAllocator::Push()
 {
-    Assert(_isInitialized);
-    Assert(_currentUse + sizeof(T) <= _size);
-    SDL_memset(_base + _currentUse, 0, sizeof(T));
-    T* result = reinterpret_cast<T*>(_base + _currentUse);
-    _currentUse += sizeof(T);
-    return result;
+    void* memory = Push(sizeof(T) * count, 4);
+    SDL_memset(memory, 0, sizeof(T) * count);
+    return reinterpret_cast<T*>(memory);
 }
 
 struct GameMemory
