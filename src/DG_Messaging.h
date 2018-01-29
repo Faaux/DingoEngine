@@ -7,11 +7,6 @@
 
 namespace DG
 {
-struct StringMessage
-{
-    std::string message;
-};
-
 template <class T>
 class CallbackHandle
 {

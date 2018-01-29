@@ -117,7 +117,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
         model->shader.Use();
         for (auto& mesh : model->meshes)
         {
-            const auto mvp = camera.getProjection() * camera.getView() * model->modelTransform *
+            const auto mvp = camera.getProjection() * camera.getView()  *
                              mesh.localTransform;
             model->shader.SetUniform("modViewProj", mvp);
             glBindVertexArray(mesh.vao);
@@ -195,7 +195,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
         // create a window and insert the inspector
         ImGui::SetNextWindowSize(ImVec2(320, 240));
         ImGui::Begin("Matrix Inspector");
-        EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
+        //EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
         ImGui::End();
     }
     // Actually render here

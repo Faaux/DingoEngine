@@ -59,7 +59,7 @@ bool InitSDL()
 bool InitWindow()
 {
     Window = SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
-                              SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+                              SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (Window == nullptr)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n",
@@ -148,6 +148,21 @@ void Cleanup()
     LogCleanup();
 }
 
+void AttachDebugListenersToMessageSystem()
+{
+    g_MessagingSystem.RegisterCallback<WindowSizeMessage>([](const WindowSizeMessage& message) {
+        SDL_Log("Window was resized: %i x %i", message.width, message.height);
+    });
+    g_MessagingSystem.RegisterCallback<InputMessage>([](const InputMessage& message) {
+        SDL_Log("Key %s: '%i'",
+                message.key->wasPressed()
+                    ? "was pressed"
+                    : message.key->wasReleased() ? "was released"
+                                                 : message.key->isUp() ? "is up" : "is down",
+                message.scancode);
+    });
+}
+
 void Update(f32 dtSeconds)
 {
     // AddDebugLine(vec3(),vec3(1,0,0),Color(1,0,0,0));
@@ -189,6 +204,7 @@ int main(int, char* [])
 
     // Start Init Systems
     g_MessagingSystem.Init(g_InGameClock);
+    AttachDebugListenersToMessageSystem();
 
     u64 currentTime = SDL_GetPerformanceCounter();
     f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
@@ -203,18 +219,6 @@ int main(int, char* [])
     GLTFScene* scene = LoadGLTF("duck.gltf");
     Shader shader("vertex_shader.vs", "fragment_shader.fs", "");
     Model model(*scene, shader);
-
-    // Register callback
-    auto handle = g_MessagingSystem.RegisterCallback<StringMessage>(ShittyCallback);
-
-    // Send message
-    StringMessage message;
-    message.message = "Test123";
-    g_MessagingSystem.Send(message);
-    message.message = "First";
-    g_MessagingSystem.Send(message, 3);
-    message.message = "Second";
-    g_MessagingSystem.Send(message, 4);
 
     while (!inputSystem.IsQuitRequested())
     {

@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include "DG_Include.h"
 
 namespace DG
 {
@@ -19,6 +20,18 @@ class Key
     bool _wasPressed = false;
     bool _wasReleased = false;
     bool _isDown = false;
+};
+
+struct WindowSizeMessage
+{
+    s32 width = 0;
+    s32 height = 0;
+};
+
+struct InputMessage
+{
+    SDL_Scancode scancode;
+    Key* key = nullptr;
 };
 
 class InputSystem

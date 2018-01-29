@@ -5,7 +5,6 @@
 #include <vector>
 #include "DG_Include.h"
 #include "DG_Shader.h"
-#include "DG_Transform.h"
 
 namespace DG::graphics
 {
@@ -191,8 +190,7 @@ class Model
     Model(const GLTFScene& scene, graphics::Shader& shader);
     const std::vector<BufferView>& GetBufferViews() const;
 
-    graphics::Shader& shader;
-    mat4 modelTransform;
+    Shader& shader;
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;
 };

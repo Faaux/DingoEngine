@@ -1,6 +1,7 @@
 #include "DG_InputSystem.h"
 #include <cstring>
 #include "DG_Include.h"
+#include "DG_Messaging.h"
 #include "imgui_impl_sdl_gl3.h"
 
 namespace DG
@@ -41,24 +42,34 @@ void InputSystem::Update()
 
             if (event.type == SDL_KEYDOWN)
             {
-                if (!key._isDown) key._wasPressed = true;
+                if (!key._isDown)
+                    key._wasPressed = true;
                 key._isDown = true;
             }
             else
             {
-                if (key._isDown) key._wasReleased = true;
+                if (key._isDown)
+                    key._wasReleased = true;
                 key._isDown = false;
             }
+            InputMessage message;
+            message.scancode = event.key.keysym.scancode;
+            message.key = &key;
+            g_MessagingSystem.Send(message);
         }
         else if (event.type == SDL_TEXTINPUT)
         {
-            strcat(_textInput, event.text.text);
+            SDL_strlcat(_textInput, event.text.text, 32);
         }
         else if (event.type == SDL_WINDOWEVENT)
         {
             if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
                 // Resize Window and rebuild render pipeline
+                WindowSizeMessage message;
+                message.width = event.window.data1;
+                message.height = event.window.data2;
+                g_MessagingSystem.Send(message);
             }
         }
     }
