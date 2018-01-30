@@ -114,8 +114,10 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
         model->shader.Use();
         for (auto& mesh : model->meshes)
         {
-            const auto mvp = camera.getProjection() * camera.getView() * mesh.localTransform;
-            model->shader.SetUniform("modViewProj", mvp);
+            model->shader.SetUniform("proj", camera.getProjection());
+            model->shader.SetUniform("view", camera.getView());
+            model->shader.SetUniform("model", mesh.localTransform);
+
             glBindVertexArray(mesh.vao);
             glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
                            reinterpret_cast<void*>(mesh.byteOffset));
