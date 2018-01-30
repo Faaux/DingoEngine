@@ -64,8 +64,9 @@ struct FrameData
         DebuRenderCTX = FrameMemory.PushAndConstruct<DebugRenderContext>();
     }
 };
-
+#if _DEBUG
 StringHashTable<2048> g_StringHashTable;
+#endif
 GameMemory Memory;
 GameState* Game;
 
