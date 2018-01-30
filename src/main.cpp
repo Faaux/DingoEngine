@@ -15,7 +15,8 @@
 #include "DG_Messaging.h"
 #include "DG_StringIdCRC32.h"
 #include "DG_memory.h"
-#include "imgui_impl_sdl_gl3.h"
+#include "imgui/DG_Imgui.h"
+#include "imgui/imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
@@ -164,6 +165,7 @@ bool InitImgui()
 {
     ImGui_ImplSdlGL3_Init(Game->Window);
     ImGui::StyleColorsDark();
+    InitInternalImgui();
     return true;
 }
 

@@ -4,7 +4,8 @@
 #include "DG_Font.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
-#include "imgui_impl_sdl_gl3.h"
+#include "imgui/DG_Imgui.h"
+#include "imgui/imgui_impl_sdl_gl3.h"
 
 namespace DG::graphics
 {
@@ -104,6 +105,11 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
     static vec3 lightColor(1);
     static vec3 lightPos(10, 10, 0);
+    TWEAKER_FRAME(CB, "GL Wireframe", &context->_isWireframe);
+    TWEAKER(Color3Small, "GL Clear Color", &clearColor);
+    TWEAKER(Color3Small, "Light Color", &lightColor);
+    TWEAKER(F3, "Light Position", &lightPos);
+
     AddDebugCross(lightPos);
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -129,81 +135,12 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
         glBindVertexArray(0);
         CheckOpenGLError(__FILE__, __LINE__);
     }
-    ImGui_ImplSdlGL3_NewFrame(_window);
 
-    ImGuizmo::BeginFrame();
-
-    static vec3 camPos(camera.getPosition()), camTarget(0);
-    static vec3 textWorldPosition;
-    static f32 rotSpeed = .2f, radius = 3.f;
-    static bool autoRotate = true;
-    static bool editModel = false;
-    bool cameraChanged = false;
-    ImGui::Begin("Basic");
-    ImGui::Checkbox("Edit current model position", &editModel);
-    ImGui::Checkbox("Wireframe?", const_cast<bool*>(&context->_isWireframe));
-
-    if (ImGui::DragFloat3("Camera Target", reinterpret_cast<f32*>(&camTarget), 0.05f))
-        cameraChanged = true;
-    ImGui::Checkbox("Auto Rotate around camera target?", &autoRotate);
-    if (!autoRotate)
-    {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-    }
-    ImGui::DragFloat("Rotation Speed", &rotSpeed, 0.01f);
-    ImGui::DragFloat("Rotation Radius", &radius, 0.01f);
-    if (!autoRotate)
-    {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleVar();
-    }
-
-    if (autoRotate)
-    {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-    }
-
-    if (ImGui::DragFloat3("Camera Pos", reinterpret_cast<f32*>(&camPos), 0.05f))
-        cameraChanged = true;
-
-    if (autoRotate)
-    {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleVar();
-
-        // Do auto rotate
-
-        static f32 timeAccum = 0.f;
-        timeAccum += g_RealTimeClock.GetLastDtSeconds() * rotSpeed;
-        while (timeAccum > 2 * PI) timeAccum -= 2 * PI;
-
-        camPos = vec3(cosf(timeAccum), 1.f, sinf(timeAccum)) * radius + camTarget;
-        cameraChanged = true;
-    }
-
-    if (cameraChanged)
-        const_cast<Camera&>(camera).setView(camPos, camTarget, vec3(0, 1, 0));
-
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                ImGui::GetIO().Framerate);
-
-    ImGui::ColorEdit3("Clear Color", reinterpret_cast<f32*>(&clearColor));
-    ImGui::ColorEdit3("Light Color", reinterpret_cast<f32*>(&lightColor));
-    ImGui::DragFloat3("Light Pos", reinterpret_cast<f32*>(&lightPos), 0.05f);
-    ImGui::End();
-
-    if (editModel)
-    {
-        // create a window and insert the inspector
-        ImGui::SetNextWindowSize(ImVec2(320, 240));
-        ImGui::Begin("Matrix Inspector");
-        // EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
-        ImGui::End();
-    }
-    // Actually render here
     _debugRenderSystem.Render(camera, debugContext);
+
+    // Imgui
+    ImGui_ImplSdlGL3_NewFrame(_window);
+    AddImguiTweakers();
     ImGui::Render();
 
     SDL_GL_SwapWindow(_window);

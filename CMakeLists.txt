@@ -86,6 +86,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	## IMGUI
 		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
 									ThirdParty/imgui/imgui_draw.cpp
+									ThirdParty/imgui/imgui_demo.cpp
 									)
 	## IMGUI_GIZMO
 		set (IMGUI_GIZMO_SOURCE_FILES 	ThirdParty/imguiGizmo/ImGuizmo.cpp
@@ -146,7 +147,9 @@ set (SOURCE_FILES 	src/main.cpp
 					
 					src/misc/DG_Clock.cpp
 					src/misc/DG_SDLHelper.cpp
-					src/misc/imgui_impl_sdl_gl3.cpp
+
+					src/imgui/imgui_impl_sdl_gl3.cpp
+					src/imgui/DG_Imgui.cpp
 					)
 
 #Header Files
@@ -170,7 +173,9 @@ set (HEADER_FILES	src/DG_Job.h
 					src/misc/DG_Clock.h
 					src/misc/DG_SDLHelper.h
 					src/misc/DG_Windows.h
-					src/misc/imgui_impl_sdl_gl3.h
+
+					src/imgui/imgui_impl_sdl_gl3.h
+					src/imgui/DG_Imgui.h
 					)
 
 #Shader Files

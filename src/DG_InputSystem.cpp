@@ -2,7 +2,7 @@
 #include <cstring>
 #include "DG_Include.h"
 #include "DG_Messaging.h"
-#include "imgui_impl_sdl_gl3.h"
+#include "imgui/imgui_impl_sdl_gl3.h"
 
 namespace DG
 {
