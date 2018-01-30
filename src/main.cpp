@@ -224,15 +224,13 @@ void AttachDebugListenersToMessageSystem()
                     : message.key->wasReleased() ? "was released"
                                                  : message.key->isUp() ? "is up" : "is down",
                 message.scancode);
+    });
 
-        static bool isWindowed = true;
-        if (message.scancode == SDL_SCANCODE_RETURN && message.wasAltDown &&
-            message.key->wasPressed())
-        {
-            if (isWindowed)
+    g_MessagingSystem.RegisterCallback<ToggleFullscreenMessage>(
+        [](const ToggleFullscreenMessage& message) {
+            if (message.SetFullScreen)
             {
                 // Set Fullscreen
-                isWindowed = false;
                 auto result = SDL_SetWindowFullscreen(Game->Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
                 Assert(result == 0);
 
@@ -242,15 +240,13 @@ void AttachDebugListenersToMessageSystem()
             else
             {
                 // Set Windowed
-                isWindowed = true;
                 auto result = SDL_SetWindowFullscreen(Game->Window, 0);
                 Assert(result == 0);
 
                 // Release Mouse
                 SDL_SetWindowGrab(Game->Window, SDL_FALSE);
             }
-        }
-    });
+        });
 }
 
 void Update(FrameData* frameData)

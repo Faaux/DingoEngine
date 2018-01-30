@@ -12,7 +12,10 @@ bool isVisible = false;
 void AddImguiTweakers()
 {
     if (!isVisible)
+    {
+        g_TweakersPerFrame.clear();
         return;
+    }
 
     if (!ImGui::Begin("  Tweaker", nullptr, ImGuiWindowFlags_NoCollapse))
     {
@@ -32,7 +35,7 @@ void AddImguiTweakers()
 
     g_TweakersPerFrame.insert(g_TweakersPerFrame.end(), g_Tweakers.begin(), g_Tweakers.end());
     std::sort(g_TweakersPerFrame.begin(), g_TweakersPerFrame.end(),
-              [](const Tweaker& c1, const Tweaker& c2) { return strcmp(c1.Name, c2.Name) < 0; });
+              [](const Tweaker &c1, const Tweaker &c2) { return strcmp(c1.Name, c2.Name) < 0; });
 
     for (auto &tweaker : g_TweakersPerFrame)
     {

@@ -77,6 +77,15 @@ void InputSystem::Update()
             }
         }
     }
+    if ((_keys[SDL_SCANCODE_LALT].isDown() || _keys[SDL_SCANCODE_RALT].isDown()) &&
+        _keys[SDL_SCANCODE_RETURN].wasPressed())
+    {
+        static bool isFullscreen = true;
+        ToggleFullscreenMessage message;
+        message.SetFullScreen = isFullscreen;
+        isFullscreen = !isFullscreen;
+        g_MessagingSystem.SendNextFrame(message);
+    }
 }
 
 bool InputSystem::IsQuitRequested() const { return _quitRequested; }
