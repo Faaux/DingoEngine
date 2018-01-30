@@ -8,6 +8,7 @@ layout(location = 3) in vec2 uv;
 uniform mat4 proj;
 uniform mat4 view;
 uniform mat4 model;
+uniform vec3 lightPos;
 
 out vec3 frag_colors;
 out vec3 view_normal;
@@ -19,7 +20,7 @@ void main()
     vec4 viewNormal = transpose(inverse(view * model)) * vec4(norm, 1.0);
     view_normal = normalize(viewNormal.xyz);
 
-    view_light_pos = (view * vec4(2, 5, 5, 1)).xyz;
+    view_light_pos = (view * vec4(lightPos, 1)).xyz;
 
     frag_colors = vec3(1);
 

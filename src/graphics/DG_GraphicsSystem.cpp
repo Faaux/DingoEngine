@@ -101,8 +101,9 @@ void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& m
 void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
                             const DebugRenderContext* debugContext)
 {
-    static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
-
+    static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
+    static vec3 lightPos(10, 10, 0);
+    AddDebugCross(lightPos);
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -117,6 +118,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
             model->shader.SetUniform("proj", camera.getProjection());
             model->shader.SetUniform("view", camera.getView());
             model->shader.SetUniform("model", mesh.localTransform);
+            model->shader.SetUniform("lightPos", lightPos);
 
             glBindVertexArray(mesh.vao);
             glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
@@ -131,7 +133,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
 
     static vec3 camPos(camera.getPosition()), camTarget(0);
     static vec3 textWorldPosition;
-    static f32 rotSpeed = .6f, radius = 3.f;
+    static f32 rotSpeed = .2f, radius = 3.f;
     static bool autoRotate = true;
     static bool editModel = false;
     bool cameraChanged = false;
@@ -185,7 +187,8 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
 
-    ImGui::DragFloat3("Clear Color", reinterpret_cast<f32*>(&clearColor), 0.05f);
+    ImGui::ColorEdit3("Clear Color", reinterpret_cast<f32*>(&clearColor));
+    ImGui::DragFloat3("Light Pos", reinterpret_cast<f32*>(&lightPos), 0.05f);
     ImGui::End();
 
     if (editModel)
@@ -265,10 +268,7 @@ const std::vector<DebugTextWorld>& DebugRenderContext::GetDebugTextWorld(bool de
     return depthEnabled ? _depthEnabledDebugTextWorld : _depthDisabledDebugTextWorld;
 }
 
-DebugRenderSystem::DebugRenderSystem() : _shader("debug_lines")
-{
-    SetupVertexBuffers();
-}
+DebugRenderSystem::DebugRenderSystem() : _shader("debug_lines") { SetupVertexBuffers(); }
 void DebugRenderSystem::SetupVertexBuffers()
 {
     glGenVertexArrays(1, &linePointVAO);

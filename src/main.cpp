@@ -232,9 +232,10 @@ void Update(FrameData* frameData)
     g_DebugRenderContext = frameData->DebuRenderCTX;
     frameData->RenderCTX->SetModelToRender(model);
 
-    AddDebugAxes(Transform(), 5.f, 5.f);
+    AddDebugAxes(Transform(), 5.f, 2.5f);
     AddDebugXZGrid(vec2(0), -5, 5, 0);
 }
+
 u64 GetFrameBufferIndex(u64 frameIndex, u64 size)
 {
     s64 index = static_cast<s64>(frameIndex);
