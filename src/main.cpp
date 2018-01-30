@@ -20,20 +20,48 @@ namespace DG
 {
 using namespace graphics;
 
+struct GameState
+{
+    bool GameIsRunning = true;
+    bool IsWireframe = false;
+    SDL_Window* Window;
+    SDL_GLContext GLContext;
+
+    InputSystem* InputSystem;
+    GraphicsSystem* GraphicsSystem;
+};
+
 struct FrameData
 {
-    char test[1024];
+    StackAllocator FrameMemory;
+    bool IsUpdateDone = false;
+    bool IsPreRenderDone = false;
+    bool IsRenderDone = false;
+
+    RenderContext* CurrentRenderContext;
+    DebugRenderContext* CurrentDebugRenderContext;
+
+    void Reset()
+    {
+        // ToDo: Change implementation that this is NOT needed anymore!
+        // Free allocated memory        
+        if (CurrentRenderContext)
+            CurrentRenderContext->~RenderContext();
+        if (CurrentDebugRenderContext)
+            CurrentDebugRenderContext->~DebugRenderContext();
+
+        FrameMemory.Reset();
+        IsUpdateDone = false;
+        IsPreRenderDone = false;
+        IsRenderDone = false;
+
+        CurrentRenderContext = FrameMemory.PushAndConstruct<RenderContext>();
+        CurrentDebugRenderContext = FrameMemory.PushAndConstruct<DebugRenderContext>();
+    }
 };
 
 GameMemory Memory;
-
-FrameData LastFrameData;
-FrameData CurrentFrameData;
-
-bool GameIsRunning = true;
-bool IsWireframe = false;
-SDL_Window* Window;
-SDL_GLContext GLContext;
+GameState* Game;
 
 bool InitSDL()
 {
@@ -62,9 +90,10 @@ bool InitSDL()
 
 bool InitWindow()
 {
-    Window = SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
-                              SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    if (Window == nullptr)
+    Game->Window =
+        SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
+                         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    if (Game->Window == nullptr)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n",
                         SDL_GetError());
@@ -87,8 +116,8 @@ bool InitOpenGL()
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
     // Create context
-    GLContext = SDL_GL_CreateContext(Window);
-    if (GLContext == NULL)
+    Game->GLContext = SDL_GL_CreateContext(Game->Window);
+    if (Game->GLContext == NULL)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO,
                         "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
@@ -126,7 +155,7 @@ bool InitOpenGL()
 
 bool InitImgui()
 {
-    ImGui_ImplSdlGL3_Init(Window);
+    ImGui_ImplSdlGL3_Init(Game->Window);
     ImGui::StyleColorsDark();
     return true;
 }
@@ -168,7 +197,7 @@ bool InitMemory()
 void Cleanup()
 {
     ImGui_ImplSdlGL3_Shutdown();
-    SDL_GL_DeleteContext(GLContext);
+    SDL_GL_DeleteContext(Game->GLContext);
     SDL_Quit();
     LogCleanup();
 }
@@ -188,9 +217,15 @@ void AttachDebugListenersToMessageSystem()
     });
 }
 
-void Update(f32 dtSeconds)
+void Update(FrameData* frameData)
 {
-    // AddDebugLine(vec3(),vec3(1,0,0),Color(1,0,0,0));
+    static GLTFScene* scene = LoadGLTF("duck.gltf");
+    static Shader shader("vertex_shader.vs", "fragment_shader.fs", "");
+    static Model model(*scene, shader);
+
+    g_DebugRenderContext = frameData->CurrentDebugRenderContext;
+    frameData->CurrentRenderContext->SetModelToRender(&model);
+
     AddDebugAxes(Transform(), 5.f, 5.f);
     AddDebugXZGrid(vec2(0), -5, 5, 0);
     AddDebugSphere(vec3(5, 0, 0), Color(1), 2.f);
@@ -205,6 +240,12 @@ int main(int, char* [])
     using namespace DG;
 
     srand(1337);
+
+    if (!InitMemory())
+        return -1;
+
+    Game = Memory.PersistentMemory.Push<GameState>();
+
     if (!InitSDL())
         return -1;
 
@@ -220,33 +261,42 @@ int main(int, char* [])
     if (!InitWorkerThreads())
         return -1;
 
-    if (!InitMemory())
-        return -1;
-
     InitClocks();
 
     // Start Init Systems
+    Game->InputSystem = Memory.PersistentMemory.PushAndConstruct<InputSystem>();
+    Game->GraphicsSystem = Memory.PersistentMemory.PushAndConstruct<GraphicsSystem>(Game->Window);
+
     g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
     u64 currentTime = SDL_GetPerformanceCounter();
     f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
-    u64 currentFrame = 1;
+    u64 currentFrameIdx = 0;
 
-    InputSystem inputSystem;
-    GraphicsSystem graphicsSystem(Window);
+    // Init FrameRingBuffer
+    FrameData* frames = Memory.TransientMemory.Push<FrameData, 5>();
 
+    for (int i = 0; i < 5; ++i)
+    {
+        const u32 frameDataSize = 16 * 1024 * 1024;  // 16MB
+        u8* base = Memory.TransientMemory.Push(frameDataSize, 4);
+        frames[i].FrameMemory.Init(base, frameDataSize);
+        frames[i].IsUpdateDone = true;
+        frames[i].IsPreRenderDone = true;
+        frames[i].IsRenderDone = true;
+    }
     // ToDo: Remove
     Camera camera(vec3(0, 1, 3));
 
-    GLTFScene* scene = LoadGLTF("duck.gltf");
-    Shader shader("vertex_shader.vs", "fragment_shader.fs", "");
-    Model model(*scene, shader);
-
-    while (!inputSystem.IsQuitRequested())
+    while (!Game->InputSystem->IsQuitRequested())
     {
+        FrameData& currentFrameData = frames[currentFrameIdx % 5];
+        Assert(currentFrameData.IsRenderDone);
+        currentFrameData.Reset();
+
         // Poll Events and Update Input accordingly
-        inputSystem.Update();
+        Game->InputSystem->Update();
 
         // Measure time and update clocks!
         const u64 lastTime = currentTime;
@@ -263,18 +313,24 @@ int main(int, char* [])
         g_MessagingSystem.Update();
 
         // Game Logic
-        Update(dtSeconds);
+        Update(&currentFrameData);
 
-        // Other Logic
-        g_CurrentRenderContext.SetModelToRender(&model);
-        graphicsSystem.Render(camera, g_CurrentRenderContext, g_CurrentDebugRenderContext);
-        g_CurrentDebugRenderContext.Reset();
-        currentFrame++;
+        currentFrameData.IsUpdateDone = true;
 
-        LastFrameData = CurrentFrameData;
-        CurrentFrameData = FrameData();
+        // PreRender
+
+        currentFrameData.IsPreRenderDone = true;
+        // Render
+
+        Game->GraphicsSystem->Render(camera, currentFrameData.CurrentRenderContext,
+                                     currentFrameData.CurrentDebugRenderContext);
+        g_DebugRenderContext->Reset();
+
+        currentFrameData.IsRenderDone = true;
+
+        currentFrameIdx++;
     }
-    GameIsRunning = false;
+    Game->GameIsRunning = false;
 
     g_JobQueueShutdownRequested = true;
     Cleanup();

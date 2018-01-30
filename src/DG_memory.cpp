@@ -1,7 +1,7 @@
 #include "DG_memory.h"
 namespace DG
 {
-void* StackAllocator::Push(u32 size, u32 alignment)
+u8* StackAllocator::Push(u32 size, u32 alignment)
 {
     Assert(_isInitialized);
 
@@ -17,7 +17,8 @@ void* StackAllocator::Push(u32 size, u32 alignment)
 
     void* result = reinterpret_cast<void*>(baseAddress + padding);
     _currentUse += size + static_cast<u8>(padding);
-    return result;
+    _hwm = glm::max(_currentUse, _hwm);
+    return static_cast<u8*>(result);
 }
 
 void StackAllocator::Pop(void* p)
@@ -33,4 +34,6 @@ void StackAllocator::Pop(void* p)
     Assert(newHeadLocation >= _base);
     _currentUse = static_cast<u32>(newHeadLocation - _base);
 }
+
+void StackAllocator::Reset() { _currentUse = 0; }
 }  // namespace DG

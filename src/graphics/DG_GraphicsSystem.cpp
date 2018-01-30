@@ -8,11 +8,8 @@
 
 namespace DG::graphics
 {
-RenderContext g_CurrentRenderContext;
-RenderContext g_LastRenderContext;
-
-DebugRenderContext g_CurrentDebugRenderContext;
-DebugRenderContext g_LastDebugRenderContext;
+RenderContext* g_RenderContext = nullptr;
+DebugRenderContext* g_DebugRenderContext = nullptr;
 
 inline const char* ErrorToString(const GLenum errorCode)
 {
@@ -101,24 +98,23 @@ void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& m
                          mCurrentGizmoMode, &matrix[0][0], NULL, useSnap ? &snap[0] : NULL);
 }
 
-void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
-                            const DebugRenderContext& debugContext)
+void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
+                            const DebugRenderContext* debugContext)
 {
     static vec4 clearColor(0.7f, 0.3f, 0.6f, 1.f);
 
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glPolygonMode(GL_FRONT_AND_BACK, context.IsWireframe() ? GL_LINE : GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, context->IsWireframe() ? GL_LINE : GL_FILL);
     glEnable(GL_DEPTH_TEST);
-    auto model = context.GetModelToRender();
+    auto model = context->GetModelToRender();
     if (model)
     {
         model->shader.Use();
         for (auto& mesh : model->meshes)
         {
-            const auto mvp = camera.getProjection() * camera.getView()  *
-                             mesh.localTransform;
+            const auto mvp = camera.getProjection() * camera.getView() * mesh.localTransform;
             model->shader.SetUniform("modViewProj", mvp);
             glBindVertexArray(mesh.vao);
             glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
@@ -139,7 +135,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
     bool cameraChanged = false;
     ImGui::Begin("Basic");
     ImGui::Checkbox("Edit current model position", &editModel);
-    ImGui::Checkbox("Wireframe?", const_cast<bool*>(&context._isWireframe));
+    ImGui::Checkbox("Wireframe?", const_cast<bool*>(&context->_isWireframe));
 
     if (ImGui::DragFloat3("Camera Target", reinterpret_cast<f32*>(&camTarget), 0.05f))
         cameraChanged = true;
@@ -195,7 +191,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext& context,
         // create a window and insert the inspector
         ImGui::SetNextWindowSize(ImVec2(320, 240));
         ImGui::Begin("Matrix Inspector");
-        //EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
+        // EditTransform(camera.getView(), camera.getProjection(), model->modelTransform);
         ImGui::End();
     }
     // Actually render here
@@ -353,7 +349,7 @@ void DebugRenderSystem::SetupVertexBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext& context)
+void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext* context)
 {
     static bool isFontInit = false;
     static Font font;
@@ -363,25 +359,25 @@ void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext& c
         isFontInit = true;
     }
 
-    RenderDebugLines(camera, true, context.GetDebugLines(true));
-    RenderDebugLines(camera, false, context.GetDebugLines(false));
+    RenderDebugLines(camera, true, context->GetDebugLines(true));
+    RenderDebugLines(camera, false, context->GetDebugLines(false));
 
     glDisable(GL_DEPTH_TEST);
-    for (auto& text : context.GetDebugTextScreen(false))
+    for (auto& text : context->GetDebugTextScreen(false))
     {
         font.RenderTextScreen(text.text, text.position, text.color);
     }
-    for (auto& text : context.GetDebugTextWorld(false))
+    for (auto& text : context->GetDebugTextWorld(false))
     {
         font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
     }
 
     glEnable(GL_DEPTH_TEST);
-    for (auto& text : context.GetDebugTextScreen(true))
+    for (auto& text : context->GetDebugTextScreen(true))
     {
         font.RenderTextScreen(text.text, text.position, text.color);
     }
-    for (auto& text : context.GetDebugTextWorld(true))
+    for (auto& text : context->GetDebugTextWorld(true))
     {
         font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
     }
@@ -429,8 +425,9 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
 void AddDebugLine(const vec3& fromPosition, const vec3& toPosition, Color color, f32 lineWidth,
                   f32 durationSeconds, bool depthEnabled)
 {
+    Assert(g_DebugRenderContext);
     color.w = lineWidth;
-    g_CurrentDebugRenderContext.AddLine(fromPosition, toPosition, color, depthEnabled);
+    g_DebugRenderContext->AddLine(fromPosition, toPosition, color, depthEnabled);
 }
 
 void AddDebugCross(const vec3& position, Color color, f32 size, f32 lineWidth, f32 durationSeconds,
@@ -551,13 +548,15 @@ void AddDebugAABB(const vec3& minCoords, const vec3& maxCoords, Color color, f32
 void AddDebugTextWorld(const vec3& position, const std::string& text, Color color,
                        f32 durationSeconds, bool depthEnabled)
 {
-    g_CurrentDebugRenderContext.AddTextWorld(position, text, color, depthEnabled);
+    Assert(g_DebugRenderContext);
+    g_DebugRenderContext->AddTextWorld(position, text, color, depthEnabled);
 }
 
 void AddDebugTextScreen(const vec2& position, const std::string& text, Color color,
                         f32 durationSeconds, bool depthEnabled)
 {
-    g_CurrentDebugRenderContext.AddTextScreen(position, text, color, depthEnabled);
+    Assert(g_DebugRenderContext);
+    g_DebugRenderContext->AddTextScreen(position, text, color, depthEnabled);
 }
 
 void AddDebugXZGrid(const vec2& center, const f32 min, const f32 max, const f32 height, f32 step,

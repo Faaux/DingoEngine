@@ -94,23 +94,20 @@ class DebugRenderContext
     std::vector<DebugLine> _depthDisabledDebugLines;
 };
 
-extern DebugRenderContext g_CurrentDebugRenderContext;
-extern DebugRenderContext g_LastDebugRenderContext;
-
 class RenderContext
 {
    public:
+    RenderContext() = default;
     void SetModelToRender(Model *model);
     Model *GetModelToRender();
     bool IsWireframe() const;
     bool _isWireframe = false;
 
    private:
-    Model *_model;
+    Model *_model = nullptr;
 };
 
-extern RenderContext g_CurrentRenderContext;
-extern RenderContext g_LastRenderContext;
+extern DebugRenderContext *g_DebugRenderContext;
 
 class DebugRenderSystem
 {
@@ -121,7 +118,7 @@ class DebugRenderSystem
 
    public:
     DebugRenderSystem();
-    void Render(const Camera &camera, const DebugRenderContext &context);
+    void Render(const Camera &camera, const DebugRenderContext *context);
 
    private:
     void SetupVertexBuffers();
@@ -140,8 +137,8 @@ class GraphicsSystem
    public:
     GraphicsSystem(SDL_Window *window);
 
-    void Render(const Camera &camera, RenderContext &context,
-                const DebugRenderContext &debugContext);
+    void Render(const Camera &camera, RenderContext *context,
+                const DebugRenderContext *debugContext);
 
    private:
     DebugRenderSystem _debugRenderSystem;

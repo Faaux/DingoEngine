@@ -55,7 +55,7 @@ void InputSystem::Update()
             InputMessage message;
             message.scancode = event.key.keysym.scancode;
             message.key = &key;
-            g_MessagingSystem.Send(message);
+            g_MessagingSystem.SendNextFrame(message);
         }
         else if (event.type == SDL_TEXTINPUT)
         {
@@ -69,7 +69,7 @@ void InputSystem::Update()
                 WindowSizeMessage message;
                 message.width = event.window.data1;
                 message.height = event.window.data2;
-                g_MessagingSystem.Send(message);
+                g_MessagingSystem.SendNextFrame(message);
             }
         }
     }

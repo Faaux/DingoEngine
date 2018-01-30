@@ -35,7 +35,7 @@ T* HashTable<Key, T, Hash, Pred>::Put(Key key, Args&&... args)
     }
     else
     {
-        _values[index] = ::new (_values[index]) T(std::forward(args)...);
+        _values[index] = ::new (_values[index]) T(std::forward<Args>(args)...);
     }
 
     return &_values[index].value();
@@ -79,7 +79,7 @@ template <typename T>
 template <class... Args>
 T* ResourceManager<T>::Register(StringId id, Args&&... args)
 {
-    return _hashTable.Put(id, std::forward(args)...);
+    return _hashTable.Put(id, std::forward<Args>(args)...);
 }
 
 }  // namespace DG

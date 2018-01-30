@@ -14,8 +14,10 @@ struct StackAllocator
         _currentUse = 0;
     }
 
-    void* Push(u32 size, u32 alignment);
+    u8* Push(u32 size, u32 alignment);
     void Pop(void* ptr);
+
+    void Reset();
 
     template <typename T, typename... Args>
     T* PushAndConstruct(Args&&... args);
@@ -33,13 +35,14 @@ struct StackAllocator
     u8* _base = 0;
     u32 _currentUse = 0;
     u32 _size = 0;
+    u32 _hwm = 0;
 };
 
 template <typename T, typename... Args>
 T* StackAllocator::PushAndConstruct(Args&&... args)
 {
     void* memory = Push(sizeof(T), 4);
-    return new (memory) T(std::forward(args)...);
+    return new (memory) T(std::forward<Args>(args)...);
 }
 
 template <typename T, u32 count>

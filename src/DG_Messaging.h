@@ -36,7 +36,13 @@ class MessagingSystem
     void Update();
 
     template <class T>
-    void Send(const T& message, float delayInS = 0.0f);
+    void Send(const T& message, float delayInS);
+
+    template <class T>
+    void SendNextFrame(const T& message);
+
+    template <class T>
+    void SendImmediate(const T& message);
 
     template <class T>
     CallbackHandle<T> RegisterCallback(std::function<void(const T&)> callback);
@@ -106,7 +112,7 @@ void MessagingSystem::Send(const T& message, float delayInS)
         _updateCalls.push_back(&MessagingSystem::UpdateTypedMessageQueue<T>);
     }
 
-    if (delayInS == 0.0f)
+    if (delayInS < 0.0f)
     {
         InternalSend(message);
     }
@@ -115,6 +121,18 @@ void MessagingSystem::Send(const T& message, float delayInS)
         u64 cycles = _clock->GetTimeCycles() + _clock->ToCycles(delayInS);
         _messageQueue<T>.emplace(cycles, message);
     }
+}
+
+template <class T>
+void MessagingSystem::SendNextFrame(const T& message)
+{
+    Send(message, 0.f);
+}
+
+template <class T>
+void MessagingSystem::SendImmediate(const T& message)
+{
+    Send(message, -1.f);
 }
 
 template <class T>
