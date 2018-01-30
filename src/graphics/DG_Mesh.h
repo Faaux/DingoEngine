@@ -194,4 +194,5 @@ class Model
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;
 };
+
 }  // namespace DG::graphics

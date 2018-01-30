@@ -53,7 +53,7 @@ std::string SearchForFile(const std::string_view& filename, const std::vector<fs
             }
         }
     }
-    SDL_LogError(0, "ERROR: Could not find resource '%s'", filename.data());
+    SDL_LogWarn(0, "WARNING: Could not find resource '%s'", filename.data());
     return "";
 }
 
@@ -331,4 +331,29 @@ GLTFScene* LoadGLTF(const std::string_view& f)
     return result;
 }
 
+GLTFScene* GLTFSceneManager::LoadOrGet(StringId id, const char* pathToGltf)
+{
+    GLTFScene** current = Exists(id);
+    if (current)
+        return *current;
+
+    GLTFScene* scene = LoadGLTF(pathToGltf);
+    GLTFScene** reg = Register(id, scene);
+    Assert(*reg == scene);
+
+    return scene;
+}
+
+Model* ModelManager::LoadOrGet(StringId id, GLTFScene* scene, Shader* shader)
+{
+    Assert(scene);
+    Assert(shader);
+
+    return RegisterAndConstruct(id, *scene, *shader);
+}
+
+graphics::Shader* ShaderManager::LoadOrGet(StringId id, const char* shaderName)
+{
+    return RegisterAndConstruct(id, shaderName);
+}
 }  // namespace DG

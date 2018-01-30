@@ -88,12 +88,14 @@ static u32 CompileShaderFromFile(s32 i, std::string_view filename)
     return CompileShaderFromString(i, file);
 }
 
-Shader::Shader(std::string_view vertexFilename, std::string_view fragmentFilename,
-               std::string_view geometryFilename)
-    : _vertexPath(SearchForFile(vertexFilename).data()),
-      _fragmentPath(SearchForFile(fragmentFilename).data()),
-      _geometryPath(SearchForFile(geometryFilename).data())
+Shader::Shader(const char* shaderName)
 {
+    std::string shader(shaderName);
+
+    _vertexPath = SearchForFile(shader + ".vs");
+    _fragmentPath = SearchForFile(shader + ".fs");
+    _geometryPath = SearchForFile(shader + ".gs");
+
     if (fs::exists(_vertexPath))
         _vertexFileTime = fs::last_write_time(_vertexPath);
     if (fs::exists(_fragmentPath))

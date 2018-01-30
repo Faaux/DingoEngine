@@ -136,7 +136,6 @@ set (SOURCE_FILES 	src/main.cpp
 					src/DG_ResourceHelper.cpp
 					src/DG_Messaging.cpp
 					src/DG_ResourceManager.cpp
-					src/DG_StringId.cpp
 					src/DG_memory.cpp
 					
 					src/graphics/DG_Font.cpp
@@ -158,7 +157,7 @@ set (HEADER_FILES	src/DG_Job.h
 					src/DG_ResourceHelper.h
 					src/DG_Messaging.h
 					src/DG_ResourceManager.h
-					src/DG_StringId.h
+					src/DG_StringIdCRC32.h
 					src/DG_memory.h
 
 					src/graphics/DG_Font.h					
@@ -175,16 +174,16 @@ set (HEADER_FILES	src/DG_Job.h
 					)
 
 #Shader Files
-set(SHADERS shaders/fragment_shader.fs
-			shaders/vertex_shader.vs
+set(SHADERS shaders/base_model.fs
+			shaders/base_model.vs
 			
 			shaders/billboard_font.fs
 			shaders/billboard_font.vs
 			shaders/screen_font.fs
 			shaders/screen_font.vs
 			
-			shaders/vertex_shader_debug_lines.vs
-			shaders/fragment_shader_debug_lines.fs
+			shaders/debug_lines.vs
+			shaders/debug_lines.fs
 			)	
 
 set(ALL_SOURCE_FILES 	${SOURCE_FILES}

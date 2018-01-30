@@ -10,8 +10,7 @@ class Shader
    public:
     bool Use();
     u32 GetProgramId() const { return _programId; }
-    Shader(std::string_view vertexFilename, std::string_view fragmentFilename,
-           std::string_view geometryFilename);
+    Shader(const char* shaderName);
 
     void SetUniform(std::string_view, const int &);
     void SetUniform(std::string_view, const glm::ivec2 &);

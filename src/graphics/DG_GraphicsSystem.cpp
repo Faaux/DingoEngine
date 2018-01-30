@@ -263,9 +263,7 @@ const std::vector<DebugTextWorld>& DebugRenderContext::GetDebugTextWorld(bool de
     return depthEnabled ? _depthEnabledDebugTextWorld : _depthDisabledDebugTextWorld;
 }
 
-DebugRenderSystem::DebugRenderSystem()
-    : _shader(SearchForFile("vertex_shader_debug_lines.vs"),
-              SearchForFile("fragment_shader_debug_lines.fs"), "")
+DebugRenderSystem::DebugRenderSystem() : _shader("debug_lines")
 {
     SetupVertexBuffers();
 }

@@ -13,6 +13,7 @@
 #include "DG_Shader.h"
 
 #include "DG_Messaging.h"
+#include "DG_StringIdCRC32.h"
 #include "DG_memory.h"
 #include "imgui_impl_sdl_gl3.h"
 
@@ -29,6 +30,10 @@ struct GameState
 
     InputSystem* InputSystem;
     GraphicsSystem* GraphicsSystem;
+
+    ModelManager* ModelManager;
+    GLTFSceneManager* GLTFSceneManager;
+    ShaderManager* ShaderManager;
 };
 
 struct FrameData
@@ -38,28 +43,29 @@ struct FrameData
     bool IsPreRenderDone = false;
     bool IsRenderDone = false;
 
-    RenderContext* CurrentRenderContext;
-    DebugRenderContext* CurrentDebugRenderContext;
+    RenderContext* RenderCTX;
+    DebugRenderContext* DebuRenderCTX;
 
     void Reset()
     {
         // ToDo: Change implementation that this is NOT needed anymore!
-        // Free allocated memory        
-        if (CurrentRenderContext)
-            CurrentRenderContext->~RenderContext();
-        if (CurrentDebugRenderContext)
-            CurrentDebugRenderContext->~DebugRenderContext();
+        // Free allocated memory
+        if (RenderCTX)
+            RenderCTX->~RenderContext();
+        if (DebuRenderCTX)
+            DebuRenderCTX->~DebugRenderContext();
 
         FrameMemory.Reset();
         IsUpdateDone = false;
         IsPreRenderDone = false;
         IsRenderDone = false;
 
-        CurrentRenderContext = FrameMemory.PushAndConstruct<RenderContext>();
-        CurrentDebugRenderContext = FrameMemory.PushAndConstruct<DebugRenderContext>();
+        RenderCTX = FrameMemory.PushAndConstruct<RenderContext>();
+        DebuRenderCTX = FrameMemory.PushAndConstruct<DebugRenderContext>();
     }
 };
 
+StringHashTable<2048> g_StringHashTable;
 GameMemory Memory;
 GameState* Game;
 
@@ -219,20 +225,25 @@ void AttachDebugListenersToMessageSystem()
 
 void Update(FrameData* frameData)
 {
-    static GLTFScene* scene = LoadGLTF("duck.gltf");
-    static Shader shader("vertex_shader.vs", "fragment_shader.fs", "");
-    static Model model(*scene, shader);
-
-    g_DebugRenderContext = frameData->CurrentDebugRenderContext;
-    frameData->CurrentRenderContext->SetModelToRender(&model);
+    static StringId DuckModelId = StringId("DuckModel");
+    Model* model = Game->ModelManager->Exists(DuckModelId);
+    Assert(model);
+    g_DebugRenderContext = frameData->DebuRenderCTX;
+    frameData->RenderCTX->SetModelToRender(model);
 
     AddDebugAxes(Transform(), 5.f, 5.f);
     AddDebugXZGrid(vec2(0), -5, 5, 0);
-    AddDebugSphere(vec3(5, 0, 0), Color(1), 2.f);
-    AddDebugSphere(vec3(0, 5, 0), Color(1), 2.f);
-    AddDebugTextScreen(vec2(), "Test for screen", Color(0, 1, 0, 1));
-    AddDebugTextWorld(vec3(0, 5, 0), "Test for world (0,5,0)", Color(1, 0, 0, 1));
 }
+u64 GetFrameBufferIndex(u64 frameIndex, u64 size)
+{
+    s64 index = static_cast<s64>(frameIndex);
+    if (index < 0)
+    {
+        return (size - (-index % size));
+    }
+    return frameIndex % size;
+}
+
 }  // namespace DG
 
 int main(int, char* [])
@@ -266,6 +277,14 @@ int main(int, char* [])
     // Start Init Systems
     Game->InputSystem = Memory.PersistentMemory.PushAndConstruct<InputSystem>();
     Game->GraphicsSystem = Memory.PersistentMemory.PushAndConstruct<GraphicsSystem>(Game->Window);
+    Game->ModelManager = Memory.PersistentMemory.PushAndConstruct<ModelManager>();
+    Game->GLTFSceneManager = Memory.PersistentMemory.PushAndConstruct<GLTFSceneManager>();
+    Game->ShaderManager = Memory.PersistentMemory.PushAndConstruct<ShaderManager>();
+
+    // ToDo Remove(Testing)
+    Shader* shader = Game->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+    GLTFScene* scene = Game->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    Model* model = Game->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
 
     g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
@@ -282,18 +301,22 @@ int main(int, char* [])
         const u32 frameDataSize = 16 * 1024 * 1024;  // 16MB
         u8* base = Memory.TransientMemory.Push(frameDataSize, 4);
         frames[i].FrameMemory.Init(base, frameDataSize);
+        frames[i].Reset();
         frames[i].IsUpdateDone = true;
         frames[i].IsPreRenderDone = true;
         frames[i].IsRenderDone = true;
     }
+
     // ToDo: Remove
     Camera camera(vec3(0, 1, 3));
 
     while (!Game->InputSystem->IsQuitRequested())
     {
-        FrameData& currentFrameData = frames[currentFrameIdx % 5];
+        FrameData& previousFrameData = frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
+        FrameData& currentFrameData = frames[GetFrameBufferIndex(currentFrameIdx, 5)];
         Assert(currentFrameData.IsRenderDone);
         currentFrameData.Reset();
+        currentFrameData.RenderCTX->_isWireframe = previousFrameData.RenderCTX->IsWireframe();
 
         // Poll Events and Update Input accordingly
         Game->InputSystem->Update();
@@ -322,8 +345,8 @@ int main(int, char* [])
         currentFrameData.IsPreRenderDone = true;
         // Render
 
-        Game->GraphicsSystem->Render(camera, currentFrameData.CurrentRenderContext,
-                                     currentFrameData.CurrentDebugRenderContext);
+        Game->GraphicsSystem->Render(camera, currentFrameData.RenderCTX,
+                                     currentFrameData.DebuRenderCTX);
         g_DebugRenderContext->Reset();
 
         currentFrameData.IsRenderDone = true;

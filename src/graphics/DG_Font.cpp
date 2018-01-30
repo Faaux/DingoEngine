@@ -120,7 +120,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
         return;
     }
 
-    static graphics::Shader BillboardWorldFontShader("billboard_font.vs", "billboard_font.fs", "");
+    static graphics::Shader BillboardWorldFontShader("billboard_font");
 
     Assert(textToRender.size() <= MaxTextLength);
 
@@ -162,7 +162,7 @@ void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenP
         return;
     }
 
-    static graphics::Shader ScreenSpaceFontShader("screen_font.vs", "screen_font.fs", "");
+    static graphics::Shader ScreenSpaceFontShader("screen_font");
 
     Assert(textToRender.size() <= MaxTextLength);
     auto textBufferData = CreateFontVertices(textToRender, screenPos);
