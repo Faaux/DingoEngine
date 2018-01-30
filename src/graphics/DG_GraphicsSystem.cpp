@@ -102,6 +102,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
                             const DebugRenderContext* debugContext)
 {
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
+    static vec3 lightColor(1);
     static vec3 lightPos(10, 10, 0);
     AddDebugCross(lightPos);
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
@@ -119,6 +120,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
             model->shader.SetUniform("view", camera.getView());
             model->shader.SetUniform("model", mesh.localTransform);
             model->shader.SetUniform("lightPos", lightPos);
+            model->shader.SetUniform("lightColor", lightColor);
 
             glBindVertexArray(mesh.vao);
             glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
@@ -188,6 +190,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
                 ImGui::GetIO().Framerate);
 
     ImGui::ColorEdit3("Clear Color", reinterpret_cast<f32*>(&clearColor));
+    ImGui::ColorEdit3("Light Color", reinterpret_cast<f32*>(&lightColor));
     ImGui::DragFloat3("Light Pos", reinterpret_cast<f32*>(&lightPos), 0.05f);
     ImGui::End();
 

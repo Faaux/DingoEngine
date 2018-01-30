@@ -8,6 +8,7 @@
 #include <vector>
 #include "DG_Camera.h"
 #include "DG_Texture.h"
+#include "DG_InputSystem.h"
 
 namespace DG::graphics
 {
@@ -66,6 +67,7 @@ class Font
     GLuint _fontEBO = -1;
     Texture _fontTexture;
     std::array<Glyph, 96> _fontCache;
+    WindowSizeMessage _windowSize;
 };
 
 class GlyphPacker

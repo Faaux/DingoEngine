@@ -2,6 +2,8 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "DG_GraphicsSystem.h"
+#include "DG_InputSystem.h"
+#include "DG_Messaging.h"
 #include "DG_ResourceHelper.h"
 #include "DG_Texture.h"
 #include "stb_image_write.h"
@@ -13,6 +15,10 @@ Font::Font() : _isValid(false), _fontCache() {}
 bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 {
     auto fontPath = SearchForFile(fontName);
+    _windowSize.WindowSize = vec2(1280, 720);
+
+    g_MessagingSystem.RegisterCallback<WindowSizeMessage>(
+        [=](const WindowSizeMessage& windowSize) { _windowSize = windowSize; });
 
     FT_Library library;
     auto error = FT_Init_FreeType(&library);
@@ -142,7 +148,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
     // Shader Setup
     BillboardWorldFontShader.Use();
     BillboardWorldFontShader.SetUniform("color", color);
-    BillboardWorldFontShader.SetUniform("screenSize", vec2(1280, 720));
+    BillboardWorldFontShader.SetUniform("screenSize", _windowSize.WindowSize);
     vec4 hcsPos = camera.getProjection() * camera.getView() * vec4(worldPos, 1.0);
     vec2 ndsPos(hcsPos.x / hcsPos.w, hcsPos.y / hcsPos.w);
 
@@ -170,7 +176,7 @@ void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenP
     // Setup Shader
     ScreenSpaceFontShader.Use();
     ScreenSpaceFontShader.SetUniform("color", color);
-    ScreenSpaceFontShader.SetUniform("screenSize", vec2(1280, 720));
+    ScreenSpaceFontShader.SetUniform("screenSize", _windowSize.WindowSize);
 
     // Render
     Render(textBufferData);

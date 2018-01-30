@@ -1,6 +1,6 @@
 #version 440
 
-uniform vec4 inputColor;
+uniform vec3 lightColor;
 
 in vec3 frag_colors;
 
@@ -12,14 +12,12 @@ out vec4 out_color;
 
 void main()
 {
-    vec3 lightColor = vec3(1);
-
     vec3 norm = view_normal;
     vec3 lightDir = normalize(view_light_pos - view_pos);
     vec3 viewDir = normalize(-view_pos);
 
     // Ambient Light
-    float ambientStrength = 0.1;
+    float ambientStrength = 0.2;
     vec3 ambient = ambientStrength * lightColor;
 
     // Diffuse Light

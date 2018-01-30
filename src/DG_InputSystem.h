@@ -24,14 +24,15 @@ class Key
 
 struct WindowSizeMessage
 {
-    s32 width = 0;
-    s32 height = 0;
+    vec2 WindowSize = vec2(0);
 };
 
 struct InputMessage
 {
     SDL_Scancode scancode;
     Key* key = nullptr;
+    bool wasCtrlDown;
+    bool wasAltDown;
 };
 
 class InputSystem

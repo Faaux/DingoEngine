@@ -212,7 +212,8 @@ void Cleanup()
 void AttachDebugListenersToMessageSystem()
 {
     g_MessagingSystem.RegisterCallback<WindowSizeMessage>([](const WindowSizeMessage& message) {
-        SDL_Log("Window was resized: %i x %i", message.width, message.height);
+        SDL_Log("Window was resized: %.2f x %.2f", message.WindowSize.x, message.WindowSize.y);
+        glViewport(0, 0, message.WindowSize.x, message.WindowSize.y);
     });
     g_MessagingSystem.RegisterCallback<InputMessage>([](const InputMessage& message) {
         SDL_Log("Key %s: '%i'",
@@ -221,6 +222,32 @@ void AttachDebugListenersToMessageSystem()
                     : message.key->wasReleased() ? "was released"
                                                  : message.key->isUp() ? "is up" : "is down",
                 message.scancode);
+
+        static bool isWindowed = true;
+        if (message.scancode == SDL_SCANCODE_RETURN && message.wasAltDown &&
+            message.key->wasPressed())
+        {
+            if (isWindowed)
+            {
+                // Set Fullscreen
+                isWindowed = false;
+                auto result = SDL_SetWindowFullscreen(Game->Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                Assert(result == 0);
+
+                // Capture mouse
+                SDL_SetWindowGrab(Game->Window, SDL_TRUE);
+            }
+            else
+            {
+                // Set Windowed
+                isWindowed = true;
+                auto result = SDL_SetWindowFullscreen(Game->Window, 0);
+                Assert(result == 0);
+
+                // Release Mouse
+                SDL_SetWindowGrab(Game->Window, SDL_FALSE);
+            }
+        }
     });
 }
 

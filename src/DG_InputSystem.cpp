@@ -55,6 +55,10 @@ void InputSystem::Update()
             InputMessage message;
             message.scancode = event.key.keysym.scancode;
             message.key = &key;
+            message.wasCtrlDown =
+                _keys[SDL_SCANCODE_LCTRL].isDown() || _keys[SDL_SCANCODE_RCTRL].isDown();
+            message.wasAltDown =
+                _keys[SDL_SCANCODE_LALT].isDown() || _keys[SDL_SCANCODE_RALT].isDown();
             g_MessagingSystem.SendNextFrame(message);
         }
         else if (event.type == SDL_TEXTINPUT)
@@ -67,8 +71,8 @@ void InputSystem::Update()
             {
                 // Resize Window and rebuild render pipeline
                 WindowSizeMessage message;
-                message.width = event.window.data1;
-                message.height = event.window.data2;
+                message.WindowSize.x = static_cast<float>(event.window.data1);
+                message.WindowSize.y = static_cast<float>(event.window.data2);
                 g_MessagingSystem.SendNextFrame(message);
             }
         }
