@@ -115,6 +115,16 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPolygonMode(GL_FRONT_AND_BACK, context->IsWireframe() ? GL_LINE : GL_FILL);
+    if(context->IsWireframe())
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDisable(GL_CULL_FACE);
+    }
+    else
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_CULL_FACE);
+    }
     glEnable(GL_DEPTH_TEST);
     auto model = context->GetModelToRender();
     if (model)

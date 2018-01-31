@@ -131,21 +131,22 @@ include_directories(src
 
 #Source Files
 set (SOURCE_FILES 	src/main.cpp
-					src/DG_Job.cpp
+
 					src/DG_Camera.cpp
 					src/DG_InputSystem.cpp
+					src/DG_Job.cpp					
 					src/DG_ResourceHelper.cpp
-					src/DG_Messaging.cpp
-					src/DG_ResourceManager.cpp
-					src/DG_memory.cpp
 					
 					src/graphics/DG_Font.cpp
-					src/graphics/DG_Texture.cpp
 					src/graphics/DG_GraphicsSystem.cpp
-					src/graphics/DG_Shader.cpp
 					src/graphics/DG_Mesh.cpp
+					src/graphics/DG_Shader.cpp
+					src/graphics/DG_Texture.cpp
 					
 					src/misc/DG_Clock.cpp
+					src/misc/DG_Memory.cpp
+					src/misc/DG_Messaging.cpp
+					src/misc/DG_ResourceManager.cpp
 					src/misc/DG_SDLHelper.cpp
 
 					src/imgui/imgui_impl_sdl_gl3.cpp
@@ -153,25 +154,25 @@ set (SOURCE_FILES 	src/main.cpp
 					)
 
 #Header Files
-set (HEADER_FILES	src/DG_Job.h
-					src/DG_Camera.h
-					src/DG_Transform.h
+set (HEADER_FILES	src/DG_Camera.h
 					src/DG_InputSystem.h
+					src/DG_Job.h
 					src/DG_ResourceHelper.h
-					src/DG_Messaging.h
-					src/DG_ResourceManager.h
-					src/DG_StringIdCRC32.h
-					src/DG_memory.h
-
-					src/graphics/DG_Font.h					
-					src/graphics/DG_Texture.h
-					src/graphics/DG_GraphicsSystem.h
-					src/graphics/DG_Shader.h
-					src/graphics/DG_Mesh.h
+					src/DG_Transform.h
 					
-					src/misc/DG_Include.h
+					src/graphics/DG_Font.h					
+					src/graphics/DG_GraphicsSystem.h
+					src/graphics/DG_Mesh.h
+					src/graphics/DG_Shader.h
+					src/graphics/DG_Texture.h
+					
 					src/misc/DG_Clock.h
+					src/misc/DG_Include.h
+					src/misc/DG_Memory.h
+					src/misc/DG_Messaging.h
+					src/misc/DG_ResourceManager.h
 					src/misc/DG_SDLHelper.h
+					src/misc/DG_StringIdCRC32.h
 					src/misc/DG_Windows.h
 
 					src/imgui/imgui_impl_sdl_gl3.h

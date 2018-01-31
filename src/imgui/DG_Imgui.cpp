@@ -10,7 +10,7 @@ std::unordered_map<std::string, std::vector<Tweaker>> g_TweakersPerFrame;
 bool isVisible = false;
 
 static void AddTweaker(const ImGuiTextFilter &filter, const std::vector<Tweaker> &tweakers,
-                       float speed)
+                       float speed, const char* catName)
 {
     ImGui::Columns(2);
     ImGui::Text("Variable");
@@ -26,46 +26,51 @@ static void AddTweaker(const ImGuiTextFilter &filter, const std::vector<Tweaker>
         ImGui::Text(tweaker.Name);
         ImGui::NextColumn();
         ImGui::PushItemWidth(-1);
+        char buffer[256] = {};
+        SDL_strlcat(buffer, "##::", sizeof(buffer));
+        SDL_strlcat(buffer, catName, sizeof(buffer));
+        SDL_strlcat(buffer, "::", sizeof(buffer));
+        SDL_strlcat(buffer, tweaker.Name, sizeof(buffer));
         switch (tweaker.Type)
         {
             case F1:
-                ImGui::DragFloat("", (float *)tweaker.Ptr, speed);
+                ImGui::DragFloat(buffer, (float *)tweaker.Ptr, speed);
                 break;
             case F2:
-                ImGui::DragFloat2("", (float *)tweaker.Ptr, speed);
+                ImGui::DragFloat2(buffer, (float *)tweaker.Ptr, speed);
                 break;
             case F3:
-                ImGui::DragFloat3("", (float *)tweaker.Ptr, speed);
+                ImGui::DragFloat3(buffer, (float *)tweaker.Ptr, speed);
                 break;
             case F4:
-                ImGui::DragFloat4("", (float *)tweaker.Ptr, speed);
+                ImGui::DragFloat4(buffer, (float *)tweaker.Ptr, speed);
                 break;
             case S1:
-                ImGui::DragInt("", (int *)tweaker.Ptr, speed);
+                ImGui::DragInt(buffer, (int *)tweaker.Ptr, speed);
                 break;
             case S2:
-                ImGui::DragInt2("", (int *)tweaker.Ptr, speed);
+                ImGui::DragInt2(buffer, (int *)tweaker.Ptr, speed);
                 break;
             case S3:
-                ImGui::DragInt3("", (int *)tweaker.Ptr, speed);
+                ImGui::DragInt3(buffer, (int *)tweaker.Ptr, speed);
                 break;
             case S4:
-                ImGui::DragInt4("", (int *)tweaker.Ptr, speed);
+                ImGui::DragInt4(buffer, (int *)tweaker.Ptr, speed);
                 break;
             case Color3Big:
-                ImGui::ColorPicker3("", (float *)tweaker.Ptr);
+                ImGui::ColorPicker3(buffer, (float *)tweaker.Ptr);
                 break;
             case Color3Small:
-                ImGui::ColorEdit3("", (float *)tweaker.Ptr);
+                ImGui::ColorEdit3(buffer, (float *)tweaker.Ptr);
                 break;
             case Color4Big:
-                ImGui::ColorPicker4("", (float *)tweaker.Ptr);
+                ImGui::ColorPicker4(buffer, (float *)tweaker.Ptr);
                 break;
             case Color4Small:
-                ImGui::ColorEdit4("", (float *)tweaker.Ptr);
+                ImGui::ColorEdit4(buffer, (float *)tweaker.Ptr);
                 break;
             case CB:
-                ImGui::Checkbox("", (bool *)tweaker.Ptr);
+                ImGui::Checkbox(buffer, (bool *)tweaker.Ptr);
                 break;
             default:;
         }
@@ -109,7 +114,7 @@ void AddImguiTweakers()
                 return strcmp(c1.Name, c2.Name) < 0;
             });
 
-            AddTweaker(filter, value, speed);
+            AddTweaker(filter, value, speed, key.c_str());
         }
     }
 
@@ -125,7 +130,7 @@ void AddImguiTweakers()
                 return strcmp(c1.Name, c2.Name) < 0;
             });
 
-            AddTweaker(filter, value, speed);
+            AddTweaker(filter, value, speed, key.c_str());
         }
     }
     g_TweakersPerFrame.clear();

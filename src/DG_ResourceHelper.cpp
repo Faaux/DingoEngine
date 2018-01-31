@@ -352,7 +352,7 @@ Model* ModelManager::LoadOrGet(StringId id, GLTFScene* scene, Shader* shader)
     return RegisterAndConstruct(id, *scene, *shader);
 }
 
-graphics::Shader* ShaderManager::LoadOrGet(StringId id, const char* shaderName)
+Shader* ShaderManager::LoadOrGet(StringId id, const char* shaderName)
 {
     return RegisterAndConstruct(id, shaderName);
 }

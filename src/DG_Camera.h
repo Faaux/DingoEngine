@@ -39,4 +39,4 @@ class Camera
     glm::mat4 _projectionMatrix;
     CallbackHandle<InputMessage> _inputMessageCallback;
 };
-}  // namespace DG
+}  // namespace DG::graphics

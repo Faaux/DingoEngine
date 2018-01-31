@@ -29,8 +29,8 @@ Camera::~Camera() { g_MessagingSystem.UnRegisterCallback(_inputMessageCallback);
 
 void Camera::Update()
 {
-    static float rotationSpeed = 4.f;
-    static float speed = 2.f;
+    static float rotationSpeed = 1.7f;
+    static float speed = 3.f;
 
     // Imgui Debug Interface
     TWEAKER_CAT("Camera", F1, "Sensitivity", &rotationSpeed);

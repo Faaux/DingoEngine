@@ -14,7 +14,7 @@
 
 #include "DG_Messaging.h"
 #include "DG_StringIdCRC32.h"
-#include "DG_memory.h"
+#include "DG_Memory.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 
