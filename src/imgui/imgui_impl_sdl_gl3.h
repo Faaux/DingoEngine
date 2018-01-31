@@ -25,3 +25,5 @@ IMGUI_API bool ImGui_ImplSdlGL3_ProcessEvent(const SDL_Event* event);
 // Use if you want to reset your rendering device without losing ImGui state.
 IMGUI_API void ImGui_ImplSdlGL3_InvalidateDeviceObjects();
 IMGUI_API bool ImGui_ImplSdlGL3_CreateDeviceObjects();
+
+void ImGui_ImplSdlGL3_RenderDrawLists(ImDrawData* draw_data);

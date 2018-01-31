@@ -399,10 +399,7 @@ bool ImGui_ImplSdlGL3_Init(SDL_Window* window)
     io.KeyMap[ImGuiKey_Y] = SDLK_y;
     io.KeyMap[ImGuiKey_Z] = SDLK_z;
 
-    io.RenderDrawListsFn =
-        ImGui_ImplSdlGL3_RenderDrawLists;  // Alternatively you can set this to NULL and call
-                                           // ImGui::GetDrawData() after ImGui::Render() to get the
-                                           // same ImDrawData pointer.
+    io.RenderDrawListsFn = NULL;
     io.SetClipboardTextFn = ImGui_ImplSdlGL3_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplSdlGL3_GetClipboardText;
     io.ClipboardUserData = NULL;

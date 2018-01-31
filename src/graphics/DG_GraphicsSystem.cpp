@@ -105,7 +105,6 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
     static vec3 lightColor(1);
     static vec3 lightPos(10, 10, 0);
-    TWEAKER_FRAME_CAT("OpenGL", CB, "Wireframe", &context->_isWireframe);
     TWEAKER_CAT("OpenGL", Color3Small, "Clear Color", &clearColor);
     TWEAKER(Color3Small, "Light Color", &lightColor);
     TWEAKER(F3, "Light Position", &lightPos);
@@ -115,7 +114,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPolygonMode(GL_FRONT_AND_BACK, context->IsWireframe() ? GL_LINE : GL_FILL);
-    if(context->IsWireframe())
+    if (context->IsWireframe())
     {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_CULL_FACE);
@@ -126,39 +125,50 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
         glEnable(GL_CULL_FACE);
     }
     glEnable(GL_DEPTH_TEST);
-    auto model = context->GetModelToRender();
-    if (model)
-    {
-        model->shader.Use();
-        for (auto& mesh : model->meshes)
-        {
-            model->shader.SetUniform("proj", camera.GetProjectionMatrix());
-            model->shader.SetUniform("view", camera.GetViewMatrix());
-            model->shader.SetUniform("model", mesh.localTransform);
-            model->shader.SetUniform("lightPos", lightPos);
-            model->shader.SetUniform("lightColor", lightColor);
 
-            glBindVertexArray(mesh.vao);
-            glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
-                           reinterpret_cast<void*>(mesh.byteOffset));
+    for (const auto& renderable : context->GetRenderables())
+    {
+        auto model = renderable.model;
+        if (model)
+        {
+            model->shader.Use();
+            for (auto& mesh : model->meshes)
+            {
+                model->shader.SetUniform("proj", camera.GetProjectionMatrix());
+                model->shader.SetUniform("view", camera.GetViewMatrix());
+                model->shader.SetUniform("model", mesh.localTransform);
+                model->shader.SetUniform("lightPos", lightPos);
+                model->shader.SetUniform("lightColor", lightColor);
+
+                glBindVertexArray(mesh.vao);
+                glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
+                               reinterpret_cast<void*>(mesh.byteOffset));
+            }
+            glBindVertexArray(0);
+            CheckOpenGLError(__FILE__, __LINE__);
         }
-        glBindVertexArray(0);
-        CheckOpenGLError(__FILE__, __LINE__);
     }
 
     _debugRenderSystem.Render(camera, debugContext);
 
     // Imgui
-    ImGui_ImplSdlGL3_NewFrame(_window);
-    AddImguiTweakers();
-    ImGui::Render();
-
+    ImGui_ImplSdlGL3_RenderDrawLists(context->ImDrawData);
     SDL_GL_SwapWindow(_window);
 }
 
-void RenderContext::SetModelToRender(Model* model) { _model = model; }
+void RenderContext::AddRenderable(Model* model)
+{
+    Assert(_currentIndex < RenderableBufferSize);
+    Renderable renderable;
+    renderable.model = model;
+    _objectsToRender[_currentIndex++] = renderable;
+}
 
-Model* RenderContext::GetModelToRender() { return _model; }
+const std::array<Renderable, RenderContext::RenderableBufferSize>& RenderContext::GetRenderables()
+    const
+{
+    return _objectsToRender;
+}
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
 

@@ -1,5 +1,7 @@
 #pragma once
 #include "DG_Include.h"
+#include <vector>
+#include <optional>
 // For an explanation look here:
 // https://handmade.network/forums/t/1507-compile_time_string_hashing_with_c++_constexpr_vs._your_own_preprocessor#13212
 namespace DG
@@ -69,6 +71,11 @@ const u32 crc32_tab[] = {
 
 struct StringId
 {
+    __forceinline StringId()
+    {
+        m_nStringHash = 0;
+    }
+
     __forceinline StringId(const char (&str)[1])
     {
         m_nStringHash = 0;

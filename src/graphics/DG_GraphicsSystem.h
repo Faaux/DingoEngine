@@ -2,10 +2,13 @@
 #include <glad/glad.h>
 #include <vector>
 #include "DG_Camera.h"
+#include "DG_GameObject.h"
 #include "DG_Include.h"
 #include "DG_Mesh.h"
 #include "DG_Shader.h"
 #include "DG_Transform.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 
 namespace DG::graphics
 {
@@ -94,17 +97,32 @@ class DebugRenderContext
     std::vector<DebugLine> _depthDisabledDebugLines;
 };
 
+struct Renderable
+{
+    Model *model;
+};
+
 class RenderContext
 {
+    enum
+    {
+        RenderableBufferSize = 256
+    };
+
    public:
     RenderContext() = default;
-    void SetModelToRender(Model *model);
-    Model *GetModelToRender();
+
+    void AddRenderable(Model* model);
+    const std::array<Renderable, RenderableBufferSize>& GetRenderables() const;
+
     bool IsWireframe() const;
     bool _isWireframe = false;
 
+    ImDrawData* ImDrawData;
+
    private:
-    Model *_model = nullptr;
+    u32 _currentIndex = 0;
+    std::array<Renderable, RenderableBufferSize> _objectsToRender;
 };
 
 extern DebugRenderContext *g_DebugRenderContext;
