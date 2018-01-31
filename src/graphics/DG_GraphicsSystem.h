@@ -1,5 +1,7 @@
 #pragma once
 #include <glad/glad.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <vector>
 #include "DG_Camera.h"
 #include "DG_GameObject.h"
@@ -7,8 +9,6 @@
 #include "DG_Mesh.h"
 #include "DG_Shader.h"
 #include "DG_Transform.h"
-#include <imgui.h>
-#include <imgui_internal.h>
 
 namespace DG::graphics
 {
@@ -99,6 +99,7 @@ class DebugRenderContext
 
 struct Renderable
 {
+    Transform transform;
     Model *model;
 };
 
@@ -112,15 +113,22 @@ class RenderContext
    public:
     RenderContext() = default;
 
-    void AddRenderable(Model* model);
-    const std::array<Renderable, RenderableBufferSize>& GetRenderables() const;
+    void AddRenderable(Model *model, const Transform &transform);
+
+    void SetCamera(const mat4 &viewMatrix, const mat4 &projectionMatrix);
+    const mat4 &GetCameraViewMatrix() const { return _cameraViewMatrix; }
+    const mat4 &GetCameraProjMatrix() const { return _cameraProjMatrix; }
+
+    const std::array<Renderable, RenderableBufferSize> &GetRenderables() const;
 
     bool IsWireframe() const;
     bool _isWireframe = false;
 
-    ImDrawData* ImDrawData;
+    ImDrawData *ImDrawData;
 
    private:
+    mat4 _cameraViewMatrix;
+    mat4 _cameraProjMatrix;
     u32 _currentIndex = 0;
     std::array<Renderable, RenderableBufferSize> _objectsToRender;
 };
@@ -136,12 +144,12 @@ class DebugRenderSystem
 
    public:
     DebugRenderSystem();
-    void Render(const Camera &camera, const DebugRenderContext *context);
+    void Render(const RenderContext *renderContext, const DebugRenderContext *context);
 
    private:
     void SetupVertexBuffers();
 
-    void RenderDebugLines(const Camera &camera, bool depthEnabled,
+    void RenderDebugLines(const RenderContext *renderContext, bool depthEnabled,
                           const std::vector<DebugLine> &lines);
 
     Shader _shader;
@@ -155,8 +163,7 @@ class GraphicsSystem
    public:
     GraphicsSystem(SDL_Window *window);
 
-    void Render(const Camera &camera, RenderContext *context,
-                const DebugRenderContext *debugContext);
+    void Render(RenderContext *context, const DebugRenderContext *debugContext);
 
    private:
     DebugRenderSystem _debugRenderSystem;

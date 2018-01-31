@@ -7,11 +7,13 @@
 #include <string>
 #include <vector>
 #include "DG_Camera.h"
-#include "DG_Texture.h"
 #include "DG_InputSystem.h"
+#include "DG_Texture.h"
 
 namespace DG::graphics
 {
+class RenderContext;
+
 struct DebugCharacter
 {
     vec2 topLeft;
@@ -51,7 +53,7 @@ class Font
    public:
     Font();
     bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
-    void RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+    void RenderTextWorldBillboard(const std::string& textToRender, const RenderContext* context,
                                   const vec3& position, const Color& color = Color(1));
     void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
                           const Color& color = Color(1));

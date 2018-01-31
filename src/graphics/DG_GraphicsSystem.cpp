@@ -38,69 +38,7 @@ GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
     glDepthFunc(GL_LESS);
 }
 
-void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& matrix)
-{
-    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-    static bool useSnap = false;
-    static float snap[3] = {1.f, 1.f, 1.f};
-
-    if (ImGui::IsKeyPressed(90))
-        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-    if (ImGui::IsKeyPressed(69))
-        mCurrentGizmoOperation = ImGuizmo::ROTATE;
-    if (ImGui::IsKeyPressed(82))  // r Key
-        mCurrentGizmoOperation = ImGuizmo::SCALE;
-    if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
-        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
-        mCurrentGizmoOperation = ImGuizmo::ROTATE;
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
-        mCurrentGizmoOperation = ImGuizmo::SCALE;
-    float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-    ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], matrixTranslation, matrixRotation,
-                                          matrixScale);
-    ImGui::InputFloat3("Translation", matrixTranslation, 3);
-    ImGui::InputFloat3("Rotation", matrixRotation, 3);
-    ImGui::InputFloat3("Scale", matrixScale, 3);
-    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale,
-                                            &matrix[0][0]);
-
-    if (mCurrentGizmoOperation != ImGuizmo::SCALE)
-    {
-        if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
-            mCurrentGizmoMode = ImGuizmo::LOCAL;
-        ImGui::SameLine();
-        if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
-            mCurrentGizmoMode = ImGuizmo::WORLD;
-    }
-    if (ImGui::IsKeyPressed(83))
-        useSnap = !useSnap;
-    ImGui::Checkbox("", &useSnap);
-    ImGui::SameLine();
-
-    switch (mCurrentGizmoOperation)
-    {
-        case ImGuizmo::TRANSLATE:
-            ImGui::InputFloat3("Snap", &snap[0]);
-            break;
-        case ImGuizmo::ROTATE:
-            ImGui::InputFloat("Angle Snap", &snap[0]);
-            break;
-        case ImGuizmo::SCALE:
-            ImGui::InputFloat("Scale Snap", &snap[0]);
-            break;
-    }
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-    ImGuizmo::Manipulate(&cameraView[0][0], &cameraProjection[0][0], mCurrentGizmoOperation,
-                         mCurrentGizmoMode, &matrix[0][0], NULL, useSnap ? &snap[0] : NULL);
-}
-
-void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
-                            const DebugRenderContext* debugContext)
+void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* debugContext)
 {
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
     static vec3 lightColor(1);
@@ -126,7 +64,7 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
     }
     glEnable(GL_DEPTH_TEST);
 
-    for (const auto& renderable : context->GetRenderables())
+    for ( auto& renderable : context->GetRenderables())
     {
         auto model = renderable.model;
         if (model)
@@ -134,9 +72,10 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
             model->shader.Use();
             for (auto& mesh : model->meshes)
             {
-                model->shader.SetUniform("proj", camera.GetProjectionMatrix());
-                model->shader.SetUniform("view", camera.GetViewMatrix());
-                model->shader.SetUniform("model", mesh.localTransform);
+                model->shader.SetUniform("proj", context->GetCameraProjMatrix());
+                model->shader.SetUniform("view", context->GetCameraViewMatrix());
+                model->shader.SetUniform("model",
+                                         renderable.transform.GetModelMatrix() * mesh.localTransform);
                 model->shader.SetUniform("lightPos", lightPos);
                 model->shader.SetUniform("lightColor", lightColor);
 
@@ -149,19 +88,27 @@ void GraphicsSystem::Render(const Camera& camera, RenderContext* context,
         }
     }
 
-    _debugRenderSystem.Render(camera, debugContext);
+    _debugRenderSystem.Render(context, debugContext);
 
     // Imgui
     ImGui_ImplSdlGL3_RenderDrawLists(context->ImDrawData);
     SDL_GL_SwapWindow(_window);
 }
 
-void RenderContext::AddRenderable(Model* model)
+void RenderContext::AddRenderable(Model* model, const Transform& transform)
 {
     Assert(_currentIndex < RenderableBufferSize);
     Renderable renderable;
+    renderable.transform = transform;
     renderable.model = model;
+
     _objectsToRender[_currentIndex++] = renderable;
+}
+
+void RenderContext::SetCamera(const mat4& viewMatrix, const mat4& projectionMatrix)
+{
+    _cameraViewMatrix = viewMatrix;
+    _cameraProjMatrix = projectionMatrix;
 }
 
 const std::array<Renderable, RenderContext::RenderableBufferSize>& RenderContext::GetRenderables()
@@ -309,7 +256,8 @@ void DebugRenderSystem::SetupVertexBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext* context)
+void DebugRenderSystem::Render(const RenderContext* renderContext,
+                               const DebugRenderContext* context)
 {
     static bool isFontInit = false;
     static Font font;
@@ -319,8 +267,8 @@ void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext* c
         isFontInit = true;
     }
 
-    RenderDebugLines(camera, true, context->GetDebugLines(true));
-    RenderDebugLines(camera, false, context->GetDebugLines(false));
+    RenderDebugLines(renderContext, true, context->GetDebugLines(true));
+    RenderDebugLines(renderContext, false, context->GetDebugLines(false));
 
     glDisable(GL_DEPTH_TEST);
     for (auto& text : context->GetDebugTextScreen(false))
@@ -329,7 +277,7 @@ void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext* c
     }
     for (auto& text : context->GetDebugTextWorld(false))
     {
-        font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, renderContext, text.position, text.color);
     }
 
     glEnable(GL_DEPTH_TEST);
@@ -339,11 +287,11 @@ void DebugRenderSystem::Render(const Camera& camera, const DebugRenderContext* c
     }
     for (auto& text : context->GetDebugTextWorld(true))
     {
-        font.RenderTextWorldBillboard(text.text, camera, text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, renderContext, text.position, text.color);
     }
 }
 
-void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled,
+void DebugRenderSystem::RenderDebugLines(const RenderContext* renderContext, bool depthEnabled,
                                          const std::vector<DebugLine>& lines)
 {
     if (lines.empty())
@@ -351,8 +299,8 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
 
     glBindVertexArray(linePointVAO);
     _shader.Use();
-    _shader.SetUniform("mv_Matrix", camera.GetViewMatrix());
-    _shader.SetUniform("p_Matrix", camera.GetProjectionMatrix());
+    _shader.SetUniform("mv_Matrix", renderContext->GetCameraViewMatrix());
+    _shader.SetUniform("p_Matrix", renderContext->GetCameraProjMatrix());
 
     if (depthEnabled)
     {
@@ -477,7 +425,7 @@ void AddDebugCircle(const vec3& centerPosition, const vec3& planeNormal, Color c
 void AddDebugAxes(const Transform& transform, f32 size, f32 lineWidth, f32 durationSeconds,
                   bool depthEnabled)
 {
-    auto modelMatrix = transform.getModel();
+    auto modelMatrix = transform.GetModelMatrix();
     const vec3 right(modelMatrix[0]);
     const vec3 up(modelMatrix[1]);
     const vec3 forward(modelMatrix[2]);

@@ -7,12 +7,12 @@ namespace DG
 class WorldEdit
 {
    public:
-    WorldEdit(GameWorld& world) : _world(world) {}
+    WorldEdit(GameWorld* world) : _world(world), _selectedGameModel(nullptr) {}
 
     void Update();
 
    private:
-    GameWorld& _world;
+    GameWorld* _world;
     GameObject* _selectedGameModel;
 };
 }  // namespace DG

@@ -22,8 +22,8 @@ struct StackAllocator
     template <typename T, typename... Args>
     T* PushAndConstruct(Args&&... args);
 
-    template <typename T, u32 count = 1>
-    T* Push();
+    template <typename T>
+    T* Push(u32 count = 1);
 
    private:
     struct StackHeader
@@ -45,8 +45,8 @@ T* StackAllocator::PushAndConstruct(Args&&... args)
     return new (memory) T(std::forward<Args>(args)...);
 }
 
-template <typename T, u32 count>
-T* StackAllocator::Push()
+template <typename T>
+T* StackAllocator::Push(u32 count)
 {
     void* memory = Push(sizeof(T) * count, 4);
     SDL_memset(memory, 0, sizeof(T) * count);

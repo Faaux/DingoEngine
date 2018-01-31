@@ -7,9 +7,12 @@ class Transform
 {
    public:
     Transform(const vec3& p = vec3(), const vec3& r = vec3(), const vec3& s = vec3(1, 1, 1))
-        : pos(p), rot(r), scale(s){};
+        : pos(p), rot(r), scale(s)
+    {
+        RecalculateModelMatrix();
+    };
 
-    mat4 getModel() const
+    void RecalculateModelMatrix()
     {
         // ToDo: Cache this?
         mat4 posMatrix = translate(pos);
@@ -18,13 +21,17 @@ class Transform
         mat4 rotZMatrix = rotate(rot.z, vec3(0, 0, 1));
         mat4 scaleMatrix = glm::scale(scale);
         mat4 rotMatrix = rotZMatrix * rotYMatrix * rotXMatrix;
-        return posMatrix * rotMatrix * scaleMatrix;
+        modelMatrix = posMatrix * rotMatrix * scaleMatrix;
     }
+
+    mat4& GetModelMatrix() { return modelMatrix; }
+    const mat4& GetModelMatrix() const { return modelMatrix; }
 
     vec3& getPos() { return pos; }
     vec3& getRot() { return rot; }
     vec3& getScale() { return scale; }
 
+    mat4 modelMatrix;
     vec3 pos;
     vec3 rot;
     vec3 scale;

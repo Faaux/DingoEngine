@@ -18,8 +18,10 @@
 #include "DG_ModelManager.h"
 #include "DG_ShaderManager.h"
 #include "DG_StringIdCRC32.h"
+#include "DG_WorldEditor.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include <ImGuizmo.h>
 
 namespace DG
 {
@@ -39,7 +41,9 @@ struct GameState
     GLTFSceneManager* GLTFSceneManager;
     ShaderManager* ShaderManager;
 
-    GameWorld World;
+    WorldEdit* WorldEdit;
+
+    GameWorld* World;
 };
 
 struct FrameData
@@ -245,15 +249,13 @@ void AttachDebugListenersToMessageSystem()
                 SDL_SetWindowGrab(Game->Window, SDL_FALSE);
             }
         });
-
-    g_MessagingSystem.RegisterCallback<SpawnGameObjectMessage>(
-        [](const SpawnGameObjectMessage& message) {
-            Game->World.AddGameObject(GameObject(message.Entity));
-        });
 }
 
 void Update(FrameData* frameData)
 {
+    Game->World->Update();
+    Game->WorldEdit->Update();
+
     AddDebugAxes(Transform(), 5.f, 2.5f);
     AddDebugXZGrid(vec2(0), -5, 5, 0);
 }
@@ -315,6 +317,8 @@ int main(int, char* [])
     Game->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
     Game->GLTFSceneManager = Memory.TransientMemory.PushAndConstruct<GLTFSceneManager>();
     Game->ShaderManager = Memory.TransientMemory.PushAndConstruct<ShaderManager>();
+    Game->World = Memory.TransientMemory.PushAndConstruct<GameWorld>(vec3(43, 43, 11));
+    Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>(Game->World);
 
     // ToDo Remove(Testing)
     Shader* shader = Game->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
@@ -329,7 +333,7 @@ int main(int, char* [])
     u64 currentFrameIdx = 0;
 
     // Init FrameRingBuffer
-    FrameData* frames = Memory.TransientMemory.Push<FrameData, 5>();
+    FrameData* frames = Memory.TransientMemory.Push<FrameData>(5);
 
     for (int i = 0; i < 5; ++i)
     {
@@ -341,9 +345,6 @@ int main(int, char* [])
         frames[i].IsPreRenderDone = true;
         frames[i].IsRenderDone = true;
     }
-
-    // ToDo: Remove
-    Camera camera(45.f, 0.01f, 10000.f, 1280.f / 720.f, vec3(43, 43, 11), vec3(0));
 
     while (!Game->InputSystem->IsQuitRequested())
     {
@@ -372,30 +373,26 @@ int main(int, char* [])
         g_InGameClock.Update(dtSeconds);
         g_MessagingSystem.Update();
 
-        // Game Logic
-        camera.Update();
-        Update(&currentFrameData);
-
         // Imgui Tryout
         ImGui_ImplSdlGL3_NewFrame(Game->Window);
+        ImGuizmo::BeginFrame();
 
-        ImGui::Begin("Entity Manager");
-        if (ImGui::Button("Add Entity"))
-        {
-            SpawnGameObjectMessage message;
-            message.Entity = StringId("DuckModel");
-            g_MessagingSystem.SendNextFrame<SpawnGameObjectMessage>(message);
-        }
-        ImGui::End();
+        // Game Logic
+        Update(&currentFrameData);
+
+        ImGui::ShowDemoWindow();
 
         AddImguiTweakers();
         ImGui::Render();
+        currentFrameData.IsUpdateDone = true;
 
+        // PreRender
+        // Copying imgui render data to context
         ImDrawData* drawData = currentFrameData.FrameMemory.Push<ImDrawData>();
         *drawData = *ImGui::GetDrawData();
 
-        ImDrawList* newList[5] = {};
-        Assert(drawData->CmdListsCount <= 5);
+        ImDrawList** newList =
+            currentFrameData.FrameMemory.Push<ImDrawList*>(drawData->CmdListsCount);
 
         // Create copies of cmd lists
         for (int i = 0; i < drawData->CmdListsCount; ++i)
@@ -420,24 +417,24 @@ int main(int, char* [])
         }
 
         drawData->CmdLists = newList;
-
         currentFrameData.RenderCTX->ImDrawData = drawData;
 
-        currentFrameData.IsUpdateDone = true;
+        auto& camera = Game->World->_playerCamera;
+        currentFrameData.RenderCTX->SetCamera(camera.GetViewMatrix(), camera.GetProjectionMatrix());
 
-        // PreRender
-        for (u32 i = 0; i < Game->World._currentIndex; ++i)
+        // Queueing gameobjects to be rendered
+        for (u32 i = 0; i < Game->World->_currentIndex; ++i)
         {
-            Model* model = Game->ModelManager->Exists(Game->World._gameObjects[i].GetModelId());
+            auto& gameObject = Game->World->_gameObjects[i];
+            Model* model = Game->ModelManager->Exists(gameObject.GetModelId());
             Assert(model);
-            currentFrameData.RenderCTX->AddRenderable(model);
+            currentFrameData.RenderCTX->AddRenderable(model, gameObject.GetTransform());
         }
 
         currentFrameData.IsPreRenderDone = true;
         // Render
 
-        Game->GraphicsSystem->Render(camera, currentFrameData.RenderCTX,
-                                     currentFrameData.DebugRenderCTX);
+        Game->GraphicsSystem->Render(currentFrameData.RenderCTX, currentFrameData.DebugRenderCTX);
         g_DebugRenderContext->Reset();
 
         currentFrameData.IsRenderDone = true;
