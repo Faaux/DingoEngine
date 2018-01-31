@@ -14,7 +14,7 @@ Font::Font() : _isValid(false), _fontCache() {}
 
 bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 {
-    auto fontPath = SearchForFile(fontName);
+    auto fontPath = SearchForFile(fontName.c_str());
     _windowSize.WindowSize = vec2(1280, 720);
 
     g_MessagingSystem.RegisterCallback<WindowSizeMessage>(

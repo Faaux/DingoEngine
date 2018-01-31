@@ -92,9 +92,9 @@ Shader::Shader(const char* shaderName)
 {
     std::string shader(shaderName);
 
-    _vertexPath = SearchForFile(shader + ".vs");
-    _fragmentPath = SearchForFile(shader + ".fs");
-    _geometryPath = SearchForFile(shader + ".gs");
+    _vertexPath = SearchForFile((shader + ".vs").c_str());
+    _fragmentPath = SearchForFile((shader + ".fs").c_str());
+    _geometryPath = SearchForFile((shader + ".gs").c_str());
 
     if (fs::exists(_vertexPath))
         _vertexFileTime = fs::last_write_time(_vertexPath);

@@ -12,9 +12,12 @@
 #include "DG_ResourceHelper.h"
 #include "DG_Shader.h"
 
-#include "DG_Messaging.h"
-#include "DG_StringIdCRC32.h"
+#include "DG_GLTFSceneManager.h"
 #include "DG_Memory.h"
+#include "DG_Messaging.h"
+#include "DG_ModelManager.h"
+#include "DG_ShaderManager.h"
+#include "DG_StringIdCRC32.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 
