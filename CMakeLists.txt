@@ -130,70 +130,18 @@ include_directories(src
 					${THIRD_PARTY_INCLUDES})
 
 #Source Files
-set (SOURCE_FILES 	src/main.cpp
+file(GLOB_RECURSE SOURCES
+    src/*.h
+    src/*.cpp
+)
 
-					src/DG_Camera.cpp
-					src/DG_InputSystem.cpp
-					src/DG_Job.cpp					
-					src/DG_ResourceHelper.cpp
-					
-					src/graphics/DG_Font.cpp
-					src/graphics/DG_GraphicsSystem.cpp
-					src/graphics/DG_Mesh.cpp
-					src/graphics/DG_Shader.cpp
-					src/graphics/DG_Texture.cpp
-					
-					src/misc/DG_Clock.cpp
-					src/misc/DG_Memory.cpp
-					src/misc/DG_Messaging.cpp
-					src/misc/DG_ResourceManager.cpp
-					src/misc/DG_SDLHelper.cpp
+file(GLOB_RECURSE SHADERS
+    shaders/*.vs
+    shaders/*.fs
+    shaders/*.gs
+)
 
-					src/imgui/imgui_impl_sdl_gl3.cpp
-					src/imgui/DG_Imgui.cpp
-					)
-
-#Header Files
-set (HEADER_FILES	src/DG_Camera.h
-					src/DG_InputSystem.h
-					src/DG_Job.h
-					src/DG_ResourceHelper.h
-					src/DG_Transform.h
-					
-					src/graphics/DG_Font.h					
-					src/graphics/DG_GraphicsSystem.h
-					src/graphics/DG_Mesh.h
-					src/graphics/DG_Shader.h
-					src/graphics/DG_Texture.h
-					
-					src/misc/DG_Clock.h
-					src/misc/DG_Include.h
-					src/misc/DG_Memory.h
-					src/misc/DG_Messaging.h
-					src/misc/DG_ResourceManager.h
-					src/misc/DG_SDLHelper.h
-					src/misc/DG_StringIdCRC32.h
-					src/misc/DG_Windows.h
-
-					src/imgui/imgui_impl_sdl_gl3.h
-					src/imgui/DG_Imgui.h
-					)
-
-#Shader Files
-set(SHADERS shaders/base_model.fs
-			shaders/base_model.vs
-			
-			shaders/billboard_font.fs
-			shaders/billboard_font.vs
-			shaders/screen_font.fs
-			shaders/screen_font.vs
-			
-			shaders/debug_lines.vs
-			shaders/debug_lines.fs
-			)	
-
-set(ALL_SOURCE_FILES 	${SOURCE_FILES}
-						${HEADER_FILES} 
+set(ALL_SOURCE_FILES 	${SOURCES} 
 						${SHADERS}
 						${THIRD_PARTY_SRC_FILES})
 			
