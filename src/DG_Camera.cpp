@@ -5,6 +5,64 @@
 
 namespace DG
 {
+static glm::quat LookRotation(vec3 forward, vec3 up)
+{
+    forward = glm::normalize(forward);
+    vec3 right = glm::normalize(glm::cross(up, forward));
+    up = glm::cross(forward, right);
+    float m00 = right.x;
+    float m01 = right.y;
+    float m02 = right.z;
+    float m10 = up.x;
+    float m11 = up.y;
+    float m12 = up.z;
+    float m20 = forward.x;
+    float m21 = forward.y;
+    float m22 = forward.z;
+    float num8 = (m00 + m11) + m22;
+    glm::quat quaternion;
+
+    if (num8 > 0.f)
+    {
+        float num = (float)glm::sqrt(num8 + 1.f);
+        quaternion.w = num * 0.5f;
+        num = 0.5f / num;
+        quaternion.x = (m12 - m21) * num;
+        quaternion.y = (m20 - m02) * num;
+        quaternion.z = (m01 - m10) * num;
+    }
+    else if ((m00 >= m11) && (m00 >= m22))
+    {
+        float num7 = (float)glm::sqrt(((1.f + m00) - m11) - m22);
+        float num4 = 0.5f / num7;
+        quaternion.x = 0.5f * num7;
+        quaternion.y = (m01 + m10) * num4;
+        quaternion.z = (m02 + m20) * num4;
+        quaternion.w = (m12 - m21) * num4;
+    }
+    else if (m11 > m22)
+    {
+        float num6 = (float)glm::sqrt(((1.f + m11) - m00) - m22);
+        float num3 = 0.5f / num6;
+        quaternion.x = (m10 + m01) * num3;
+        quaternion.y = 0.5f * num6;
+        quaternion.z = (m21 + m12) * num3;
+        quaternion.w = (m20 - m02) * num3;
+        return quaternion;
+    }
+    else
+    {
+        float num5 = (float)glm::sqrt(((1.f + m22) - m00) - m11);
+        float num2 = 0.5f / num5;
+        quaternion.x = (m20 + m02) * num2;
+        quaternion.y = (m21 + m12) * num2;
+        quaternion.z = 0.5f * num5;
+        quaternion.w = (m01 - m10) * num2;
+    }
+    return glm::normalize(quaternion);
+    ;
+}
+
 Camera::Camera(float fov, float near, float far, float aspectRatio, glm::vec3 pos, glm::vec3 lookAt)
     : _fov(fov),
       _near(near),
@@ -20,7 +78,9 @@ Camera::Camera(float fov, float near, float far, float aspectRatio, glm::vec3 po
 
     _projectionMatrix = glm::perspective(glm::radians(_fov), aspectRatio, _near, _far);
 
-    _currentRot = glm::rotation(vec3(0, 0, 1), -glm::normalize(lookAt - pos));
+    //_currentRot = glm::rotation(vec3(0, 1, 0), -glm::normalize(lookAt - pos));
+
+    _currentRot = LookRotation(pos - lookAt, vec3(0, 1, 0));
 
     CalculateViewMatrix();
 }
@@ -30,7 +90,7 @@ Camera::~Camera() { g_MessagingSystem.UnRegisterCallback(_inputMessageCallback);
 void Camera::Update()
 {
     static float rotationSpeed = 1.7f;
-    static float speed = 3.f;
+    static float speed = 19.f;
 
     // Imgui Debug Interface
     TWEAKER_CAT("Camera", F1, "Sensitivity", &rotationSpeed);
