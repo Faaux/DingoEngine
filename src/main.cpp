@@ -215,15 +215,8 @@ void AttachDebugListenersToMessageSystem()
 {
     g_MessagingSystem.RegisterCallback<WindowSizeMessage>([](const WindowSizeMessage& message) {
         SDL_Log("Window was resized: %.2f x %.2f", message.WindowSize.x, message.WindowSize.y);
-        glViewport(0, 0, message.WindowSize.x, message.WindowSize.y);
-    });
-    g_MessagingSystem.RegisterCallback<InputMessage>([](const InputMessage& message) {
-        SDL_Log("Key %s: '%i'",
-                message.key->wasPressed()
-                    ? "was pressed"
-                    : message.key->wasReleased() ? "was released"
-                                                 : message.key->isUp() ? "is up" : "is down",
-                message.scancode);
+        glViewport(0, 0, static_cast<GLsizei>(message.WindowSize.x),
+                   static_cast<GLsizei>(message.WindowSize.y));
     });
 
     g_MessagingSystem.RegisterCallback<ToggleFullscreenMessage>(
@@ -335,7 +328,7 @@ int main(int, char* [])
     }
 
     // ToDo: Remove
-    Camera camera(vec3(0, 1, 3));
+    Camera camera(45.f, 0.01f, 10000.f, 1280.f / 720.f, vec3(0, 1, 5), vec3(0));
 
     while (!Game->InputSystem->IsQuitRequested())
     {
@@ -363,6 +356,7 @@ int main(int, char* [])
         g_MessagingSystem.Update();
 
         // Game Logic
+        camera.Update();
         Update(&currentFrameData);
 
         currentFrameData.IsUpdateDone = true;

@@ -34,6 +34,20 @@ struct ToggleFullscreenMessage
 
 struct InputMessage
 {
+
+    float Right = 0.f;
+    float Forward = 0.f;
+    float Up = 0.f;
+    float MouseWheel = 0.f;
+    bool MouseLeft = false;
+    bool MouseRight = false;
+    bool MouseMiddle = false;
+    s32 MouseDeltaX = 0;
+    s32 MouseDeltaY = 0;
+};
+
+struct KeyMessage
+{
     SDL_Scancode scancode;
     Key* key = nullptr;
     bool wasCtrlDown;
@@ -51,6 +65,12 @@ class InputSystem
     Key& operator[](int i) { return _keys[i]; }
 
    private:
+    float _mouseWheel = 0;
+    bool _mouseLeft = false;
+    bool _mouseRight = false;
+    bool _mouseMiddle = false;
+    s32 _mouseX = 0;
+    s32 _mouseY = 0;
     char _textInput[SDL_TEXTINPUTEVENT_TEXT_SIZE];
     bool _quitRequested = false;
 

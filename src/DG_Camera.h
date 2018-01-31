@@ -1,36 +1,42 @@
 #pragma once
 #include "DG_Include.h"
+#include "DG_InputSystem.h"
+#include "DG_Messaging.h"
 
 namespace DG
 {
 class Camera
 {
    public:
-    Camera(vec3 camPos = vec3(), vec3 camTarget = vec3(), vec3 camUp = vec3(0, 1, 0));
-    virtual ~Camera();
+    Camera(float fov, float near, float far, float aspectRatio, glm::vec3 pos, glm::vec3 lookAt);
+    ~Camera();
+    const glm::mat4& GetProjectionMatrix() const { return _projectionMatrix; }
 
-    // set/update view matrix
-    void setView(const vec3& camPos, const vec3& camTarget, const vec3& camUp)
+    const glm::mat4& GetViewMatrix() const { return _viewMatrix; }
+
+    void SetPos(glm::vec3 pos)
     {
-        view = lookAt(camPos, camTarget, camUp);
-        camPosition = camPos;
+        if (_position != pos)
+        {
+            _position = pos;
+            CalculateViewMatrix();
+        }
     }
 
-    const mat4& getView() const { return view; }
-
-    const mat4& getProjection() const { return projection; }
-
-    const vec3& getPosition() const { return camPosition; }
+    void Update();
 
    private:
-    /* view matrix */
-    mat4 view;
-    // glm::vec3 viewVector;
+    void CalculateViewMatrix();
+    void HandleInputMessage(const InputMessage& message);
 
-    /* projection matrix */
-    mat4 projection;
+    float _fov, _near, _far;
 
-    /* cam position in world space */
-    vec3 camPosition;
+    InputMessage _lastInputMessage;
+
+    glm::quat _currentRot;
+    glm::vec3 _position, _forward, _right;
+    glm::mat4 _viewMatrix;
+    glm::mat4 _projectionMatrix;
+    CallbackHandle<InputMessage> _inputMessageCallback;
 };
 }  // namespace DG

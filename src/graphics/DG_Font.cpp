@@ -149,7 +149,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
     BillboardWorldFontShader.Use();
     BillboardWorldFontShader.SetUniform("color", color);
     BillboardWorldFontShader.SetUniform("screenSize", _windowSize.WindowSize);
-    vec4 hcsPos = camera.getProjection() * camera.getView() * vec4(worldPos, 1.0);
+    vec4 hcsPos = camera.GetProjectionMatrix() * camera.GetViewMatrix() * vec4(worldPos, 1.0);
     vec2 ndsPos(hcsPos.x / hcsPos.w, hcsPos.y / hcsPos.w);
 
     BillboardWorldFontShader.SetUniform("ndsPosition", ndsPos);

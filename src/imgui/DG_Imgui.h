@@ -1,9 +1,11 @@
 #pragma once
+#include <unordered_map>
 #include <vector>
 #include "DG_Include.h"
+
 namespace DG
 {
-enum TweakerType: u8
+enum TweakerType : u8
 {
     CB,
     F1,
@@ -41,8 +43,12 @@ struct Tweaker
 
 void InitInternalImgui();
 void AddImguiTweakers();
-extern std::vector<Tweaker> g_Tweakers;
-extern std::vector<Tweaker> g_TweakersPerFrame;
-#define TWEAKER(Type, Name, Ptr) RUN_ONCE(g_Tweakers.emplace_back(Type, Name, Ptr);)
-#define TWEAKER_FRAME(Type, Name, Ptr) g_TweakersPerFrame.emplace_back(Type, Name, Ptr)
+extern std::unordered_map<std::string, std::vector<Tweaker>> g_Tweakers;
+extern std::unordered_map<std::string, std::vector<Tweaker>> g_TweakersPerFrame;
+
+#define TWEAKER_CAT(Cat, Type, Name, Ptr) RUN_ONCE(g_Tweakers[Cat].emplace_back(Type, Name, Ptr);)
+#define TWEAKER(Type, Name, Ptr) TWEAKER_CAT("Uncategorized", Type, Name, Ptr)
+#define TWEAKER_FRAME_CAT(Cat, Type, Name, Ptr) \
+    g_TweakersPerFrame[Cat].emplace_back(Type, Name, Ptr)
+#define TWEAKER_FRAME(Type, Name, Ptr) TWEAKER_FRAME_CAT("Uncategorized", Type, Name, Ptr)
 }  // namespace DG
