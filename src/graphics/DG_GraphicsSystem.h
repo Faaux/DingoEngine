@@ -9,6 +9,7 @@
 #include "DG_Mesh.h"
 #include "DG_Shader.h"
 #include "DG_Transform.h"
+#include "DG_Framebuffer.h"
 
 namespace DG::graphics
 {
@@ -122,9 +123,11 @@ class RenderContext
     const std::array<Renderable, RenderableBufferSize> &GetRenderables() const;
 
     bool IsWireframe() const;
+    void SetFramebuffer(Framebuffer* framebuffer);
     bool _isWireframe = false;
 
-    ImDrawData *ImDrawData;
+    Framebuffer* Framebuffer;
+    ImDrawData *ImOverlayDrawData;
 
    private:
     mat4 _cameraViewMatrix;

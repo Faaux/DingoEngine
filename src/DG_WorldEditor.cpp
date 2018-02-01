@@ -2,16 +2,16 @@
 #include <ImGuizmo.h>
 #include <imgui.h>
 #include "DG_GraphicsSystem.h"
+#include "imgui/imgui_dock.h"
 
 namespace DG
 {
-void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& matrix)
+static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+static bool useSnap = false;
+static float snap[3] = {1.f, 1.f, 1.f};
+void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& matrix)
 {
-    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-    static bool useSnap = false;
-    static float snap[3] = {1.f, 1.f, 1.f};
-
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGui::SameLine();
@@ -23,9 +23,9 @@ void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& m
     float matrixTranslation[3], matrixRotation[3], matrixScale[3];
     ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], matrixTranslation, matrixRotation,
                                           matrixScale);
-    ImGui::InputFloat3("Translation", matrixTranslation, 3);
-    ImGui::InputFloat3("Rotation", matrixRotation, 3);
-    ImGui::InputFloat3("Scale", matrixScale, 3);
+    ImGui::DragFloat3("Translation", matrixTranslation, 0.1f);
+    ImGui::DragFloat3("Rotation", matrixRotation, 0.1f);
+    ImGui::DragFloat3("Scale", matrixScale, 0.1f);
     ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale,
                                             &matrix[0][0]);
 
@@ -54,57 +54,76 @@ void EditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& m
             ImGui::InputFloat("Scale Snap", &snap[0]);
             break;
     }
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-    ImGuizmo::Manipulate(&cameraView[0][0], &cameraProjection[0][0], mCurrentGizmoOperation,
-                         mCurrentGizmoMode, &matrix[0][0], NULL, useSnap ? &snap[0] : NULL);
 }
 
 void WorldEdit::Update()
 {
     Assert(_world);
-    ImGui::Begin("Entity Manager");
-    if (ImGui::Button("Add Entity"))
+
+    static int SelectedIndex = -1;
+    bool hasSelection = false;
+    if (ImGui::BeginDock("Entity List"))
     {
-        _world->AddGameObject(GameObject("DuckModel"));
-    }
-
-    /*ImGui::ListBox("GameObjects", &selectedIndex,
-                   [](void* data, int idx, const char** out_text) -> bool {
-                       auto& objects =
-                           *((std::array<GameObject, GameWorld::GameObjectBufferSize>*)data);
-
-                       GameObject& gameObject = objects[idx];
-
-                       return false;
-                   },
-                   &_world->_gameObjects[0], _world->_currentIndex);*/
-
-    static bool selection[GameWorld::GameObjectBufferSize] = {};
-
-    for (u32 i = 0; i < _world->_currentIndex; ++i)
-    {
-        auto& gameObject = _world->_gameObjects[i];
-
-        ImGui::PushID(i);
-        ImGui::Selectable("", &selection[i]);
-        ImGui::SameLine();
-
-        ImGui::InputText("Name", gameObject.GetName(), 256);
-
-        if (selection[i])
+        for (u32 i = 0; i < _world->_currentIndex; ++i)
         {
-            // ToDo Make this show up in another window
-            if (gameObject.GetModelId() != "")
+            ImGui::PushID(i);
+            hasSelection = hasSelection | (i == SelectedIndex);
+            if (ImGui::Selectable("Unknown", i == SelectedIndex))
             {
-                EditTransform(_world->_playerCamera.GetViewMatrix(),
-                              _world->_playerCamera.GetProjectionMatrix(),
-                              gameObject.GetTransform().GetModelMatrix());
+                hasSelection = true;
+                SelectedIndex = i;
             }
+            ImGui::PopID();
         }
-        ImGui::PopID();
     }
+    ImGui::EndDock();
 
-    ImGui::End();
+    mat4 worldMatrix;
+
+    if (ImGui::BeginDock("Entity Manager"))
+    {
+        if (!hasSelection)
+        {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+
+        AddEditTransform(
+            _world->_playerCamera.GetViewMatrix(), _world->_playerCamera.GetProjectionMatrix(),
+            hasSelection ? _world->_gameObjects[SelectedIndex].GetTransform().GetModelMatrix()
+                         : worldMatrix);
+
+        if (!hasSelection)
+        {
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+        }
+        if (ImGui::Button("Add Entity"))
+        {
+            _world->AddGameObject(GameObject("DuckModel"));
+        }
+    }
+    ImGui::EndDock();
+
+    if (hasSelection)
+    {
+        auto& gameObject = _world->_gameObjects[SelectedIndex];
+        // ToDo Make this show up in another window
+        if (gameObject.GetModelId() != "")
+        {
+            if (ImGui::BeginChild("Scene Window"))
+            {
+                ImVec2 size = ImGui::GetContentRegionAvail();
+                ImVec2 pos = ImGui::GetCursorScreenPos();
+                ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
+                ImGuizmo::Manipulate(&_world->_playerCamera.GetViewMatrix()[0][0],
+                                     &_world->_playerCamera.GetProjectionMatrix()[0][0],
+                                     mCurrentGizmoOperation, mCurrentGizmoMode,
+                                     &gameObject.GetTransform().GetModelMatrix()[0][0], NULL,
+                                     useSnap ? &snap[0] : NULL);
+            }
+            ImGui::EndChild();
+        }
+    }
 }
 }  // namespace DG

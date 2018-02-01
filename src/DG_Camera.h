@@ -23,6 +23,8 @@ class Camera
         }
     }
 
+    void UpdateProjection(f32 width, f32 height);
+
     void Update();
 
    private:

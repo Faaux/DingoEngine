@@ -60,6 +60,7 @@ class InputSystem
     void Update();
 
     bool IsQuitRequested() const;
+    void RequestClose();
 
     Key operator[](int i) const { return _keys[i]; }
     Key& operator[](int i) { return _keys[i]; }

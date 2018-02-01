@@ -7,10 +7,15 @@ class Texture
 {
    public:
     Texture() = default;
-    void InitTexture(const u8* data, const u32 width, const u32 height);
+    void InitTexture(const u8* data, const u32 width, const u32 height, u32 type = GL_RED);
     void Bind() const;
+    void Cleanup();
+    GLuint GetTextureId() const
+    {
+        Assert(_isValid);
+        return textureId;
+    }
 
-   private:
     bool _isValid = false;
     GLuint textureId = 0;
 };

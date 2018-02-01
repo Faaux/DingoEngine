@@ -34,6 +34,7 @@ void InputSystem::Update()
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSdlGL3_ProcessEvent(&event);
+
         switch (event.type)
         {
             case SDL_QUIT:
@@ -159,4 +160,9 @@ void InputSystem::Update()
 }
 
 bool InputSystem::IsQuitRequested() const { return _quitRequested; }
+
+void InputSystem::RequestClose()
+{
+    _quitRequested = true;
+}
 }  // namespace DG

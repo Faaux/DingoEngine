@@ -72,8 +72,7 @@ Camera::Camera(float fov, float near, float far, float aspectRatio, glm::vec3 po
           [=](const InputMessage& message) { HandleInputMessage(message); }))
 {
     g_MessagingSystem.RegisterCallback<WindowSizeMessage>([=](const WindowSizeMessage& windowSize) {
-        _projectionMatrix = glm::perspective(
-            glm::radians(_fov), windowSize.WindowSize.x / windowSize.WindowSize.y, _near, _far);
+        UpdateProjection(windowSize.WindowSize.x, windowSize.WindowSize.y);
     });
 
     _projectionMatrix = glm::perspective(glm::radians(_fov), aspectRatio, _near, _far);
@@ -86,6 +85,11 @@ Camera::Camera(float fov, float near, float far, float aspectRatio, glm::vec3 po
 }
 
 Camera::~Camera() { g_MessagingSystem.UnRegisterCallback(_inputMessageCallback); }
+
+void Camera::UpdateProjection(f32 width, f32 height)
+{
+    _projectionMatrix = glm::perspective(glm::radians(_fov), width / height, _near, _far);
+}
 
 void Camera::Update()
 {
@@ -108,9 +112,11 @@ void Camera::Update()
         glm::quat rotY = glm::angleAxis(mouseDelta.y, _right);
 
         _currentRot = glm::normalize(rotX * rotY * _currentRot);
-
-        CalculateViewMatrix();
     }
+
+    // This is needed to make the weakers work, otherwise we would only need it if 
+    // _lastInputMessage.MouseRight == true
+    CalculateViewMatrix();
 
     glm::vec3 dir(0);
     dir += _forward * _lastInputMessage.Forward;

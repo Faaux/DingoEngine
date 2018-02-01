@@ -64,7 +64,10 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     }
     glEnable(GL_DEPTH_TEST);
 
-    for ( auto& renderable : context->GetRenderables())
+    context->Framebuffer->Bind();
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    for (auto& renderable : context->GetRenderables())
     {
         auto model = renderable.model;
         if (model)
@@ -74,8 +77,8 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
             {
                 model->shader.SetUniform("proj", context->GetCameraProjMatrix());
                 model->shader.SetUniform("view", context->GetCameraViewMatrix());
-                model->shader.SetUniform("model",
-                                         renderable.transform.GetModelMatrix() * mesh.localTransform);
+                model->shader.SetUniform(
+                    "model", renderable.transform.GetModelMatrix() * mesh.localTransform);
                 model->shader.SetUniform("lightPos", lightPos);
                 model->shader.SetUniform("lightColor", lightColor);
 
@@ -90,8 +93,10 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
 
     _debugRenderSystem.Render(context, debugContext);
 
+    context->Framebuffer->UnBind();
+
     // Imgui
-    ImGui_ImplSdlGL3_RenderDrawLists(context->ImDrawData);
+    ImGui_ImplSdlGL3_RenderDrawLists(context->ImOverlayDrawData);
     SDL_GL_SwapWindow(_window);
 }
 
@@ -118,6 +123,8 @@ const std::array<Renderable, RenderContext::RenderableBufferSize>& RenderContext
 }
 
 bool RenderContext::IsWireframe() const { return _isWireframe; }
+
+void RenderContext::SetFramebuffer(DG::Framebuffer* framebuffer) { Framebuffer = framebuffer; }
 
 void DebugRenderContext::AddLine(const vec3& vertex0, const vec3& vertex1, const Color& color,
                                  bool depthEnabled)
