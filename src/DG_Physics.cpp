@@ -257,7 +257,7 @@ void PhysicsWorld::AddModel(GameObject& obj)
         gPhysics->createRigidDynamic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
     PxTransform relativePose(PxVec3(0, 0.5f, 0));
     PxShape* aCapsuleShape =
-        PxRigidActorExt::createExclusiveShape(*dynamic, PxBoxGeometry(0.7, 0.4, 0.3), *gMaterial);
+        PxRigidActorExt::createExclusiveShape(*dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
     aCapsuleShape->setLocalPose(relativePose);
     PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
     dynamic->userData = &obj;

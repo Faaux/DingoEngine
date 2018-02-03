@@ -97,3 +97,5 @@ _ReSharper*/
 
 build.txt
 imgui.ini
+
+!ThirdParty/**

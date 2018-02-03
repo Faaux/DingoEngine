@@ -33,31 +33,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 
-	# Replace /MD with /MT
-	foreach(flag_var
-        CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-        CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
-		CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-
-      if(${flag_var} MATCHES "/MD")
-        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-      endif()
-
-    endforeach()
-
 endif()
 
-#Runtime folders for VS
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG 	${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG 	${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG 	${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 #Third Party Builds
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -76,7 +55,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		set(SDL_SHARED ON CACHE BOOL "" FORCE)
 		set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 		set(LIBC ON CACHE BOOL "" FORCE)
-		set(FORCE_STATIC_VCRT ON CACHE BOOL "" FORCE)
 		
 		add_subdirectory(ThirdParty/SDL-mirror)
 		
@@ -114,23 +92,36 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 	## FreeType
 		
 		
-		set(FREETYPE_LIBS bin/freetype)
-		configure_file(ThirdParty/freetype-2.9/freetype.lib bin/freetype.lib COPYONLY)
-		configure_file(ThirdParty/freetype-2.9/freetype.dll bin/freetype.dll COPYONLY)
+		set(FREETYPE_LIBS ${CMAKE_SOURCE_DIR}/ThirdParty/freetype-2.9/freetype.lib)
 		
 	## PhsyX 3.4
-		SET (PHYSX_LIB_PATH ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/libDebug)
-		SET (PHYSX_LIB_AFFIX DEBUG_x64.lib)
+
+		# Debug Settings
+			set(PHSYX_LIBS  )	
+			SET (PHYSX_LIB_PATH_DEBUG ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Debug)
+			SET (PHYSX_LIB_AFFIX_DEBUG DEBUG_x64.lib)
+
+			SET (PHYSX_LIB_PATH_RELEASE ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Release)
+			SET (PHYSX_LIB_AFFIX_RELEASE CHECKED_x64.lib)
 
 		set(PHSYX_LIBS 		
-							${PHYSX_LIB_PATH}/PhysX3CharacterKinematic${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PhysX3${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PhysX3Common${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PhysX3Cooking${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PxFoundation${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PxPvdSDK${PHYSX_LIB_AFFIX}
-							${PHYSX_LIB_PATH}/PhysX3ExtensionsDEBUG.lib # this is annoying...
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3CharacterKinematic${PHYSX_LIB_AFFIX_RELEASE}
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3${PHYSX_LIB_AFFIX_RELEASE}
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3Common${PHYSX_LIB_AFFIX_RELEASE}
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3Cooking${PHYSX_LIB_AFFIX_RELEASE}
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PxFoundation${PHYSX_LIB_AFFIX_RELEASE}
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PxPvdSDK${PHYSX_LIB_AFFIX_RELEASE}	
+							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3ExtensionsCHECKED.lib
+
+							debug ${PHYSX_LIB_PATH_DEBUG}/PhysX3CharacterKinematic${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PhysX3${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PhysX3Common${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PhysX3Cooking${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PxFoundation${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PxPvdSDK${PHYSX_LIB_AFFIX_DEBUG}
+							debug ${PHYSX_LIB_PATH_DEBUG}/PhysX3ExtensionsDEBUG.lib
 							)
+		
 
 		
 	## 3rd Party Includes
@@ -173,7 +164,9 @@ file(GLOB_RECURSE SHADERS
 set(ALL_SOURCE_FILES 	${SOURCES} 
 						${SHADERS}
 						${THIRD_PARTY_SRC_FILES})
-			
+	
+
+
 #Executable
 add_executable(${PROJECT_NAME} ${ALL_SOURCE_FILES})
 
@@ -182,3 +175,17 @@ assign_source_group(${ALL_SOURCE_FILES})
 
 target_link_libraries(${PROJECT_NAME} ${THIRD_PARTY_LIBS})
 target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LIST_DIR})
+
+
+# Copy PhysX Dlls
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD        # Adds a post-build event to MyTest
+    COMMAND ${CMAKE_COMMAND} -E copy_directory				# which executes "cmake - E copy_if_different..."
+        "${PROJECT_SOURCE_DIR}/ThirdParty/physx-3.4/bin/$<CONFIGURATION>"				# <--this is in-file
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)				
+		# <--this is out-file path
+
+# Copy PhysX Dlls
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD        # Adds a post-build event to MyTest
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different				# which executes "cmake - E copy_if_different..."
+        "${PROJECT_SOURCE_DIR}/ThirdParty/freetype-2.9/freetype.dll"				# <--this is in-file
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)							# <--this is out-file path
