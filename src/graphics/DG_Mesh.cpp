@@ -36,6 +36,8 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
         byteOffset = primitive.indices->byteOffset;
         drawMode = primitive.mode;
         type = primitive.indices->componentType;
+
+        indices = primitive.indices->bufferView->buffer->data + primitive.indices->bufferView->byteOffset;
     }
     // Attribute Pointers!
     for (u32 i = 0; i < primitive.attributes.size(); ++i)
@@ -47,6 +49,13 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
         auto& bufferView = bufferViews[accessor->bufferViewIndex];
         glBindBuffer(bufferView.target, bufferView.vb);
         graphics::CheckOpenGLError(__FILE__, __LINE__);
+
+        if (i == 0)
+        {
+            stride = accessor->bufferView->byteStride;
+            data = accessor->bufferView->buffer->data + accessor->bufferView->byteOffset + accessor->byteOffset;
+            vertexCount = accessor->count;
+        }
 
         s32 count = 0;
         switch (accessor->type)
@@ -107,7 +116,7 @@ void RecursiveSceneLoad(const std::vector<GLTFNode*>& nodes,
         }
     }
 }
-Model::Model(const GLTFScene& scene, graphics::Shader& shader) : shader(shader)
+Model::Model(const GLTFScene& scene, graphics::Shader& shader, StringId id) : id(id), shader(shader)
 {
     meshes.reserve(scene.meshes.size());
     bufferViews.reserve(scene.bufferViews.size());

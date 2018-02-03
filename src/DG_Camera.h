@@ -26,8 +26,10 @@ class Camera
     void UpdateProjection(f32 width, f32 height);
 
     void Update();
+    vec3 GetPos();
+    vec3 GetForward();
 
-   private:
+private:
     void CalculateViewMatrix();
     void HandleInputMessage(const InputMessage& message);
 

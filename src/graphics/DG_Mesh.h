@@ -5,6 +5,7 @@
 #include <vector>
 #include "DG_Include.h"
 #include "DG_Shader.h"
+#include "DG_StringIdCRC32.h"
 
 namespace DG::graphics
 {
@@ -182,14 +183,21 @@ class Mesh
     GLuint vao = -1;
     std::vector<Mesh> childMeshes;
     mat4 localTransform;
+
+    u8* indices;
+
+    u8* data;
+    size_t vertexCount;
+    size_t stride;
 };
 
 class Model
 {
    public:
-    Model(const GLTFScene& scene, graphics::Shader& shader);
+    Model(const GLTFScene& scene, graphics::Shader& shader, StringId id);
     const std::vector<BufferView>& GetBufferViews() const;
 
+    StringId id;
     Shader& shader;
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;

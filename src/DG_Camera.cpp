@@ -127,6 +127,16 @@ void Camera::Update()
     SetPos(_position + dir * speed * g_InGameClock.GetLastDtSeconds());
 }
 
+vec3 Camera::GetPos()
+{
+    return _position;
+}
+
+vec3 Camera::GetForward()
+{
+    return _forward;
+}
+
 void Camera::CalculateViewMatrix()
 {
     _viewMatrix = glm::inverse(glm::translate(_position) * glm::toMat4(_currentRot));

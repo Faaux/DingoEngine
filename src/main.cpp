@@ -24,6 +24,7 @@
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include "main.h"
 
 namespace DG
 {
@@ -38,10 +39,6 @@ struct GameState
 
     InputSystem* InputSystem;
     GraphicsSystem* GraphicsSystem;
-
-    ModelManager* ModelManager;
-    GLTFSceneManager* GLTFSceneManager;
-    ShaderManager* ShaderManager;
 
     WorldEdit* WorldEdit;
 
@@ -81,6 +78,7 @@ StringHashTable<2048> g_StringHashTable;
 #endif
 GameMemory Memory;
 GameState* Game;
+Managers* gManagers;
 
 bool InitSDL()
 {
@@ -218,6 +216,9 @@ bool InitMemory()
 
 void Cleanup()
 {
+    // PhysX Cleanup
+    Game->World->Shutdown();
+
     ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(Game->GLContext);
     SDL_Quit();
@@ -312,11 +313,12 @@ int main(int, char* [])
     InitClocks();
 
     // Start Init Systems
+    gManagers = Memory.TransientMemory.PushAndConstruct<Managers>();
     Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
     Game->GraphicsSystem = Memory.TransientMemory.PushAndConstruct<GraphicsSystem>(Game->Window);
-    Game->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
-    Game->GLTFSceneManager = Memory.TransientMemory.PushAndConstruct<GLTFSceneManager>();
-    Game->ShaderManager = Memory.TransientMemory.PushAndConstruct<ShaderManager>();
+    gManagers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
+    gManagers->GLTFSceneManager = Memory.TransientMemory.PushAndConstruct<GLTFSceneManager>();
+    gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<ShaderManager>();
     Game->World = Memory.TransientMemory.PushAndConstruct<GameWorld>(vec3(43, 43, 11));
     Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>(Game->World);
 
@@ -325,10 +327,11 @@ int main(int, char* [])
         return -1;
 
     // ToDo Remove(Testing)
-    Shader* shader = Game->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
-    GLTFScene* scene = Game->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    Game->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
-
+    Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+    GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    Model* model2 = gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
+    Game->World->PhysicsWorld.CookModel(model2);
+    Game->World->PhysicsWorld.ToggleDebugVisualization();
     g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
@@ -422,7 +425,7 @@ int main(int, char* [])
                 ImVec2 pos = ImGui::GetCursorScreenPos();
                 ImVec2 avaialbeSize = ImGui::GetContentRegionAvail();
                 ImGui::GetWindowDrawList()->AddImage(
-                    reinterpret_cast<void*>(framebuffer.Texture.GetTextureId()), pos,
+                    (void*)(size_t)framebuffer.Texture.GetTextureId(), pos,
                     ImVec2(pos.x + avaialbeSize.x, pos.y + avaialbeSize.y), ImVec2(0, 1),
                     ImVec2(1, 0));
 
@@ -486,7 +489,7 @@ int main(int, char* [])
         for (u32 i = 0; i < Game->World->_currentIndex; ++i)
         {
             auto& gameObject = Game->World->_gameObjects[i];
-            Model* model = Game->ModelManager->Exists(gameObject.GetModelId());
+            Model* model = gManagers->ModelManager->Exists(gameObject.GetModelId());
             Assert(model);
             currentFrameData.RenderCTX->AddRenderable(model, gameObject.GetTransform());
         }

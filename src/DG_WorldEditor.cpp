@@ -2,6 +2,7 @@
 #include <ImGuizmo.h>
 #include <imgui.h>
 #include "DG_GraphicsSystem.h"
+#include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 
 namespace DG
@@ -98,9 +99,24 @@ void WorldEdit::Update()
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
+        static vec3 spawnPos = vec3(2, 1, 0);
+        TWEAKER(F3, "Spawn Pos", &spawnPos);
         if (ImGui::Button("Add Entity"))
         {
-            _world->AddGameObject(GameObject("DuckModel"));
+            GameObject newDuck("DuckModel");
+            auto& tansform = newDuck.GetTransform();
+            tansform.pos = spawnPos;
+            tansform.rot = vec3(0, glm::radians(90.f), 0);
+            tansform.RecalculateModelMatrix();
+            _world->AddGameObject(newDuck);
+        }
+        static float strength = 1.0f;
+        static vec3 direction = vec3(0, 1, 0);
+        ImGui::DragFloat("Force strength", &strength);
+        ImGui::DragFloat3("Force direction", &direction.x);
+        if (ImGui::Button("Add Force to entity"))
+        {
+            _world->PhysicsWorld.AddForce(glm::normalize(direction), strength);
         }
     }
     ImGui::EndDock();

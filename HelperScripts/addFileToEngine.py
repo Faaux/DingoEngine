@@ -1,5 +1,6 @@
 import pathlib
 import os
+import datetime
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -24,8 +25,20 @@ def get_input_as_int():
     return result
 
 
+def output_file_comment(file, filename):
+    file.write("/**\n"
+               "*  @file    {}\n"
+               "*  @author  Faaux (github.com/Faaux)\n"
+               "*  @date    {}\n"
+               "*/\n"
+               "\n".format(filename, datetime.datetime.now().strftime("%d %B %Y")))
+
+
 def output_header(name):
-    with open(str(path_to_src / (name + ".h")), "w") as file:
+    filename = (name + ".h")
+
+    with open(str(path_to_src / filename), "w") as file:
+        output_file_comment(file, filename)
         file.write(
             "#pragma once\n"
             '#include "DG_Include.h"\n'
@@ -37,7 +50,9 @@ def output_header(name):
 
 
 def output_source(name):
-    with open(str(path_to_src / (name + ".cpp")), "w") as file:
+    filename = (name + ".cpp")
+    with open(str(path_to_src / filename), "w") as file:
+        output_file_comment(file, filename)
         file.write('#include "{}"\n'.format((name + ".h")))
         file.write("\n"
                    "namespace DG\n"

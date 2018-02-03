@@ -1058,7 +1058,7 @@ struct DockContext
         {
             for (int i = 0; i < m_docks.size(); ++i)
             {
-                if (TreeNode((void*)i, "Dock %d (%p)", i, m_docks[i]))
+                if (TreeNode((void*)((size_t)i), "Dock %d (%p)", i, m_docks[i]))
                 {
                     Dock& dock = *m_docks[i];
                     Text("pos=(%.1f %.1f) size=(%.1f %.1f)", dock.pos.x, dock.pos.y, dock.size.x,
@@ -1198,19 +1198,19 @@ struct DockContext
                 }
                 else if (sscanf(line_start, "x=%d", &x) == 1)
                 {
-                    dock->pos.x = x;
+                    dock->pos.x = (float)x;
                 }
                 else if (sscanf(line_start, "y=%d", &y) == 1)
                 {
-                    dock->pos.y = y;
+                    dock->pos.y = (float)y;
                 }
                 else if (sscanf(line_start, "size_x=%d", &size_x) == 1)
                 {
-                    dock->size.x = size_x;
+                    dock->size.x = (float)size_x;
                 }
                 else if (sscanf(line_start, "size_y=%d", &size_y) == 1)
                 {
-                    dock->size.y = size_y;
+                    dock->size.y = (float)size_y;
                 }
                 else if (sscanf(line_start, "active=%d", &active) == 1)
                 {

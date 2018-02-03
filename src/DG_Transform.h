@@ -10,7 +10,14 @@ class Transform
         : pos(p), rot(r), scale(s)
     {
         RecalculateModelMatrix();
-    };
+    }
+
+    void SetTransform(vec3 p, glm::quat quat)
+    {
+        rot = glm::eulerAngles(quat);
+        pos = p;
+        RecalculateModelMatrix();
+    }
 
     void RecalculateModelMatrix()
     {
@@ -38,4 +45,5 @@ class Transform
 
    private:
 };
+
 }  // namespace DG

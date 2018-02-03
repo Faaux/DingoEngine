@@ -1,15 +1,15 @@
-# Force out-of-source build
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+#Force out - of - source build
+if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "Prevented in-tree built. Please create a build directory outside of the source code and call cmake from there")
 endif()
 
-# Specify the minimum CMAKE version required
+#Specify the minimum CMAKE version required
 cmake_minimum_required(VERSION 3.9)
 
-# Project Name
+#Project Name
 project(DingoEngine)
 
-# Helper Function
+#Helper Function
 function(assign_source_group)
     foreach(_source IN ITEMS ${ARGN})
         if (IS_ABSOLUTE "${_source}")
@@ -23,17 +23,32 @@ function(assign_source_group)
     endforeach()
 endfunction(assign_source_group)
 
-# Flags
+#Flags
 set (CMAKE_CXX_STANDARD 17)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)	
 	add_definitions(-D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING)	
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+	# Replace /MD with /MT
+	foreach(flag_var
+        CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+        CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+		CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+
+      if(${flag_var} MATCHES "/MD")
+        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      endif()
+
+    endforeach()
+
 endif()
 
-# Runtime folders for VS
+#Runtime folders for VS
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY 			${CMAKE_BINARY_DIR}/bin)
@@ -44,8 +59,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 
-
-# Third Party Builds
+#Third Party Builds
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 	
 	## SDL	
@@ -59,13 +73,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		set(SDL_POWER ON CACHE BOOL "" FORCE)
 		set(SDL_THREADS ON CACHE BOOL "" FORCE)
 		set(SDL_FILE ON CACHE BOOL "" FORCE)
-		set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-		set(SDL_STATIC ON CACHE BOOL "" FORCE)
+		set(SDL_SHARED ON CACHE BOOL "" FORCE)
+		set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 		set(LIBC ON CACHE BOOL "" FORCE)
+		set(FORCE_STATIC_VCRT ON CACHE BOOL "" FORCE)
 		
 		add_subdirectory(ThirdParty/SDL-mirror)
 		
-		set_target_properties (SDL2-static PROPERTIES
+		set_target_properties (SDL2 PROPERTIES
 			FOLDER ThirdParty/SDL
 		)
 		set_target_properties (SDL2main PROPERTIES
@@ -76,12 +91,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		)
 
 		set(SDL_LIBS
-			SDL2-static
+			SDL2
 			SDL2main
 		)
 	
 	## GLM
-		# Nothing needed just added the includes to THIRD_PARTY_INCLUDES
+#Nothing needed just added the includes to THIRD_PARTY_INCLUDES
 		
 	## IMGUI
 		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
@@ -103,6 +118,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 		configure_file(ThirdParty/freetype-2.9/freetype.lib bin/freetype.lib COPYONLY)
 		configure_file(ThirdParty/freetype-2.9/freetype.dll bin/freetype.dll COPYONLY)
 		
+	## PhsyX 3.4
+		SET (PHYSX_LIB_PATH ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/libDebug)
+		SET (PHYSX_LIB_AFFIX DEBUG_x64.lib)
+
+		set(PHSYX_LIBS 		
+							${PHYSX_LIB_PATH}/PhysX3CharacterKinematic${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PhysX3${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PhysX3Common${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PhysX3Cooking${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PxFoundation${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PxPvdSDK${PHYSX_LIB_AFFIX}
+							${PHYSX_LIB_PATH}/PhysX3ExtensionsDEBUG.lib # this is annoying...
+							)
+
 		
 	## 3rd Party Includes
 		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
@@ -113,17 +142,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE 	${CMAKE_BINARY_DIR}/bin)
 									ThirdParty/tinyGltf
 									ThirdParty/freetype-2.9
 									ThirdParty/stb
+									ThirdParty/physx-3.4/Include
 									)
 		
 		
-		set(THIRD_PARTY_LIBS 		${SDL_LIBS} ${FREETYPE_LIBS})
+		set(THIRD_PARTY_LIBS 		${SDL_LIBS} ${FREETYPE_LIBS} ${PHSYX_LIBS})
 		
 		set(THIRD_PARTY_SRC_FILES   ${GLAD_SOURCE_FILES}
 									${IMGUI_SOURCE_FILES}
 									${IMGUI_GIZMO_SOURCE_FILES})
-	
 
-# Includes
+#Includes
 include_directories(src 
 					src/misc 
 					src/graphics
