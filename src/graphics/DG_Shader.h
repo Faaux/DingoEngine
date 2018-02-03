@@ -24,8 +24,9 @@ class Shader
 
     void SetUniform(std::string_view, const glm::mat4 &);
 
-   protected:
     void ReloadShader();
+   protected:
+    
 
    private:
     s32 GetUniformLocation(std::string_view name);

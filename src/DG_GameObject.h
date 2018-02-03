@@ -30,7 +30,7 @@ class GameWorld
    public:
     enum
     {
-        GameObjectBufferSize = 256
+        GameObjectBufferSize = 4096
     };
 
     GameWorld(glm::vec3 playerCameraPos)

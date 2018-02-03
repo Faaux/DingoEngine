@@ -108,12 +108,6 @@ Shader::Shader(const char* shaderName)
 
 bool Shader::Use()
 {
-    if (HasSourceChanged())
-    {
-        SDL_LogWarn(SDL_LOG_CATEGORY_RENDER, "HotLoading Shader: %s  %s",
-                    _vertexPath.string().c_str(), _fragmentPath.string().c_str());
-        ReloadShader();
-    }
     if (_isValid)
     {
         glUseProgram(_programId);
@@ -125,6 +119,16 @@ bool Shader::Use()
 
 void Shader::ReloadShader()
 {
+    bool sourceChanged = HasSourceChanged();
+    if (_isValid && !sourceChanged)
+        return;
+
+    if (sourceChanged)
+    {
+        SDL_LogWarn(SDL_LOG_CATEGORY_RENDER, "HotLoading Shader: %s  %s",
+                    _vertexPath.string().c_str(), _fragmentPath.string().c_str());
+    }
+
     if (_isValid)
         glDeleteProgram(_programId);
     bool isValid = true;

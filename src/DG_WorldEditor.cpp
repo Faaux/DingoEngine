@@ -99,16 +99,20 @@ void WorldEdit::Update()
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
-        static vec3 spawnPos = vec3(2, 1, 0);
-        TWEAKER(F3, "Spawn Pos", &spawnPos);
+        ImGui::Text("Current Entity Count: %i", _world->_currentIndex);
+        static u32 spawnCount = 1;
+        TWEAKER(S1, "Spawn Count", &spawnCount);
         if (ImGui::Button("Add Entity"))
         {
-            GameObject newDuck("DuckModel");
-            auto& tansform = newDuck.GetTransform();
-            tansform.pos = spawnPos;
-            tansform.rot = vec3(0, glm::radians(90.f), 0);
-            tansform.RecalculateModelMatrix();
-            _world->AddGameObject(newDuck);
+            for (u32 i = 0; i < spawnCount; ++i)
+            {
+                GameObject newDuck("DuckModel");
+                auto& tansform = newDuck.GetTransform();
+                tansform.pos = vec3(2, 1, 0);
+                tansform.rot = vec3(0, glm::radians(90.f), 0);
+                tansform.RecalculateModelMatrix();
+                _world->AddGameObject(newDuck);
+            }
         }
         static float strength = 1.0f;
         static vec3 direction = vec3(0, 1, 0);

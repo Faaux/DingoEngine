@@ -10,6 +10,50 @@ template <class Key, class T, class Hash = std::hash<Key>, class Pred = std::equ
 class HashTable
 {
    public:
+    class HashTableIterator
+    {
+        friend class HashTable;
+        using vecIterator = typename std::vector<std::optional<T>>::iterator;
+
+       public:
+        HashTableIterator operator++()
+        {
+            if (ptr_ == end_)
+                return *this;
+            ++ptr_;
+            while (ptr_ != end_ && !ptr_->has_value())
+            {
+                ++ptr_;
+            }
+            return *this;
+        }
+        HashTableIterator operator++(int junk)
+        {
+            if (ptr_ == end_)
+                return *this;
+            ++ptr_;
+            while (ptr_ != end_ && !ptr_->has_value())
+            {
+                ++ptr_;
+            }
+            return *this;
+        }
+        T& operator*() { return *ptr_.value(); }
+        T* operator->() { return &ptr_->value(); }
+        bool operator==(const HashTableIterator& rhs) { return ptr_ == rhs.ptr_; }
+        bool operator!=(const HashTableIterator& rhs) { return ptr_ != rhs.ptr_; }
+
+       private:
+        vecIterator ptr_;
+        vecIterator end_;
+        HashTableIterator(vecIterator ptr, vecIterator end) : ptr_(ptr), end_(end)
+        {
+            while (ptr_ != end_ && !ptr_->has_value())
+            {
+                ++ptr_;
+            }
+        }
+    };
     HashTable(u32 tableSize) : _tableSize(tableSize), _values(tableSize) {}
 
     template <typename... Args>
@@ -17,6 +61,9 @@ class HashTable
 
     T* Put(Key key, const T& value);
     T* Exists(Key key);
+
+    HashTableIterator begin() { return HashTableIterator(_values.begin(), _values.end()); }
+    HashTableIterator end() { return HashTableIterator(_values.end(), _values.end()); }
 
    private:
     u32 _tableSize;
@@ -82,12 +129,14 @@ class ResourceManager
    public:
     T* Exists(StringId id);
 
+    auto begin() { return _hashTable.begin(); }
+    auto end() { return _hashTable.end(); }
+
    protected:
     ResourceManager() : _hashTable(1024) {}
 
     template <typename... Args>
     T* RegisterAndConstruct(StringId id, Args&&... args);
-
     T* Register(StringId id, const T& value);
 
    private:

@@ -69,7 +69,7 @@ struct FrameData
         IsPreRenderDone = false;
         IsRenderDone = false;
 
-        RenderCTX = FrameMemory.PushAndConstruct<RenderContext>();
+        RenderCTX = FrameMemory.Push<RenderContext>();
         DebugRenderCTX = FrameMemory.PushAndConstruct<DebugRenderContext>();
     }
 };
@@ -331,7 +331,7 @@ int main(int, char* [])
     GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
     Model* model2 = gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
     Game->World->PhysicsWorld.CookModel(model2);
-    Game->World->PhysicsWorld.ToggleDebugVisualization();
+    // Game->World->PhysicsWorld.ToggleDebugVisualization();
     g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
@@ -403,6 +403,26 @@ int main(int, char* [])
                 }
                 ImGui::EndMenu();
             }
+            if (ImGui::BeginMenu("Shader"))
+            {
+                if (ImGui::MenuItem("Reload changed shaders"))
+                {
+                    auto it = gManagers->ShaderManager->begin();
+                    auto end = gManagers->ShaderManager->end();
+                    while (it != end)
+                    {
+                        it->ReloadShader();
+                        ++it;
+                    }
+                }
+                ImGui::EndMenu();
+            }
+
+            // Shift all the way to the right
+            ImGui::SameLine(ImGui::GetWindowWidth() - 200);
+            ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                        ImGui::GetIO().Framerate);
+
             ImGui::EndMainMenuBar();
         }
 

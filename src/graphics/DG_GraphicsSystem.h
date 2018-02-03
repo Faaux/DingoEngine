@@ -108,7 +108,7 @@ class RenderContext
 {
     enum
     {
-        RenderableBufferSize = 256
+        RenderableBufferSize = 4096
     };
 
    public:
