@@ -104,7 +104,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
     std::sort(_fontCache.begin(), _fontCache.end(),
               [](const Glyph& a, const Glyph& b) -> bool { return a.code < b.code; });
 
-    _fontTexture.InitTexture(packed, textureSize, textureSize);
+    _fontTexture.InitTexture(packed, textureSize, textureSize, GL_RED, GL_RED, GL_UNSIGNED_BYTE);
     SetupBuffers();
 
     // Cleanup

@@ -329,7 +329,7 @@ int main(int, char* [])
     // ToDo Remove(Testing)
     Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
     GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    Model* model2 = gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
+    GraphicsModel* model2 = gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
     Game->World->PhysicsWorld.CookModel(model2);
     // Game->World->PhysicsWorld.ToggleDebugVisualization();
     g_MessagingSystem.Init(g_InGameClock);
@@ -354,8 +354,9 @@ int main(int, char* [])
     }
 
     // ToDo: Move somehwere sensible
-    Framebuffer framebuffer;
-
+    Framebuffer framebuffer(1280, 720);
+    framebuffer.AddColorTexture();
+    framebuffer.AddDepthTexture();
     while (!Game->InputSystem->IsQuitRequested())
     {
         FrameData& previousFrameData = frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
@@ -378,7 +379,6 @@ int main(int, char* [])
         if (dtSeconds > 2.0f)
             dtSeconds = 1.0f / TargetFrameRate;
 
-        // SDL_Log("%.3f ms", dtSeconds * 1000.f);
         g_RealTimeClock.Update(dtSeconds);
         g_InGameClock.Update(dtSeconds);
 
@@ -444,13 +444,14 @@ int main(int, char* [])
             {
                 ImVec2 pos = ImGui::GetCursorScreenPos();
                 ImVec2 avaialbeSize = ImGui::GetContentRegionAvail();
-                ImGui::GetWindowDrawList()->AddImage(
-                    (void*)(size_t)framebuffer.Texture.GetTextureId(), pos,
-                    ImVec2(pos.x + avaialbeSize.x, pos.y + avaialbeSize.y), ImVec2(0, 1),
-                    ImVec2(1, 0));
 
                 framebuffer.Resize(static_cast<u32>(avaialbeSize.x),
                                    static_cast<u32>(avaialbeSize.y));
+
+                ImGui::GetWindowDrawList()->AddImage(
+                    (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos,
+                    ImVec2(pos.x + avaialbeSize.x, pos.y + avaialbeSize.y), ImVec2(0, 1),
+                    ImVec2(1, 0));
 
                 Game->World->_playerCamera.UpdateProjection(avaialbeSize.x, avaialbeSize.y);
             }
@@ -509,7 +510,7 @@ int main(int, char* [])
         for (u32 i = 0; i < Game->World->_currentIndex; ++i)
         {
             auto& gameObject = Game->World->_gameObjects[i];
-            Model* model = gManagers->ModelManager->Exists(gameObject.GetModelId());
+            GraphicsModel* model = gManagers->ModelManager->Exists(gameObject.GetModelId());
             Assert(model);
             currentFrameData.RenderCTX->AddRenderable(model, gameObject.GetTransform());
         }

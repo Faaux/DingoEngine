@@ -116,7 +116,7 @@ void RecursiveSceneLoad(const std::vector<GLTFNode*>& nodes,
         }
     }
 }
-Model::Model(const GLTFScene& scene, graphics::Shader& shader, StringId id) : id(id), shader(shader)
+GraphicsModel::GraphicsModel(const GLTFScene& scene, graphics::Shader& shader, StringId id) : id(id), shader(shader)
 {
     meshes.reserve(scene.meshes.size());
     bufferViews.reserve(scene.bufferViews.size());
@@ -127,5 +127,5 @@ Model::Model(const GLTFScene& scene, graphics::Shader& shader, StringId id) : id
     RecursiveSceneLoad(scene.children, bufferViews, meshes, mat4());
 }
 
-const std::vector<BufferView>& Model::GetBufferViews() const { return bufferViews; }
+const std::vector<BufferView>& GraphicsModel::GetBufferViews() const { return bufferViews; }
 }  // namespace DG::graphics

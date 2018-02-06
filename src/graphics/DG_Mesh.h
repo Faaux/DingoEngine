@@ -168,7 +168,7 @@ class BufferView
     GLuint vb;
 };
 
-class Model;
+class GraphicsModel;
 class Mesh
 {
    public:
@@ -191,10 +191,10 @@ class Mesh
     size_t stride;
 };
 
-class Model
+class GraphicsModel
 {
    public:
-    Model(const GLTFScene& scene, graphics::Shader& shader, StringId id);
+    GraphicsModel(const GLTFScene& scene, graphics::Shader& shader, StringId id);
     const std::vector<BufferView>& GetBufferViews() const;
 
     StringId id;

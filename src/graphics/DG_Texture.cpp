@@ -2,7 +2,8 @@
 
 namespace DG::graphics
 {
-void Texture::InitTexture(const u8* data, const u32 width, const u32 height, u32 type)
+void Texture::InitTexture(const u8* data, const u32 width, const u32 height, u32 internalFormat,
+                          u32 format, u32 type)
 {
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -12,7 +13,7 @@ void Texture::InitTexture(const u8* data, const u32 width, const u32 height, u32
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, type, width, height, 0, type, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     _isValid = true;
 }

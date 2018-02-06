@@ -4,12 +4,12 @@
 #include <imgui_internal.h>
 #include <vector>
 #include "DG_Camera.h"
+#include "DG_Framebuffer.h"
 #include "DG_GameObject.h"
 #include "DG_Include.h"
 #include "DG_Mesh.h"
 #include "DG_Shader.h"
 #include "DG_Transform.h"
-#include "DG_Framebuffer.h"
 
 namespace DG::graphics
 {
@@ -101,7 +101,7 @@ class DebugRenderContext
 struct Renderable
 {
     Transform transform;
-    Model *model;
+    GraphicsModel *model;
 };
 
 class RenderContext
@@ -114,7 +114,7 @@ class RenderContext
    public:
     RenderContext() = default;
 
-    void AddRenderable(Model *model, const Transform &transform);
+    void AddRenderable(GraphicsModel *model, const Transform &transform);
 
     void SetCamera(const mat4 &viewMatrix, const mat4 &projectionMatrix);
     const mat4 &GetCameraViewMatrix() const { return _cameraViewMatrix; }
@@ -123,10 +123,10 @@ class RenderContext
     const std::array<Renderable, RenderableBufferSize> &GetRenderables() const;
 
     bool IsWireframe() const;
-    void SetFramebuffer(Framebuffer* framebuffer);
+    void SetFramebuffer(Framebuffer *framebuffer);
     bool _isWireframe = false;
 
-    Framebuffer* Framebuffer;
+    Framebuffer *Framebuffer;
     ImDrawData *ImOverlayDrawData;
 
    private:

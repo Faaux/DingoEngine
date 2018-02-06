@@ -9,9 +9,9 @@ namespace DG
 {
 static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
 static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-static bool useSnap = false;
+static bool useSnap = true;
 static float snap[3] = {1.f, 1.f, 1.f};
-void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4& matrix)
+void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, Transform& transform)
 {
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -21,14 +21,16 @@ void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, mat4
     ImGui::SameLine();
     if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
         mCurrentGizmoOperation = ImGuizmo::SCALE;
-    float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-    ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], matrixTranslation, matrixRotation,
-                                          matrixScale);
-    ImGui::DragFloat3("Translation", matrixTranslation, 0.1f);
-    ImGui::DragFloat3("Rotation", matrixRotation, 0.1f);
-    ImGui::DragFloat3("Scale", matrixScale, 0.1f);
-    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale,
-                                            &matrix[0][0]);
+
+    vec3 position = transform.GetPosition();
+    vec3 rotation = glm::degrees(transform.GetEulerRotation());
+    vec3 scale = transform.GetScale();
+
+    ImGui::DragFloat3("Translation", &position.x, 0.1f);
+    ImGui::DragFloat3("Rotation", &rotation.x, 0.1f);
+    ImGui::DragFloat3("Scale", &scale.x, 0.1f);
+
+    transform.Set(position, glm::radians(rotation), scale);
 
     if (mCurrentGizmoOperation != ImGuizmo::SCALE)
     {
@@ -79,7 +81,7 @@ void WorldEdit::Update()
     }
     ImGui::EndDock();
 
-    mat4 worldMatrix;
+    Transform dummyTransform;
 
     if (ImGui::BeginDock("Entity Manager"))
     {
@@ -91,8 +93,7 @@ void WorldEdit::Update()
 
         AddEditTransform(
             _world->_playerCamera.GetViewMatrix(), _world->_playerCamera.GetProjectionMatrix(),
-            hasSelection ? _world->_gameObjects[SelectedIndex].GetTransform().GetModelMatrix()
-                         : worldMatrix);
+            hasSelection ? _world->_gameObjects[SelectedIndex].GetTransform() : dummyTransform);
 
         if (!hasSelection)
         {
@@ -108,9 +109,8 @@ void WorldEdit::Update()
             {
                 GameObject newDuck("DuckModel");
                 auto& tansform = newDuck.GetTransform();
-                tansform.pos = vec3(2, 1, 0);
-                tansform.rot = vec3(0, glm::radians(90.f), 0);
-                tansform.RecalculateModelMatrix();
+                tansform.SetPos(vec3(2, 1, 0));
+                tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
                 _world->AddGameObject(newDuck);
             }
         }
@@ -136,11 +136,15 @@ void WorldEdit::Update()
                 ImVec2 size = ImGui::GetContentRegionAvail();
                 ImVec2 pos = ImGui::GetCursorScreenPos();
                 ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
+
+                mat4 localEditable = gameObject.GetTransform().GetModelMatrix();
+
                 ImGuizmo::Manipulate(&_world->_playerCamera.GetViewMatrix()[0][0],
                                      &_world->_playerCamera.GetProjectionMatrix()[0][0],
                                      mCurrentGizmoOperation, mCurrentGizmoMode,
-                                     &gameObject.GetTransform().GetModelMatrix()[0][0], NULL,
-                                     useSnap ? &snap[0] : NULL);
+                                     &localEditable[0][0], NULL, useSnap ? &snap[0] : NULL);
+
+                gameObject.GetTransform().Set(localEditable);
             }
             ImGui::EndChild();
         }

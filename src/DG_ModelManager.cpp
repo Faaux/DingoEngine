@@ -3,7 +3,7 @@
 namespace DG
 {
 using namespace DG::graphics;
-Model* ModelManager::LoadOrGet(StringId id, GLTFScene* scene, Shader* shader)
+GraphicsModel* ModelManager::LoadOrGet(StringId id, GLTFScene* scene, Shader* shader)
 {
     Assert(scene);
     Assert(shader);

@@ -32,12 +32,13 @@ Pass one object to each phase which has all neccessary information to run its ta
 
 
 // Randoms
-Rewrite transform to only use pos, scale and a rot quaternion
 Rewrite camera
 
 PhysX baking for dynamics (convex mesh hull)
 No physics while in WorldEdit
 
 
+
+// Rendering
 		
 

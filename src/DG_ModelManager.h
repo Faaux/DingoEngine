@@ -5,10 +5,10 @@
 
 namespace DG
 {
-class ModelManager : public ResourceManager<graphics::Model>
+class ModelManager : public ResourceManager<graphics::GraphicsModel>
 {
    public:
     ModelManager() = default;
-    graphics::Model* LoadOrGet(StringId id, graphics::GLTFScene* scene, graphics::Shader* shader);
+    graphics::GraphicsModel* LoadOrGet(StringId id, graphics::GLTFScene* scene, graphics::Shader* shader);
 };
 }  // namespace DG

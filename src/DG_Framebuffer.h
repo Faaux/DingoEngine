@@ -11,22 +11,26 @@ struct WindowSizeMessage;
 class Framebuffer
 {
    public:
-    Framebuffer();
+    Framebuffer(u32 width, u32 height);
     ~Framebuffer();
     void Bind();
     void UnBind();
+    void AddDepthTexture();
+    void AddColorTexture();
 
     void Resize(u32 width, u32 height);
 
-    graphics::Texture Texture;
+    graphics::Texture ColorTexture;
+    graphics::Texture DepthTexture;
 
-private:
+   private:
     void Initialize();
     void Cleanup();
 
     u32 _width;
     u32 _height;
     u32 fbo;
-    u32 rbo;
+    bool _hasColor = false;
+    bool _hasDepth = false;
 };
 }  // namespace DG

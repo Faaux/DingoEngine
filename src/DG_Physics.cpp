@@ -144,7 +144,7 @@ void PhysicsWorld::Update(f32 timeStep)
             GameObject* gameObject = static_cast<GameObject*>(rigidActor->userData);
             PxTransform transform = rigidActor->getGlobalPose();
 
-            gameObject->GetTransform().SetTransform(ToVec3(transform.p), ToQuat(transform.q));
+            gameObject->GetTransform().Set(ToVec3(transform.p), ToQuat(transform.q));
         }
     }
 
@@ -179,7 +179,7 @@ bool PhysicsWorld::RayCast(vec3 origin, vec3 unitDir)
     return status;
 }
 
-void PhysicsWorld::CookModel(graphics::Model* model)
+void PhysicsWorld::CookModel(graphics::GraphicsModel* model)
 {
     PxTriangleMesh** cachedMesh = gPhysicsMeshManager.Exists(model->id);
     if (cachedMesh)

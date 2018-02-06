@@ -19,7 +19,7 @@ class PhysicsWorld
     void ToggleDebugVisualization();
     void Update(f32 timeStep);
     bool RayCast(vec3 origin, vec3 unitDir);
-    void CookModel(graphics::Model* model);
+    void CookModel(graphics::GraphicsModel* model);
     void Shutdown();
     void AddModel(GameObject& obj);
     void AddForce(vec3 dir, float strength);

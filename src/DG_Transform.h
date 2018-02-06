@@ -6,44 +6,34 @@ namespace DG
 class Transform
 {
    public:
-    Transform(const vec3& p = vec3(), const vec3& r = vec3(), const vec3& s = vec3(1, 1, 1))
-        : pos(p), rot(r), scale(s)
-    {
-        RecalculateModelMatrix();
-    }
+    Transform() {}
+    Transform(const mat4& toCopy);
+    Transform(vec3 position, vec3 rotationEuler, vec3 scale);
+    Transform(vec3 position, quat orientation, vec3 scale);
 
-    void SetTransform(vec3 p, glm::quat quat)
-    {
-        rot = glm::eulerAngles(quat);
-        pos = p;
-        RecalculateModelMatrix();
-    }
+    void Set(vec3 position, vec3 rotationEuler, vec3 scale);
+    void Set(vec3 position, quat orientation, vec3 scale);
+    void Set(vec3 position, quat orientation);
+    void Set(const mat4& other);
+    void SetPos(vec3 position);
+    void SetScale(vec3 scale);
+    void SetRotation(vec3 rotationEuler);
+    void SetRotation(quat orientation);
 
-    void RecalculateModelMatrix()
-    {
-        // ToDo: Cache this?
-        mat4 posMatrix = translate(pos);
-        mat4 rotXMatrix = rotate(rot.x, vec3(1, 0, 0));
-        mat4 rotYMatrix = rotate(rot.y, vec3(0, 1, 0));
-        mat4 rotZMatrix = rotate(rot.z, vec3(0, 0, 1));
-        mat4 scaleMatrix = glm::scale(scale);
-        mat4 rotMatrix = rotZMatrix * rotYMatrix * rotXMatrix;
-        modelMatrix = posMatrix * rotMatrix * scaleMatrix;
-    }
+    const vec3& GetPosition() const;
+    const vec3& GetScale() const;
+    const quat& GetOrientation() const;
+    vec3 GetEulerRotation() const;
 
-    mat4& GetModelMatrix() { return modelMatrix; }
-    const mat4& GetModelMatrix() const { return modelMatrix; }
-
-    vec3& getPos() { return pos; }
-    vec3& getRot() { return rot; }
-    vec3& getScale() { return scale; }
-
-    mat4 modelMatrix;
-    vec3 pos;
-    vec3 rot;
-    vec3 scale;
+    const mat4& GetModelMatrix() const;
 
    private:
+    void UpdateModelMatrix() const;
+    mutable bool _isValid = false;
+    mutable mat4 _model;
+    quat _orientation;
+    vec3 _position = vec3(0);
+    vec3 _scale = vec3(1);
 };
 
 }  // namespace DG

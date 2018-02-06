@@ -100,7 +100,7 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     SDL_GL_SwapWindow(_window);
 }
 
-void RenderContext::AddRenderable(Model* model, const Transform& transform)
+void RenderContext::AddRenderable(GraphicsModel* model, const Transform& transform)
 {
     Assert(_currentIndex < RenderableBufferSize);
     Renderable renderable;
@@ -436,11 +436,11 @@ void AddDebugAxes(const Transform& transform, f32 size, f32 lineWidth, f32 durat
     const vec3 right(modelMatrix[0]);
     const vec3 up(modelMatrix[1]);
     const vec3 forward(modelMatrix[2]);
-    AddDebugLine(transform.pos, transform.pos + normalize(right) * size, Color(1, 0, 0, lineWidth),
-                 lineWidth, durationSeconds, depthEnabled);
-    AddDebugLine(transform.pos, transform.pos + normalize(up) * size, Color(0, 1, 0, lineWidth),
-                 lineWidth, durationSeconds, depthEnabled);
-    AddDebugLine(transform.pos, transform.pos + normalize(forward) * size,
+    AddDebugLine(transform.GetPosition(), transform.GetPosition() + normalize(right) * size,
+                 Color(1, 0, 0, lineWidth), lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(transform.GetPosition(), transform.GetPosition() + normalize(up) * size,
+                 Color(0, 1, 0, lineWidth), lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(transform.GetPosition(), transform.GetPosition() + normalize(forward) * size,
                  Color(0, 0, 1, lineWidth), lineWidth, durationSeconds, depthEnabled);
 }
 
