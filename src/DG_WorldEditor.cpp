@@ -105,13 +105,26 @@ void WorldEdit::Update()
         TWEAKER(S1, "Spawn Count", &spawnCount);
         if (ImGui::Button("Add Entity"))
         {
-            for (u32 i = 0; i < spawnCount; ++i)
+            u32 size = glm::sqrt(spawnCount);
+            u32 index = 0;
+            float offset = 5.0f;
+            float otherOffset = size / 2 * 0.3f;
+            for (u32 row = 0; row < size; ++row)
             {
-                GameObject newDuck("DuckModel");
-                auto& tansform = newDuck.GetTransform();
-                tansform.SetPos(vec3(2, 1, 0));
-                tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
-                _world->AddGameObject(newDuck);
+                if (index >= spawnCount)
+                    break;
+                for (u32 col = 0; col < size; ++col)
+                {
+                    if (index >= spawnCount)
+                        break;
+                    GameObject newDuck("DuckModel");
+                    auto& tansform = newDuck.GetTransform();
+                    tansform.SetPos(
+                        vec3(row * offset - otherOffset, col * offset - otherOffset, 0));
+                    tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
+                    _world->AddGameObject(newDuck);
+                    index++;
+                }
             }
         }
         static float strength = 1.0f;

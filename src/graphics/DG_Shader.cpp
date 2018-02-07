@@ -176,92 +176,51 @@ void Shader::ReloadShader()
 
 void Shader::SetUniform(std::string_view name, const int& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform1i(GetUniformLocation(name), val);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::ivec2& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform2i(GetUniformLocation(name), val.x, val.y);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::ivec3& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform3i(GetUniformLocation(name), val.x, val.y, val.z);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::ivec4& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform4i(GetUniformLocation(name), val.x, val.y, val.z, val.w);
 }
 
 void Shader::SetUniform(std::string_view name, const float& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform1f(GetUniformLocation(name), val);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::vec2& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform2f(GetUniformLocation(name), val.x, val.y);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::vec3& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform3f(GetUniformLocation(name), val.x, val.y, val.z);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::vec4& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniform4f(GetUniformLocation(name), val.x, val.y, val.z, val.w);
 }
 
 void Shader::SetUniform(std::string_view name, const glm::mat4& val)
 {
-    if (!Use())
-    {
-        return;
-    }
     glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &val[0][0]);
 }
 
 s32 Shader::GetUniformLocation(std::string_view name)
 {
-    if (!Use())
-    {
-        return -1;
-    }
-
     const s32 location = glGetUniformLocation(_programId, name.data());
     return location;
 }

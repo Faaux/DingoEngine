@@ -37,8 +37,3 @@ Rewrite camera
 PhysX baking for dynamics (convex mesh hull)
 No physics while in WorldEdit
 
-
-
-// Rendering
-		
-

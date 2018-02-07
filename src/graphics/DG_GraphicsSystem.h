@@ -104,6 +104,13 @@ struct Renderable
     GraphicsModel *model;
 };
 
+struct RenderQueue
+{
+    Shader *Shader;
+    Renderable *Renderables;
+    u32 Count;
+};
+
 class RenderContext
 {
     enum
@@ -114,26 +121,26 @@ class RenderContext
    public:
     RenderContext() = default;
 
-    void AddRenderable(GraphicsModel *model, const Transform &transform);
-
     void SetCamera(const mat4 &viewMatrix, const mat4 &projectionMatrix);
     const mat4 &GetCameraViewMatrix() const { return _cameraViewMatrix; }
     const mat4 &GetCameraProjMatrix() const { return _cameraProjMatrix; }
 
-    const std::array<Renderable, RenderableBufferSize> &GetRenderables() const;
-
     bool IsWireframe() const;
     void SetFramebuffer(Framebuffer *framebuffer);
+    RenderQueue **GetRenderQueues() { return _renderQueues; }
+    u32 GetRenderQueueCount() { return _currentIndexRenderQueue; }
     bool _isWireframe = false;
 
-    Framebuffer *Framebuffer;
-    ImDrawData *ImOverlayDrawData;
+    void AddRenderQueue(RenderQueue *queue);
+
+    Framebuffer *Framebuffer = nullptr;
+    ImDrawData *ImOverlayDrawData = nullptr;
 
    private:
     mat4 _cameraViewMatrix;
     mat4 _cameraProjMatrix;
-    u32 _currentIndex = 0;
-    std::array<Renderable, RenderableBufferSize> _objectsToRender;
+    u32 _currentIndexRenderQueue = 0;
+    RenderQueue *_renderQueues[10] = {};
 };
 
 extern DebugRenderContext *g_DebugRenderContext;

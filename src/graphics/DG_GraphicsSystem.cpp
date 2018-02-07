@@ -67,27 +67,37 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     context->Framebuffer->Bind();
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    for (auto& renderable : context->GetRenderables())
-    {
-        auto model = renderable.model;
-        if (model)
-        {
-            model->shader.Use();
-            for (auto& mesh : model->meshes)
-            {
-                model->shader.SetUniform("proj", context->GetCameraProjMatrix());
-                model->shader.SetUniform("view", context->GetCameraViewMatrix());
-                model->shader.SetUniform(
-                    "model", renderable.transform.GetModelMatrix() * mesh.localTransform);
-                model->shader.SetUniform("lightPos", lightPos);
-                model->shader.SetUniform("lightColor", lightColor);
 
-                glBindVertexArray(mesh.vao);
-                glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
-                               reinterpret_cast<void*>(mesh.byteOffset));
+    auto renderQueues = context->GetRenderQueues();
+    for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+    {
+        // Setup Shader
+        auto renderQueue = renderQueues[queueIndex];
+        renderQueue->Shader->Use();
+        renderQueue->Shader->SetUniform("proj", context->GetCameraProjMatrix());
+        renderQueue->Shader->SetUniform("view", context->GetCameraViewMatrix());
+        renderQueue->Shader->SetUniform("lightPos", lightPos);
+        renderQueue->Shader->SetUniform("lightColor", lightColor);
+
+        // Render Models
+        for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
+        {
+            auto& renderable = renderQueue->Renderables[renderableIndex];
+            auto& model = renderable.model;
+            if (model)
+            {
+                for (auto& mesh : model->meshes)
+                {
+                    renderQueue->Shader->SetUniform(
+                        "model", renderable.transform.GetModelMatrix() * mesh.localTransform);
+
+                    glBindVertexArray(mesh.vao);
+                    glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
+                                   reinterpret_cast<void*>(mesh.byteOffset));
+                }
+                glBindVertexArray(0);
+                CheckOpenGLError(__FILE__, __LINE__);
             }
-            glBindVertexArray(0);
-            CheckOpenGLError(__FILE__, __LINE__);
         }
     }
 
@@ -100,31 +110,21 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     SDL_GL_SwapWindow(_window);
 }
 
-void RenderContext::AddRenderable(GraphicsModel* model, const Transform& transform)
-{
-    Assert(_currentIndex < RenderableBufferSize);
-    Renderable renderable;
-    renderable.transform = transform;
-    renderable.model = model;
-
-    _objectsToRender[_currentIndex++] = renderable;
-}
-
 void RenderContext::SetCamera(const mat4& viewMatrix, const mat4& projectionMatrix)
 {
     _cameraViewMatrix = viewMatrix;
     _cameraProjMatrix = projectionMatrix;
 }
 
-const std::array<Renderable, RenderContext::RenderableBufferSize>& RenderContext::GetRenderables()
-    const
-{
-    return _objectsToRender;
-}
-
 bool RenderContext::IsWireframe() const { return _isWireframe; }
 
 void RenderContext::SetFramebuffer(DG::Framebuffer* framebuffer) { Framebuffer = framebuffer; }
+
+void RenderContext::AddRenderQueue(RenderQueue* queue)
+{
+    Assert(_currentIndexRenderQueue < COUNT_OF(_renderQueues));
+    _renderQueues[_currentIndexRenderQueue++] = queue;
+}
 
 void DebugRenderContext::AddLine(const vec3& vertex0, const vec3& vertex1, const Color& color,
                                  bool depthEnabled)
@@ -369,7 +369,7 @@ void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 dur
 
     cache[0] = centerPosition + radiusVec;
 
-    for (size_t n = 1; n < ArrayCount(cache); ++n)
+    for (size_t n = 1; n < COUNT_OF(cache); ++n)
     {
         cache[n] = cache[0];
     }

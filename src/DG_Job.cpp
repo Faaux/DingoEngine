@@ -120,7 +120,7 @@ Job* JobSystem::CreateJob(JobFunction function)
     job.function = function;
     job.parent = nullptr;
     SDL_AtomicSet(&job.unfinishedJobs, 1);
-    SDL_memset(&job.data, 0, ArrayCount(job.data));
+    SDL_memset(&job.data, 0, COUNT_OF(job.data));
 
     return &job;
 }
@@ -138,7 +138,7 @@ Job* JobSystem::CreateJobAsChild(Job* parent, JobFunction function)
     job.function = function;
     job.parent = parent;
     SDL_AtomicSet(&job.unfinishedJobs, 1);
-    SDL_memset(&job.data, 0, ArrayCount(job.data));
+    SDL_memset(&job.data, 0, COUNT_OF(job.data));
 
     return &job;
 }
@@ -178,7 +178,7 @@ bool JobSystem::RegisterWorker()
 {
     SDL_LockMutex(_mutex);
 
-    if (_workerCount >= ArrayCount(_queues))
+    if (_workerCount >= COUNT_OF(_queues))
     {
         Assert(false);
         return false;
