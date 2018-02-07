@@ -95,11 +95,12 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
                     glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
                                    reinterpret_cast<void*>(mesh.byteOffset));
                 }
-                glBindVertexArray(0);
                 CheckOpenGLError(__FILE__, __LINE__);
             }
         }
     }
+    // Unbind after we are done rendering
+    glBindVertexArray(0);
 
     _debugRenderSystem.Render(context, debugContext);
 

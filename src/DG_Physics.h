@@ -17,7 +17,7 @@ class PhysicsWorld
     PhysicsWorld() = default;
     bool Init();
     void ToggleDebugVisualization();
-    void Update(f32 timeStep);
+    void Update();
     bool RayCast(vec3 origin, vec3 unitDir);
     void CookModel(graphics::GraphicsModel* model);
     void Shutdown();

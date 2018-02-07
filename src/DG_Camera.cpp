@@ -63,87 +63,118 @@ static glm::quat LookRotation(vec3 forward, vec3 up)
     ;
 }
 
-Camera::Camera(float fov, float near, float far, float aspectRatio, glm::vec3 pos, glm::vec3 lookAt)
-    : _fov(fov),
-      _near(near),
-      _far(far),
-      _position(pos),
-      _inputMessageCallback(g_MessagingSystem.RegisterCallback<InputMessage>(
-          [=](const InputMessage& message) { HandleInputMessage(message); }))
+Camera::Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far, float aspectRatio)
+    : _position(pos), _fov(fov), _near(near), _far(far), _aspectRatio(aspectRatio), _up(up)
 {
-    g_MessagingSystem.RegisterCallback<WindowSizeMessage>([=](const WindowSizeMessage& windowSize) {
-        UpdateProjection(windowSize.WindowSize.x, windowSize.WindowSize.y);
-    });
+    RecalculateProjection();
+    _orientation = LookRotation(pos - lookat, up);
+    RecalculateView();
 
-    _projectionMatrix = glm::perspective(glm::radians(_fov), aspectRatio, _near, _far);
-
-    //_currentRot = glm::rotation(vec3(0, 1, 0), -glm::normalize(lookAt - pos));
-
-    _currentRot = LookRotation(pos - lookAt, vec3(0, 1, 0));
-
-    CalculateViewMatrix();
+    //_forward = -glm::normalize(glm::vec3(_viewMatrix[0][2], _viewMatrix[1][2],
+    //    _viewMatrix[2][2]));
+    //_right = glm::normalize(glm::vec3(_viewMatrix[0][0],  _viewMatrix[1][0],_viewMatrix[2][0]));
 }
 
-Camera::~Camera() { g_MessagingSystem.UnRegisterCallback(_inputMessageCallback); }
-
-void Camera::UpdateProjection(f32 width, f32 height)
+const mat4& Camera::GetViewMatrix() const
 {
-    _projectionMatrix = glm::perspective(glm::radians(_fov), width / height, _near, _far);
+    if (!_isViewValid)
+        RecalculateView();
+    return _view;
 }
 
-void Camera::Update()
+const mat4& Camera::GetProjectionMatrix() const
+{
+    if (!_isProjectionValid)
+        RecalculateProjection();
+    return _projection;
+}
+
+void Camera::UpdateProjection(float width, float height)
+{
+    _isProjectionValid = false;
+    _aspectRatio = width / height;
+}
+
+const vec3& Camera::GetPosition() const { return _position; }
+
+vec3 Camera::GetRight() const
+{
+    RecalculateView();
+    return glm::normalize(glm::vec3(_view[0][0], _view[1][0], _view[2][0]));
+}
+
+vec3 Camera::GetUp() const
+{
+    RecalculateView();
+    return glm::normalize(glm::vec3(_view[0][1], _view[1][1], _view[2][1]));
+}
+
+vec3 Camera::GetForward() const
+{
+    RecalculateView();
+    return -glm::normalize(glm::vec3(_view[0][2], _view[1][2], _view[2][2]));
+}
+
+const quat& Camera::GetOrientation() const { return _orientation; }
+
+void Camera::Set(vec3 position, quat orientation)
+{
+    _isViewValid = false;
+    _position = position;
+    _orientation = orientation;
+}
+
+void Camera::RecalculateView() const
+{
+    if (!_isViewValid)
+    {
+        _view = glm::inverse(glm::translate(_position) * glm::toMat4(_orientation));
+        _isViewValid = true;
+    }
+}
+
+void Camera::RecalculateProjection() const
+{
+    if (!_isProjectionValid)
+    {
+        _projection = glm::perspective(glm::radians(_fov), _aspectRatio, _near, _far);
+        _isProjectionValid = true;
+    }
+}
+
+void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock& clock)
 {
     static float rotationSpeed = 1.7f;
     static float speed = 19.f;
-
+    static vec3 newPosition = vec3(0);
+    newPosition = camera.GetPosition();
+    quat newOrientation = camera.GetOrientation();
     // Imgui Debug Interface
     TWEAKER_CAT("Camera", F1, "Sensitivity", &rotationSpeed);
     TWEAKER_CAT("Camera", F1, "Movement Speed", &speed);
-    TWEAKER_CAT("Camera", F3, "Position", &_position.x);
 
-    if (_lastInputMessage.MouseRight)
+    // ToDo: This is broken :(
+    TWEAKER_CAT("Camera", F3, "Position", &newPosition.x);
+
+    if (message.MouseRight)
     {
         // Update Pos by User Input
-        glm::vec2 mouseDelta(_lastInputMessage.MouseDeltaX, _lastInputMessage.MouseDeltaY);
+        glm::vec2 mouseDelta(message.MouseDeltaX, message.MouseDeltaY);
         mouseDelta *= rotationSpeed / 1000.f;
 
-        // glm::quat keyQuat(glm::vec3(mouseDelta.y, -mouseDelta.x, 0));
         glm::quat rotX = glm::angleAxis(-mouseDelta.x, glm::vec3(0.f, 1.f, 0.f));
-        glm::quat rotY = glm::angleAxis(mouseDelta.y, _right);
+        glm::quat rotY = glm::angleAxis(mouseDelta.y, camera.GetRight());
 
-        _currentRot = glm::normalize(rotX * rotY * _currentRot);
+        newOrientation = glm::normalize(rotX * rotY * newOrientation);
     }
 
-    // This is needed to make the weakers work, otherwise we would only need it if 
-    // _lastInputMessage.MouseRight == true
-    CalculateViewMatrix();
-
     glm::vec3 dir(0);
-    dir += _forward * _lastInputMessage.Forward;
-    dir += _right * _lastInputMessage.Right;
-    if (_lastInputMessage.MouseRight)
-        dir += glm::vec3(0, 1, 0) * _lastInputMessage.Up;
+    dir += camera.GetForward() * message.Forward;
+    dir += camera.GetRight() * message.Right;
+    if (message.MouseRight)
+        dir += glm::vec3(0, 1, 0) * message.Up;
 
-    SetPos(_position + dir * speed * g_InGameClock.GetLastDtSeconds());
+    newPosition = newPosition + dir * speed * clock.GetLastDtSeconds();
+    camera.Set(newPosition, newOrientation);
 }
-
-vec3 Camera::GetPos()
-{
-    return _position;
-}
-
-vec3 Camera::GetForward()
-{
-    return _forward;
-}
-
-void Camera::CalculateViewMatrix()
-{
-    _viewMatrix = glm::inverse(glm::translate(_position) * glm::toMat4(_currentRot));
-
-    _forward = -glm::normalize(glm::vec3(_viewMatrix[0][2], _viewMatrix[1][2], _viewMatrix[2][2]));
-    _right = glm::normalize(glm::vec3(_viewMatrix[0][0], _viewMatrix[1][0], _viewMatrix[2][0]));
-}
-
-void Camera::HandleInputMessage(const InputMessage& message) { _lastInputMessage = message; }
 }  // namespace DG

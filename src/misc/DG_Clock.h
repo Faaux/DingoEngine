@@ -20,7 +20,7 @@ class Clock
     void SetTimeScale(f32 wantedTimeScale);
     f32 GetTimeScale() const;
 
-    void SingleStep();
+    void SingleStep(float secondsToStep = 1.f / TargetFrameRate);
 
     u64 ToCycles(f32 seconds) const;
 
@@ -37,6 +37,7 @@ class Clock
 
 extern Clock g_RealTimeClock;
 extern Clock g_InGameClock;
+extern Clock g_EditingClock;
 extern Clock g_AnimationClock;
 void InitClocks();
 }  // namespace DG

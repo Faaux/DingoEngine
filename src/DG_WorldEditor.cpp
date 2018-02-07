@@ -59,15 +59,29 @@ void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, Tran
     }
 }
 
+WorldEdit::WorldEdit(GameWorld* world)
+    : _camera(vec3(60, 60, 60), vec3(0), vec3(0, 1, 0), 45.f, 0.001f, 10000.0f, 16.f / 9.f),
+      _world(world),
+      _selectedGameModel(nullptr)
+{
+    g_MessagingSystem.RegisterCallback<InputMessage>(
+        [=](const InputMessage& message) { _lastInputMessage = message; });
+}
+
 void WorldEdit::Update()
 {
     Assert(_world);
+
+    if (!g_EditingClock.IsPaused())
+    {
+        UpdateFreeCameraFromInput(_camera, _lastInputMessage, g_EditingClock);
+    }
 
     static int SelectedIndex = -1;
     bool hasSelection = false;
     if (ImGui::BeginDock("Entity List"))
     {
-        for (u32 i = 0; i < _world->_currentIndex; ++i)
+        for (u32 i = 0; i < _world->GetGameObjectCount(); ++i)
         {
             ImGui::PushID(i);
             hasSelection = hasSelection | (i == SelectedIndex);
@@ -81,7 +95,7 @@ void WorldEdit::Update()
     }
     ImGui::EndDock();
 
-    Transform dummyTransform;
+    Transform gameTransform;
 
     if (ImGui::BeginDock("Entity Manager"))
     {
@@ -91,21 +105,30 @@ void WorldEdit::Update()
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
         }
 
-        AddEditTransform(
-            _world->_playerCamera.GetViewMatrix(), _world->_playerCamera.GetProjectionMatrix(),
-            hasSelection ? _world->_gameObjects[SelectedIndex].GetTransform() : dummyTransform);
+        auto& camera = _world->GetPlayerCamera();
+        if (hasSelection)
+        {
+            auto& gameObject = _world->GetGameObject(SelectedIndex);
+            gameTransform = gameObject.GetTransform();
+        }
+        AddEditTransform(camera.GetViewMatrix(), camera.GetProjectionMatrix(), gameTransform);
+        if (hasSelection)
+        {
+            auto& gameObject = _world->GetGameObject(SelectedIndex);
+            gameObject.GetTransform().Set(gameTransform);
+        }
 
         if (!hasSelection)
         {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
-        ImGui::Text("Current Entity Count: %i", _world->_currentIndex);
-        static u32 spawnCount = 1;
+        ImGui::Text("Current Entity Count: %i", _world->GetGameObjectCount());
+        static u32 spawnCount = 100;
         TWEAKER(S1, "Spawn Count", &spawnCount);
         if (ImGui::Button("Add Entity"))
         {
-            u32 size = glm::sqrt(spawnCount);
+            u32 size = (u32)glm::sqrt(spawnCount);
             u32 index = 0;
             float offset = 5.0f;
             float otherOffset = size / 2 * 0.3f;
@@ -140,7 +163,7 @@ void WorldEdit::Update()
 
     if (hasSelection)
     {
-        auto& gameObject = _world->_gameObjects[SelectedIndex];
+        auto& gameObject = _world->GetGameObject(SelectedIndex);
         // ToDo Make this show up in another window
         if (gameObject.GetModelId() != "")
         {
@@ -152,8 +175,9 @@ void WorldEdit::Update()
 
                 mat4 localEditable = gameObject.GetTransform().GetModelMatrix();
 
-                ImGuizmo::Manipulate(&_world->_playerCamera.GetViewMatrix()[0][0],
-                                     &_world->_playerCamera.GetProjectionMatrix()[0][0],
+                auto& playerCamera = _world->GetPlayerCamera();
+                ImGuizmo::Manipulate(&playerCamera.GetViewMatrix()[0][0],
+                                     &playerCamera.GetProjectionMatrix()[0][0],
                                      mCurrentGizmoOperation, mCurrentGizmoMode,
                                      &localEditable[0][0], NULL, useSnap ? &snap[0] : NULL);
 
@@ -163,4 +187,6 @@ void WorldEdit::Update()
         }
     }
 }
+
+Camera& WorldEdit::GetEditCamera() { return _camera; }
 }  // namespace DG

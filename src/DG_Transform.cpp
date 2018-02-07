@@ -27,6 +27,16 @@ Transform::Transform(vec3 position, quat orientation, vec3 scale)
 {
 }
 
+void Transform::Set(const Transform& other)
+{
+    _orientation = other._orientation;
+    _position = other._position;
+    _scale = other._scale;
+    _isValid = other._isValid;
+    if (_isValid)
+        _model = other._model;
+}
+
 void Transform::Set(vec3 position, vec3 rotationEuler, vec3 scale)
 {
     _isValid = false;

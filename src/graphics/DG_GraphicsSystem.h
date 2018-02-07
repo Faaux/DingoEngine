@@ -113,11 +113,6 @@ struct RenderQueue
 
 class RenderContext
 {
-    enum
-    {
-        RenderableBufferSize = 4096
-    };
-
    public:
     RenderContext() = default;
 
@@ -127,9 +122,11 @@ class RenderContext
 
     bool IsWireframe() const;
     void SetFramebuffer(Framebuffer *framebuffer);
+
     RenderQueue **GetRenderQueues() { return _renderQueues; }
-    u32 GetRenderQueueCount() { return _currentIndexRenderQueue; }
-    bool _isWireframe = false;
+    u32 GetRenderQueueCount() const { return _currentIndexRenderQueue; }
+
+    bool _isWireframe = false;  // ToDo Rename
 
     void AddRenderQueue(RenderQueue *queue);
 

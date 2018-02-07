@@ -8,39 +8,36 @@ namespace DG
 class Camera
 {
    public:
-    Camera(float fov, float near, float far, float aspectRatio, glm::vec3 pos, glm::vec3 lookAt);
-    ~Camera();
-    const glm::mat4& GetProjectionMatrix() const { return _projectionMatrix; }
+    Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far, float aspectRatio);
 
-    const glm::mat4& GetViewMatrix() const { return _viewMatrix; }
+    const mat4& GetViewMatrix() const;
 
-    void SetPos(glm::vec3 pos)
-    {
-        if (_position != pos)
-        {
-            _position = pos;
-            CalculateViewMatrix();
-        }
-    }
+    const mat4& GetProjectionMatrix() const;
+    void UpdateProjection(float x, float y);
+    const vec3& GetPosition() const;
+    vec3 GetRight() const;
+    vec3 GetUp() const;
+    vec3 GetForward() const;
+    const quat& GetOrientation() const;
+    void Set(vec3 newPosition, quat newOrientation);
 
-    void UpdateProjection(f32 width, f32 height);
+   private:
+    void RecalculateView() const;
+    void RecalculateProjection() const;
+    // Cache
+    mutable bool _isViewValid = false, _isProjectionValid = false;
+    mutable mat4 _projection;
+    mutable mat4 _view;
 
-    void Update();
-    vec3 GetPos();
-    vec3 GetForward();
+    // Projection
+    float _fov = 45.f, _near = 0.01f, _far = 1000.f, _aspectRatio = 16.f / 9.f;
 
-private:
-    void CalculateViewMatrix();
-    void HandleInputMessage(const InputMessage& message);
-
-    float _fov, _near, _far;
-
-    InputMessage _lastInputMessage;
-
-    glm::quat _currentRot;
-    glm::vec3 _position, _forward, _right;
-    glm::mat4 _viewMatrix;
-    glm::mat4 _projectionMatrix;
-    CallbackHandle<InputMessage> _inputMessageCallback;
+    // View
+    quat _orientation;
+    vec3 _position;
+    vec3 _up;
 };
-}  // namespace DG::graphics
+
+void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock& clock);
+
+}  // namespace DG

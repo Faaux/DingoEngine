@@ -3,6 +3,7 @@ namespace DG
 {
 Clock g_RealTimeClock;
 Clock g_InGameClock;
+Clock g_EditingClock;
 Clock g_AnimationClock;
 
 f32 Clock::_cyclesPerSecond;
@@ -26,18 +27,18 @@ void Clock::Update(f32 dtRealSeconds)
 {
     if (!_isPaused)
     {
-        u64 dtScaled = SecondsToCycles(dtRealSeconds * _timeScale);
-        _lastDtSeconds = dtRealSeconds;
+        f32 scaled = dtRealSeconds * _timeScale;
+        u64 dtScaled = SecondsToCycles(scaled);
+        _lastDtSeconds = scaled;
         _timeCycles += dtScaled;
+    }
+    else
+    {
+        _lastDtSeconds = 0.f;
     }
 }
 
-f32 Clock::GetLastDtSeconds() const
-{
-    if (_isPaused)
-        return 0.f;
-    return _lastDtSeconds;
-}
+f32 Clock::GetLastDtSeconds() const { return _lastDtSeconds; }
 
 void Clock::SetPaused(bool wantPaused) { _isPaused = wantPaused; }
 
@@ -47,12 +48,14 @@ void Clock::SetTimeScale(f32 wantedTimeScale) { _timeScale = wantedTimeScale; }
 
 f32 Clock::GetTimeScale() const { return _timeScale; }
 
-void Clock::SingleStep()
+void Clock::SingleStep(float secondsToStep)
 {
     if (_isPaused)
     {
-        u64 dtCycles = SecondsToCycles(1.0f / TargetFrameRate * _timeScale);
+        float scaledSeconds = secondsToStep * _timeScale;
+        u64 dtCycles = SecondsToCycles(scaledSeconds);
         _timeCycles += dtCycles;
+        _lastDtSeconds = scaledSeconds;
     }
 }
 

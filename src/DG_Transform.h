@@ -7,10 +7,12 @@ class Transform
 {
    public:
     Transform() {}
+    
     Transform(const mat4& toCopy);
     Transform(vec3 position, vec3 rotationEuler, vec3 scale);
     Transform(vec3 position, quat orientation, vec3 scale);
 
+    void Set(const Transform& other);
     void Set(vec3 position, vec3 rotationEuler, vec3 scale);
     void Set(vec3 position, quat orientation, vec3 scale);
     void Set(vec3 position, quat orientation);
