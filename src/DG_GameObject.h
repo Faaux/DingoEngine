@@ -1,6 +1,4 @@
 #pragma once
-#include <array>
-#include "DG_Camera.h"
 #include "DG_Include.h"
 #include "DG_Physics.h"
 #include "DG_StringIdCRC32.h"
@@ -8,52 +6,50 @@
 
 namespace DG
 {
+class PhysicsComponent
+{
+   public:
+    enum class Type
+    {
+        Undefined,
+        Static,
+        Dynamic,
+        Kinematic
+    };
+
+    PhysicsComponent() = default;
+
+    Type Type = Type::Undefined;
+    void* Data = nullptr;
+};
+
+class RenderableComponent
+{
+   public:
+    RenderableComponent(StringId renderableId) : RenderableId(renderableId) {}
+    StringId RenderableId = "";
+};
+
 class GameObject
 {
    public:
-    GameObject(StringId model) : _modelId(model) {}
+    GameObject(const GameObject& other);
+    GameObject(StringId modelId);
     GameObject() = default;
+    ~GameObject();
+
+    RenderableComponent* Renderable = nullptr;
+    PhysicsComponent* Physics = nullptr;
 
     Transform& GetTransform() { return _transform; }
     const Transform& GetTransform() const { return _transform; }
-    StringId GetModelId() const { return _modelId; }
-    char* GetName() { return _name; }
+    char* GetName() const { return _name; }
 
+
+    GameObject& operator=(const GameObject& other);;
    private:
     Transform _transform;
-    StringId _modelId;
-    char _name[256] = {};
+    char* _name = nullptr;
 };
 
-class GameWorld
-{
-   public:
-    enum
-    {
-        GameObjectBufferSize = 4096
-    };
-
-    GameWorld(glm::vec3 playerCameraPos);
-
-    void Update();
-    void AddGameObject(const GameObject& gameObject);
-    void Shutdown();
-
-    void SetCamera(const Camera& camera) { _playerCamera = camera; }
-    u32 GetGameObjectCount() const { return _currentIndex; }
-    GameObject& GetGameObject(u32 index)
-    {
-        Assert(index < _currentIndex);
-        return _gameObjects[index];
-    }
-
-    Camera& GetPlayerCamera() { return _playerCamera; }
-    PhysicsWorld PhysicsWorld;
-
-   private:
-    Camera _playerCamera;
-    u32 _currentIndex = 0;
-    InputMessage _lastInputMessage;
-    std::array<GameObject, GameObjectBufferSize> _gameObjects;
-};
 }  // namespace DG

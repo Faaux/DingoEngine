@@ -14,28 +14,29 @@ namespace DG
 {
 using namespace physx;
 
+struct PhysXScene
+{
+    PxDefaultCpuDispatcher* Dispatcher = nullptr;
+    PxScene* Scene = nullptr;
+};
+
 class PhysicsMeshManager : public ResourceManager<PxTriangleMesh*>
 {
    public:
     void LoadOrGet(StringId id, PxTriangleMesh* p) { Register(id, p); }
 };
 
-PhysicsMeshManager gPhysicsMeshManager;
+static std::unordered_map<PhysicsWorld*, PhysXScene> WorldToPhysX;
+
+static PhysicsMeshManager gPhysicsMeshManager;
 
 PxDefaultAllocator gAllocator;
 PxDefaultErrorCallback gErrorCallback;
-
 PxFoundation* gFoundation = nullptr;
 PxPhysics* gPhysics = nullptr;
 PxCooking* gCooking;
-
-PxDefaultCpuDispatcher* gDispatcher = nullptr;
-PxScene* gScene = nullptr;
-
 PxPvd* gPvd = nullptr;
 PxMaterial* gMaterial = nullptr;
-
-PxRigidDynamic* lastDynamic;
 
 static PxQuat ToPxQuat(const glm::quat& q)
 {
@@ -69,33 +70,23 @@ static vec3 ToVec3(const PxVec3& v)
     return result;
 }
 
-bool PhysicsWorld::Init()
+bool PhysicsWorld::Init(const Clock& clock)
 {
-    gFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, gAllocator, gErrorCallback);
-
-    gCooking =
-        PxCreateCooking(PX_PHYSICS_VERSION, *gFoundation, PxCookingParams(PxTolerancesScale()));
-
-    // PhysX Visual Debugger
-    gPvd = PxCreatePvd(*gFoundation);
-    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-    gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
-
-    // Init phsyics
-    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+    _clock = &clock;
 
     // Create a physics scene
+    PhysXScene& newScene = WorldToPhysX[this];
     PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
     sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
-    gDispatcher = PxDefaultCpuDispatcherCreate(2);
-    sceneDesc.cpuDispatcher = gDispatcher;
+    newScene.Dispatcher = PxDefaultCpuDispatcherCreate(2);
+    sceneDesc.cpuDispatcher = newScene.Dispatcher;
     sceneDesc.filterShader = PxDefaultSimulationFilterShader;
     sceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
     sceneDesc.flags |= PxSceneFlag::eEXCLUDE_KINEMATICS_FROM_ACTIVE_ACTORS;
-    gScene = gPhysics->createScene(sceneDesc);
+    newScene.Scene = gPhysics->createScene(sceneDesc);
 
     // Attach to PhysX Visual Debugger
-    PxPvdSceneClient* pvdClient = gScene->getScenePvdClient();
+    PxPvdSceneClient* pvdClient = newScene.Scene->getScenePvdClient();
     if (pvdClient)
     {
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
@@ -103,44 +94,46 @@ bool PhysicsWorld::Init()
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
     }
 
-    gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
-
+    //ToDo: Remove, no actor should be added to the scene, let the user (world edit) take care of it
     PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, PxPlane(0, 1, 0, 0), *gMaterial);
-    gScene->addActor(*groundPlane);
+    newScene.Scene->addActor(*groundPlane);
 
     return true;
 }
 
 void PhysicsWorld::ToggleDebugVisualization()
 {
+    auto scene = WorldToPhysX[this].Scene;
     if (_outputDebugLines)
     {
-        gScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.0f);
+        scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.0f);
     }
     else
     {
-        gScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
-        gScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 2.0f);
+        scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
+        scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 2.0f);
     }
     _outputDebugLines = !_outputDebugLines;
 }
 
 void PhysicsWorld::Update()
 {
+    auto scene = WorldToPhysX[this].Scene;
     static float timeAccumulator = 0;
-    timeAccumulator += g_InGameClock.GetLastDtSeconds();
+    timeAccumulator += _clock->GetLastDtSeconds();
 
-    while (timeAccumulator > 1.0f / 60.0f)
+    const float physicsTimeStep = 1.0f / 120.0f;
+    while (timeAccumulator > physicsTimeStep)
     {
-        timeAccumulator -= 1.0f / 60.0f;
-        gScene->simulate(1.0f / 60.0f);
-        gScene->fetchResults(true);
+        timeAccumulator -= physicsTimeStep;
+        scene->simulate(physicsTimeStep);
+        scene->fetchResults(true);
     }
 
     // This should only ever return dynamic actors. Statics and Kinematics are user controlled
     // retrieve array of actors that moved
     PxU32 nbActiveActors;
-    PxActor** activeActors = gScene->getActiveActors(nbActiveActors);
+    PxActor** activeActors = scene->getActiveActors(nbActiveActors);
 
     // update each render object with the new transform
     for (PxU32 i = 0; i < nbActiveActors; ++i)
@@ -157,7 +150,7 @@ void PhysicsWorld::Update()
 
     if (_outputDebugLines)
     {
-        const PxRenderBuffer& rb = gScene->getRenderBuffer();
+        const PxRenderBuffer& rb = scene->getRenderBuffer();
         for (PxU32 i = 0; i < rb.getNbLines(); i++)
         {
             const PxDebugLine& line = rb.getLines()[i];
@@ -170,24 +163,156 @@ void PhysicsWorld::Update()
     }
 }
 
-bool PhysicsWorld::RayCast(vec3 origin, vec3 unitDir)
+void* PhysicsWorld::RayCast(vec3 origin, vec3 unitDir)
 {
+    auto scene = WorldToPhysX[this].Scene;
     PxRaycastBuffer hitInfo;
     PxU32 maxHits = 1;
     PxHitFlags hitFlags = PxHitFlag::eDEFAULT;
+    PxQueryFilterData filterData(PxQueryFlag::eSTATIC);
 
-    bool status = gScene->raycast(ToPxVec3(origin), ToPxVec3(unitDir), 1e6, hitInfo);
+    bool status =
+        scene->raycast(ToPxVec3(origin), ToPxVec3(unitDir), 1e6, hitInfo, hitFlags, filterData);
 
     if (status)
-        SDL_Log("HIT!");
-    else
-        SDL_Log("NO HIT");
+        return hitInfo.getAnyHit(0).actor;
 
-    return status;
+    return 0;
 }
 
-void PhysicsWorld::CookModel(graphics::GraphicsModel* model)
+void PhysicsWorld::Shutdown()
 {
+    auto scene = WorldToPhysX[this];
+    scene.Scene->release();
+    scene.Dispatcher->release();
+    WorldToPhysX.erase(this);
+}
+
+void PhysicsWorld::AddModel(GameObject& obj, bool forEditing)
+{
+    auto scene = WorldToPhysX[this].Scene;
+
+    auto model = gManagers->ModelManager->Exists(obj.Renderable->RenderableId);
+    Assert(model);
+
+    if (forEditing)
+    {
+        // Disassemble local matrix for model
+        mat4 worldMatrix = obj.GetTransform().GetModelMatrix() * model->meshes[0].localTransform;
+
+        vec3 scale, translation, skew;
+        vec4 perspective;
+        glm::quat orientation;
+        glm::decompose(worldMatrix, scale, orientation, translation, skew, perspective);
+        orientation = glm::conjugate(orientation);
+
+        // Get Mesh
+        auto triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
+        if (!triangleMesh)
+        {
+            SDL_LogWarn(0, "Runtime cooking for EDITOR Mesh");
+            CookModel(gManagers->ModelManager->Exists(obj.Renderable->RenderableId));
+            triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
+        }
+        Assert(triangleMesh);
+
+        // Create Geometry and then Shape
+        PxTriangleMeshGeometry geom(*triangleMesh, PxMeshScale(ToPxVec3(scale)));
+        PxShape* shape = gPhysics->createShape(geom, *gMaterial);
+
+        // Create Rigid Static
+        PxRigidStatic* staticActor =
+            gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
+
+        staticActor->userData = &obj;
+        staticActor->attachShape(*shape);
+        shape->release();
+        scene->addActor(*staticActor);
+
+        // Add to gameobject
+        obj.Physics = new PhysicsComponent();
+        obj.Physics->Data = staticActor;
+        obj.Physics->Type = PhysicsComponent::Type::Static;
+    }
+    else
+    {
+        auto& objectTransform = obj.GetTransform();
+        const auto translation = ToPxVec3(objectTransform.GetPosition());
+        const auto orientation = ToPxQuat(objectTransform.GetOrientation());
+        // Create Actor
+        PxRigidDynamic* dynamic =
+            gPhysics->createRigidDynamic(PxTransform(translation, orientation));
+
+        // Attach Shape
+        PxShape* dynamicShape = PxRigidActorExt::createExclusiveShape(
+            *dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
+        PxTransform relativePose(PxVec3(0, 0.5f, 0));
+        dynamicShape->setLocalPose(relativePose);
+
+        // Update with new shape
+        PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
+
+        // Add to scene
+        dynamic->userData = &obj;
+        scene->addActor(*dynamic);
+
+        // Add to gameobject
+        obj.Physics = new PhysicsComponent();
+        obj.Physics->Data = dynamic;
+        obj.Physics->Type = PhysicsComponent::Type::Dynamic;
+    }
+}
+
+void PhysicsWorld::RemoveModel(GameObject& obj)
+{
+    auto scene = WorldToPhysX[this].Scene;
+    PxRigidBody* rigidBody = (PxRigidBody*)obj.Physics->Data;
+    rigidBody->release();
+
+    delete obj.Physics;
+    obj.Physics = nullptr;
+}
+
+bool InitPhysics()
+{
+    gFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, gAllocator, gErrorCallback);
+
+    gCooking =
+        PxCreateCooking(PX_PHYSICS_VERSION, *gFoundation, PxCookingParams(PxTolerancesScale()));
+
+    // PhysX Visual Debugger
+    gPvd = PxCreatePvd(*gFoundation);
+    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+    gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
+
+    // Init phsyics
+    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+
+    gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
+    return true;
+}
+
+bool ShutdownPhysics()
+{
+    Assert(WorldToPhysX.size() <= 1);
+    for (auto& pair : WorldToPhysX)
+    {
+        pair.second.Scene->release();
+        pair.second.Dispatcher->release();
+    }
+    gPhysics->release();
+    gCooking->release();
+    PxPvdTransport* transport = gPvd->getTransport();
+    gPvd->release();
+    transport->release();
+
+    gFoundation->release();
+    return true;
+}
+
+void CookModel(graphics::GraphicsModel* model)
+{
+    Assert(model);
     PxTriangleMesh** cachedMesh = gPhysicsMeshManager.Exists(model->id);
     if (cachedMesh)
         return;
@@ -221,70 +346,5 @@ void PhysicsWorld::CookModel(graphics::GraphicsModel* model)
         gCooking->createTriangleMesh(meshDesc, gPhysics->getPhysicsInsertionCallback());
 
     gPhysicsMeshManager.LoadOrGet(model->id, aTriangleMesh);
-}
-
-void PhysicsWorld::Shutdown()
-{
-    gScene->release();
-    gDispatcher->release();
-    gPhysics->release();
-    gCooking->release();
-    PxPvdTransport* transport = gPvd->getTransport();
-    gPvd->release();
-    transport->release();
-
-    gFoundation->release();
-}
-
-void PhysicsWorld::AddModel(GameObject& obj)
-{
-    auto triangleMesh = gPhysicsMeshManager.Exists(obj.GetModelId());
-    Assert(triangleMesh);
-
-    auto model = gManagers->ModelManager->Exists(obj.GetModelId());
-    Assert(model);
-    mat4 worldMatrix = obj.GetTransform().GetModelMatrix() * model->meshes[0].localTransform;
-
-    vec3 scale, translation, skew;
-    vec4 perspective;
-    glm::quat orientation;
-    glm::decompose(worldMatrix, scale, orientation, translation, skew, perspective);
-    orientation = glm::conjugate(orientation);
-    PxTriangleMeshGeometry geom(*triangleMesh, PxMeshScale(ToPxVec3(scale)));
-
-    auto shape = gPhysics->createShape(geom, *gMaterial);
-
-    /*auto capsule = ;
-    PxRigidDynamic* dynamic =
-        PxCreateDynamic(*gPhysics, PxTransform(ToPxVec3(translation), ToPxQuat(orientation)),
-                        capsule, *gMaterial, 10.f);
-    dynamic->userData = &obj;*/
-
-    PxRigidDynamic* dynamic =
-        gPhysics->createRigidDynamic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
-    PxTransform relativePose(PxVec3(0, 0.5f, 0));
-    PxShape* aCapsuleShape = PxRigidActorExt::createExclusiveShape(
-        *dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
-    aCapsuleShape->setLocalPose(relativePose);
-    PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
-    dynamic->userData = &obj;
-    gScene->addActor(*dynamic);
-    lastDynamic = dynamic;
-
-    // Static code
-
-    /*PxRigidDynamic* duckMesh =
-        gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
-    Assert(duckMesh);
-    duckMesh->userData = &obj;
-    duckMesh->attachShape(*shape);
-
-    shape->release();
-    gScene->addActor(*duckMesh);*/
-}
-
-void PhysicsWorld::AddForce(vec3 dir, float strength)
-{
-    lastDynamic->addForce(ToPxVec3(dir) * strength);
 }
 }  // namespace DG

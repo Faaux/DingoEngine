@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "DG_Clock.h"
 #include "DG_Include.h"
 #include "DG_Mesh.h"
 
@@ -15,17 +16,20 @@ class PhysicsWorld
 {
    public:
     PhysicsWorld() = default;
-    bool Init();
+    bool Init(const Clock& clock);
     void ToggleDebugVisualization();
     void Update();
-    bool RayCast(vec3 origin, vec3 unitDir);
-    void CookModel(graphics::GraphicsModel* model);
+    void* RayCast(vec3 origin, vec3 unitDir);
     void Shutdown();
-    void AddModel(GameObject& obj);
-    void AddForce(vec3 dir, float strength);
+    void AddModel(GameObject& obj, bool forEditing);
+    void RemoveModel(GameObject& obj);
 
    private:
+    const Clock* _clock;
     bool _outputDebugLines = false;
 };
+void CookModel(graphics::GraphicsModel* model);
+bool InitPhysics();
+bool ShutdownPhysics();
 
 }  // namespace DG

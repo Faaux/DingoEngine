@@ -29,6 +29,19 @@ class Transform
 
     const mat4& GetModelMatrix() const;
 
+
+    friend bool operator==(const Transform& lhs, const Transform& rhs)
+    {
+        return lhs._orientation == rhs._orientation
+               && lhs._position == rhs._position
+               && lhs._scale == rhs._scale;
+    }
+
+    friend bool operator!=(const Transform& lhs, const Transform& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
    private:
     void UpdateModelMatrix() const;
     mutable bool _isValid = false;

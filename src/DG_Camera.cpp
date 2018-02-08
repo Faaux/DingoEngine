@@ -67,7 +67,9 @@ Camera::Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far,
     : _position(pos), _fov(fov), _near(near), _far(far), _aspectRatio(aspectRatio), _up(up)
 {
     RecalculateProjection();
-    _orientation = LookRotation(pos - lookat, up);
+    vec3 forward = pos - lookat;
+    Assert(forward != vec3(0));
+    _orientation = LookRotation(forward, up);
     RecalculateView();
 
     //_forward = -glm::normalize(glm::vec3(_viewMatrix[0][2], _viewMatrix[1][2],
@@ -156,7 +158,7 @@ void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock
     // ToDo: This is broken :(
     TWEAKER_CAT("Camera", F3, "Position", &newPosition.x);
 
-    if (message.MouseRight)
+    if (message.MouseRightDown)
     {
         // Update Pos by User Input
         glm::vec2 mouseDelta(message.MouseDeltaX, message.MouseDeltaY);
@@ -171,7 +173,7 @@ void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock
     glm::vec3 dir(0);
     dir += camera.GetForward() * message.Forward;
     dir += camera.GetRight() * message.Right;
-    if (message.MouseRight)
+    if (message.MouseRightDown)
         dir += glm::vec3(0, 1, 0) * message.Up;
 
     newPosition = newPosition + dir * speed * clock.GetLastDtSeconds();

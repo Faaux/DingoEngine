@@ -59,29 +59,44 @@ void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, Tran
     }
 }
 
-WorldEdit::WorldEdit(GameWorld* world)
-    : _camera(vec3(60, 60, 60), vec3(0), vec3(0, 1, 0), 45.f, 0.001f, 10000.0f, 16.f / 9.f),
-      _world(world),
-      _selectedGameModel(nullptr)
+WorldEdit::WorldEdit() : _gameWorld(vec3(60, 60, 60), g_EditingClock), _selectedGameModel(nullptr)
 {
-    g_MessagingSystem.RegisterCallback<InputMessage>(
-        [=](const InputMessage& message) { _lastInputMessage = message; });
+    g_MessagingSystem.RegisterCallback<InputMessage>([=](const InputMessage& message) {
+        _lastInputMessage = message;
+        _lastInputMessageHandled = false;
+    });
 }
 
 void WorldEdit::Update()
 {
-    Assert(_world);
-
-    if (!g_EditingClock.IsPaused())
+    if (!g_EditingClock.IsPaused() && !_lastInputMessageHandled)
     {
-        UpdateFreeCameraFromInput(_camera, _lastInputMessage, g_EditingClock);
+        UpdateFreeCameraFromInput(_gameWorld.GetPlayerCamera(), _lastInputMessage, g_EditingClock);
     }
 
     static int SelectedIndex = -1;
+
+    if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled)
+    {
+        vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
+
+        void* actor =
+            _gameWorld.PhysicsWorld.RayCast(_gameWorld.GetPlayerCamera().GetPosition(), ray);
+        for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
+        {
+            auto& gameObject = _gameWorld.GetGameObject(i);
+            if (gameObject.Physics->Data == actor)
+            {
+                SelectedIndex = i;
+                break;
+            }
+        }
+    }
+    _lastInputMessageHandled = true;
     bool hasSelection = false;
     if (ImGui::BeginDock("Entity List"))
     {
-        for (u32 i = 0; i < _world->GetGameObjectCount(); ++i)
+        for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
         {
             ImGui::PushID(i);
             hasSelection = hasSelection | (i == SelectedIndex);
@@ -105,16 +120,16 @@ void WorldEdit::Update()
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
         }
 
-        auto& camera = _world->GetPlayerCamera();
+        auto& camera = _gameWorld.GetPlayerCamera();
         if (hasSelection)
         {
-            auto& gameObject = _world->GetGameObject(SelectedIndex);
+            auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
             gameTransform = gameObject.GetTransform();
         }
         AddEditTransform(camera.GetViewMatrix(), camera.GetProjectionMatrix(), gameTransform);
         if (hasSelection)
         {
-            auto& gameObject = _world->GetGameObject(SelectedIndex);
+            auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
             gameObject.GetTransform().Set(gameTransform);
         }
 
@@ -123,7 +138,7 @@ void WorldEdit::Update()
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
-        ImGui::Text("Current Entity Count: %i", _world->GetGameObjectCount());
+        ImGui::Text("Current Entity Count: %i", _gameWorld.GetGameObjectCount());
         static u32 spawnCount = 100;
         TWEAKER(S1, "Spawn Count", &spawnCount);
         if (ImGui::Button("Add Entity"))
@@ -145,27 +160,19 @@ void WorldEdit::Update()
                     tansform.SetPos(
                         vec3(row * offset - otherOffset, col * offset - otherOffset, 0));
                     tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
-                    _world->AddGameObject(newDuck);
+                    _gameWorld.AddGameObject(newDuck, true);
                     index++;
                 }
             }
         }
-        static float strength = 1.0f;
-        static vec3 direction = vec3(0, 1, 0);
-        ImGui::DragFloat("Force strength", &strength);
-        ImGui::DragFloat3("Force direction", &direction.x);
-        if (ImGui::Button("Add Force to entity"))
-        {
-            _world->PhysicsWorld.AddForce(glm::normalize(direction), strength);
-        }
     }
     ImGui::EndDock();
 
-    if (hasSelection)
+    if (!g_EditingClock.IsPaused() && hasSelection)
     {
-        auto& gameObject = _world->GetGameObject(SelectedIndex);
+        auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
         // ToDo Make this show up in another window
-        if (gameObject.GetModelId() != "")
+        if (gameObject.Renderable->RenderableId != "")
         {
             if (ImGui::BeginChild("Scene Window"))
             {
@@ -175,18 +182,43 @@ void WorldEdit::Update()
 
                 mat4 localEditable = gameObject.GetTransform().GetModelMatrix();
 
-                auto& playerCamera = _world->GetPlayerCamera();
-                ImGuizmo::Manipulate(&playerCamera.GetViewMatrix()[0][0],
-                                     &playerCamera.GetProjectionMatrix()[0][0],
+                ImGuizmo::Manipulate(&_gameWorld.GetPlayerCamera().GetViewMatrix()[0][0],
+                                     &_gameWorld.GetPlayerCamera().GetProjectionMatrix()[0][0],
                                      mCurrentGizmoOperation, mCurrentGizmoMode,
                                      &localEditable[0][0], NULL, useSnap ? &snap[0] : NULL);
 
-                gameObject.GetTransform().Set(localEditable);
+                if (gameObject.GetTransform().GetModelMatrix() != localEditable)
+                {
+                    gameObject.GetTransform().Set(localEditable);
+                    _gameWorld.PhysicsWorld.RemoveModel(gameObject);
+                    _gameWorld.PhysicsWorld.AddModel(gameObject, true);
+                }
             }
             ImGui::EndChild();
         }
     }
 }
 
-Camera& WorldEdit::GetEditCamera() { return _camera; }
+GameWorld* WorldEdit::GetWorld() { return &_gameWorld; }
+
+vec3 GetMouseRayGameClient(const InputMessage& message, const Camera& camera)
+{
+    // ToDo: This needs to get the current window size form somewhere else...
+    bool isVisible = ImGui::BeginChild("Scene Window");
+    Assert(isVisible);
+    ImVec2 size = ImGui::GetContentRegionAvail();
+    ImGui::EndChild();
+
+    vec4 pos(message.MouseX, message.MouseY, -1.0f, 1.0f);
+
+    pos.x = (pos.x / size.x) * 2.f - 1.f;
+    pos.y = (1.f - (pos.y / size.y)) * 2.f - 1.f;
+
+    pos = glm::inverse(camera.GetProjectionMatrix()) * pos;
+    pos.w = 0.f;
+    pos.z = -1.f;
+    pos = glm::inverse(camera.GetViewMatrix()) * pos;
+
+    return glm::normalize(vec3(pos.x, pos.y, pos.z));
+}
 }  // namespace DG

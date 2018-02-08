@@ -6,6 +6,24 @@
 
 namespace DG
 {
+struct RawInputMessage
+{
+    float Right = 0.f;
+    float Forward = 0.f;
+    float Up = 0.f;
+    float MouseWheel = 0.f;
+    bool MouseLeftDown = false;
+    bool MouseRightDown = false;
+    bool MouseMiddleDown = false;
+    bool MouseLeftPressed = false;
+    bool MouseRightPressed = false;
+    bool MouseMiddlePressed = false;
+    s32 MouseDeltaX = 0;
+    s32 MouseDeltaY = 0;
+    s32 MouseX = 0;
+    s32 MouseY = 0;
+};
+
 bool Key::isDown() const { return _isDown; }
 
 bool Key::isUp() const { return !_isDown; }
@@ -20,10 +38,11 @@ void Key::Reset()
     _wasPressed = false;
 }
 
-void InputSystem::Update()
+void RawInputSystem::Update()
 {
     _mouseWheel = 0;
-    _mouseLeft = _mouseRight = _mouseMiddle = false;
+    _mouseLeftDown = _mouseRightDown = _mouseMiddleDown = false;
+    _mouseLeftPressed = _mouseRightPressed = _mouseMiddlePressed = false;
 
     for (Key& key : _keys)
     {
@@ -90,11 +109,11 @@ void InputSystem::Update()
             case SDL_MOUSEBUTTONDOWN:
             {
                 if (event.button.button == SDL_BUTTON_LEFT)
-                    _mouseLeft = true;
+                    _mouseLeftPressed = true;
                 if (event.button.button == SDL_BUTTON_RIGHT)
-                    _mouseRight = true;
+                    _mouseRightPressed = true;
                 if (event.button.button == SDL_BUTTON_MIDDLE)
-                    _mouseMiddle = true;
+                    _mouseMiddlePressed = true;
             }
         }
     }
@@ -102,9 +121,9 @@ void InputSystem::Update()
     // Grab Mouse State (additionally to events!)
     s32 mouseX, mouseY;
     u32 mouseMask = SDL_GetMouseState(&mouseX, &mouseY);
-    _mouseLeft = _mouseLeft || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-    _mouseRight = _mouseRight || (mouseMask & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-    _mouseMiddle = _mouseMiddle || (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+    _mouseLeftDown = _mouseLeftPressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    _mouseRightDown = _mouseRightPressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+    _mouseMiddleDown = _mouseMiddlePressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
 
     s32 mouseDeltaX = mouseX - _mouseX;
     s32 mouseDeltaY = _mouseY - mouseY;
@@ -124,7 +143,7 @@ void InputSystem::Update()
 
     // Input (Movement and mouse)
     {
-        InputMessage message;
+        RawInputMessage message;
         if (_keys[SDL_SCANCODE_W].isDown())
         {
             message.Forward += 1.f;
@@ -150,19 +169,52 @@ void InputSystem::Update()
             message.Up -= 1.f;
         }
         message.MouseWheel = _mouseWheel;
-        message.MouseLeft = _mouseLeft;
-        message.MouseRight = _mouseRight;
-        message.MouseMiddle = _mouseMiddle;
+        message.MouseLeftDown = _mouseLeftDown;
+        message.MouseRightDown = _mouseRightDown;
+        message.MouseMiddleDown = _mouseMiddleDown;
+        message.MouseLeftPressed = _mouseLeftPressed;
+        message.MouseRightPressed = _mouseRightPressed;
+        message.MouseMiddlePressed = _mouseMiddlePressed;
         message.MouseDeltaX = mouseDeltaX;
         message.MouseDeltaY = mouseDeltaY;
+        message.MouseX = _mouseX;
+        message.MouseY = _mouseY;
         g_MessagingSystem.SendNextFrame(message);
     }
 }
 
-bool InputSystem::IsQuitRequested() const { return _quitRequested; }
+bool RawInputSystem::IsQuitRequested() const { return _quitRequested; }
 
-void InputSystem::RequestClose()
+void RawInputSystem::RequestClose() { _quitRequested = true; }
+
+InputSystem::InputSystem()
 {
-    _quitRequested = true;
+    g_MessagingSystem.RegisterCallback<RawInputMessage>([=](const RawInputMessage& m) {
+        if (!IsForwardingToGame)
+            return;
+
+        static_assert(sizeof(InputMessage) == sizeof(RawInputMessage));
+        InputMessage message;
+        SDL_memcpy(&message, &m, sizeof(InputMessage));
+
+        bool isVisible = ImGui::BeginChild("Scene Window");
+        Assert(isVisible);
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImVec2 size = ImGui::GetContentRegionAvail();
+        ImGui::EndChild();
+
+        // Sanitize Mouse Input
+        message.MouseX = (s32)(m.MouseX - p.x);
+        message.MouseY = (s32)(m.MouseY - p.x);
+
+        if (message.MouseX > size.x || message.MouseY > size.y)
+        {
+            message.MouseLeftPressed = false;
+            message.MouseRightPressed = false;
+            message.MouseMiddlePressed = false;
+        }
+
+        g_MessagingSystem.SendImmediate(message);
+    });
 }
 }  // namespace DG

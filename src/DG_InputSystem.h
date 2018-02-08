@@ -6,7 +6,7 @@ namespace DG
 {
 class Key
 {
-    friend class InputSystem;
+    friend class RawInputSystem;
 
    public:
     bool isDown() const;
@@ -34,16 +34,20 @@ struct ToggleFullscreenMessage
 
 struct InputMessage
 {
-
     float Right = 0.f;
     float Forward = 0.f;
     float Up = 0.f;
     float MouseWheel = 0.f;
-    bool MouseLeft = false;
-    bool MouseRight = false;
-    bool MouseMiddle = false;
+    bool MouseLeftDown = false;
+    bool MouseRightDown = false;
+    bool MouseMiddleDown = false;
+    bool MouseLeftPressed = false;
+    bool MouseRightPressed = false;
+    bool MouseMiddlePressed = false;
     s32 MouseDeltaX = 0;
     s32 MouseDeltaY = 0;
+    s32 MouseX = 0;
+    s32 MouseY = 0;
 };
 
 struct KeyMessage
@@ -54,7 +58,7 @@ struct KeyMessage
     bool wasAltDown;
 };
 
-class InputSystem
+class RawInputSystem
 {
    public:
     void Update();
@@ -67,14 +71,24 @@ class InputSystem
 
    private:
     float _mouseWheel = 0;
-    bool _mouseLeft = false;
-    bool _mouseRight = false;
-    bool _mouseMiddle = false;
+    bool _mouseLeftDown = false;
+    bool _mouseRightDown = false;
+    bool _mouseMiddleDown = false;
+    bool _mouseLeftPressed = false;
+    bool _mouseRightPressed = false;
+    bool _mouseMiddlePressed = false;
     s32 _mouseX = 0;
     s32 _mouseY = 0;
     char _textInput[SDL_TEXTINPUTEVENT_TEXT_SIZE];
     bool _quitRequested = false;
 
     Key _keys[SDL_NUM_SCANCODES];
+};
+
+class InputSystem
+{
+   public:
+    InputSystem();
+    bool IsForwardingToGame = true;
 };
 }  // namespace DG

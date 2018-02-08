@@ -34,24 +34,27 @@ struct GameState
 {
     enum class GameMode
     {
-        Editing = 0,  // Since Game will be zeroed for init this is the default!
-        Running = 1,
+        EditMode = 0,  // Since Game will be zeroed for init this is the default!
+        PlayMode = 1,
 
     };
+
+    StackAllocator PlayModeStack;
+
     bool GameIsRunning = true;
     bool IsWireframe = false;
 
-    GameMode Mode = GameMode::Editing;
+    GameMode Mode = GameMode::EditMode;
 
-    SDL_Window* Window;
     SDL_GLContext GLContext;
+    SDL_Window* Window;
 
+    RawInputSystem* RawInputSystem;
     InputSystem* InputSystem;
     GraphicsSystem* GraphicsSystem;
 
     WorldEdit* WorldEdit;
-
-    GameWorld* World;
+    GameWorld* ActiveWorld;
 };
 
 struct FrameData
@@ -226,7 +229,8 @@ bool InitMemory()
 void Cleanup()
 {
     // PhysX Cleanup
-    Game->World->Shutdown();
+    Game->WorldEdit->GetWorld()->Shutdown();
+    ShutdownPhysics();
 
     ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(Game->GLContext);
@@ -265,7 +269,7 @@ void AttachDebugListenersToMessageSystem()
 
 void Update(FrameData* frameData)
 {
-    Game->World->Update();
+    Game->ActiveWorld->Update();
     Game->WorldEdit->Update();
 
     AddDebugAxes(Transform(), 5.f, 2.5f);
@@ -306,6 +310,8 @@ int main(int, char* [])
         return -1;
 
     Game = Memory.PersistentMemory.Push<GameState>();
+    u32 playModeSize = 4 * 1024 * 1024;  // 4MB
+    Game->PlayModeStack.Init(Memory.TransientMemory.Push(playModeSize, 4), playModeSize);
 
     if (!InitSDL())
         return -1;
@@ -319,29 +325,26 @@ int main(int, char* [])
     if (!InitWorkerThreads())
         return -1;
 
+    if (!InitPhysics())
+        return -1;
+
     InitClocks();
 
     // Start Init Systems
     gManagers = Memory.TransientMemory.PushAndConstruct<Managers>();
+    Game->RawInputSystem = Memory.TransientMemory.PushAndConstruct<RawInputSystem>();
     Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
     Game->GraphicsSystem = Memory.TransientMemory.PushAndConstruct<GraphicsSystem>(Game->Window);
     gManagers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
     gManagers->GLTFSceneManager = Memory.TransientMemory.PushAndConstruct<GLTFSceneManager>();
     gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<ShaderManager>();
-    Game->World = Memory.TransientMemory.PushAndConstruct<GameWorld>(vec3(45, 45, 45));
-    Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>(Game->World);
+    Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>();
+    Game->ActiveWorld = Game->WorldEdit->GetWorld();
 
     // World Edit needs to be initialized for this to work!
     if (!InitImgui())
         return -1;
 
-    // ToDo Remove(Testing)
-    Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
-    GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    GraphicsModel* model2 =
-        gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
-    Game->World->PhysicsWorld.CookModel(model2);
-    // Game->World->PhysicsWorld.ToggleDebugVisualization();
     g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
@@ -363,17 +366,25 @@ int main(int, char* [])
         frames[i].IsRenderDone = true;
     }
 
+    // Stop clocks depending on edit mode
+    if (Game->Mode == GameState::GameMode::EditMode)
+        g_InGameClock.SetPaused(true);
+    else if (Game->Mode == GameState::GameMode::PlayMode)
+        g_EditingClock.SetPaused(true);
+
     // ToDo: Move somehwere sensible
     Framebuffer framebuffer(1280, 720);
     framebuffer.AddColorTexture();
     framebuffer.AddDepthTexture();
 
-    if (Game->Mode == GameState::GameMode::Editing)
-        g_InGameClock.SetPaused(true);
-    else if (Game->Mode == GameState::GameMode::Running)
-        g_EditingClock.SetPaused(true);
+    // ToDo Remove(Testing)
+    Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+    GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    GraphicsModel* model2 =
+        gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
 
-    while (!Game->InputSystem->IsQuitRequested())
+    Game->ActiveWorld = Game->WorldEdit->GetWorld();
+    while (!Game->RawInputSystem->IsQuitRequested())
     {
         // Frame Data Setup
         FrameData& previousFrameData = frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
@@ -385,7 +396,7 @@ int main(int, char* [])
         TWEAKER_FRAME_CAT("OpenGL", CB, "Wireframe", &currentFrameData.RenderCTX->_isWireframe);
 
         // Poll Events and Update Input accordingly
-        Game->InputSystem->Update();
+        Game->RawInputSystem->Update();
 
         // Measure time and update clocks!
         const u64 lastTime = currentTime;
@@ -396,6 +407,7 @@ int main(int, char* [])
         if (dtSeconds > 0.25f)
             dtSeconds = 1.0f / TargetFrameRate;
 
+        // Update Clocks
         g_RealTimeClock.Update(dtSeconds);
         g_EditingClock.Update(dtSeconds);
         g_InGameClock.Update(dtSeconds);
@@ -405,6 +417,7 @@ int main(int, char* [])
         ImGuizmo::BeginFrame();
         ImVec2 mainBarSize;
 
+        // Main Menu Bar
         if (ImGui::BeginMainMenuBar())
         {
             mainBarSize = ImGui::GetWindowSize();
@@ -417,7 +430,7 @@ int main(int, char* [])
 
                 if (ImGui::MenuItem("Exit"))
                 {
-                    Game->InputSystem->RequestClose();
+                    Game->RawInputSystem->RequestClose();
                 }
                 ImGui::EndMenu();
             }
@@ -436,22 +449,33 @@ int main(int, char* [])
                 ImGui::EndMenu();
             }
 
-            if (Game->Mode == GameState::GameMode::Editing)
+            if (Game->Mode == GameState::GameMode::EditMode)
             {
                 if (ImGui::MenuItem("Start Playmode"))
                 {
-                    Game->Mode = GameState::GameMode::Running;
+                    Game->Mode = GameState::GameMode::PlayMode;
                     g_EditingClock.SetPaused(true);
                     g_InGameClock.SetPaused(false);
+
+                    // Cleanup PlayMode stack
+                    Game->PlayModeStack.Reset();
+                    Game->ActiveWorld = Game->PlayModeStack.Push<GameWorld>();
+
+                    // Copy World from Edit mode over
+                    CopyGameWorld(Game->ActiveWorld, Game->WorldEdit->GetWorld());
                 }
             }
-            else if (Game->Mode == GameState::GameMode::Running)
+            else if (Game->Mode == GameState::GameMode::PlayMode)
             {
                 if (ImGui::MenuItem("Stop Playmode"))
                 {
-                    Game->Mode = GameState::GameMode::Editing;
+                    Game->Mode = GameState::GameMode::EditMode;
                     g_EditingClock.SetPaused(false);
                     g_InGameClock.SetPaused(true);
+
+                    Game->ActiveWorld->Shutdown();
+                    Game->ActiveWorld->~GameWorld();
+                    Game->ActiveWorld = Game->WorldEdit->GetWorld();
                 }
             }
 
@@ -461,20 +485,6 @@ int main(int, char* [])
                         ImGui::GetIO().Framerate);
 
             ImGui::EndMainMenuBar();
-        }
-
-        Camera* camera = nullptr;
-        if (Game->Mode == GameState::GameMode::Running)
-        {
-            camera = &Game->World->GetPlayerCamera();
-        }
-        else if (Game->Mode == GameState::GameMode::Editing)
-        {
-            Transform transform;
-            transform.Set(glm::inverse(Game->World->GetPlayerCamera().GetViewMatrix()));
-            AddDebugAxes(transform, 1.f, 3.f);
-
-            camera = &Game->WorldEdit->GetEditCamera();
         }
 
         ImVec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
@@ -493,6 +503,9 @@ int main(int, char* [])
             // Imgui Window for scene
             if (ImGui::BeginDock("Scene Window", 0, ImGuiWindowFlags_NoResize))
             {
+                Game->InputSystem->IsForwardingToGame =
+                    ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+
                 ImVec2 pos = ImGui::GetCursorScreenPos();
                 ImVec2 avaialbeSize = ImGui::GetContentRegionAvail();
 
@@ -504,7 +517,8 @@ int main(int, char* [])
                     ImVec2(pos.x + avaialbeSize.x, pos.y + avaialbeSize.y), ImVec2(0, 1),
                     ImVec2(1, 0));
 
-                camera->UpdateProjection(avaialbeSize.x, avaialbeSize.y);
+                Game->ActiveWorld->GetPlayerCamera().UpdateProjection(avaialbeSize.x,
+                                                                      avaialbeSize.y);
             }
             ImGui::EndDock();
 
@@ -515,6 +529,7 @@ int main(int, char* [])
             AddImguiTweakers();
             ImGui::EndDockspace();
         }
+
         ImGui::End();
         ImGui::Render();
 
@@ -556,20 +571,22 @@ int main(int, char* [])
 
         // Set camera to render scene with
 
-        currentFrameData.RenderCTX->SetCamera(camera->GetViewMatrix(),
-                                              camera->GetProjectionMatrix());
+        currentFrameData.RenderCTX->SetCamera(
+            Game->ActiveWorld->GetPlayerCamera().GetViewMatrix(),
+            Game->ActiveWorld->GetPlayerCamera().GetProjectionMatrix());
 
         // Queueing gameobjects to be rendered
         RenderQueue* renderQueue = currentFrameData.FrameMemory.Push<RenderQueue>();
-        renderQueue->Count = Game->World->GetGameObjectCount();
+        renderQueue->Count = Game->ActiveWorld->GetGameObjectCount();
         renderQueue->Renderables =
             currentFrameData.FrameMemory.Push<Renderable>(renderQueue->Count);
 
         for (u32 i = 0; i < renderQueue->Count; ++i)
         {
             // Get Data
-            auto& gameObject = Game->World->GetGameObject(i);
-            GraphicsModel* model = gManagers->ModelManager->Exists(gameObject.GetModelId());
+            auto& gameObject = Game->ActiveWorld->GetGameObject(i);
+            GraphicsModel* model =
+                gManagers->ModelManager->Exists(gameObject.Renderable->RenderableId);
             Assert(model);
 
             // Set Shader if not set yet

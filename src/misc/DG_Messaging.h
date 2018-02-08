@@ -105,13 +105,6 @@ std::vector<std::function<void(const T&)>> MessagingSystem::_messageCallbacks;
 template <class T>
 void MessagingSystem::Send(const T& message, float delayInS)
 {
-    static bool didRegister = false;
-    if (!didRegister)
-    {
-        didRegister = true;
-        _updateCalls.push_back(&MessagingSystem::UpdateTypedMessageQueue<T>);
-    }
-
     if (delayInS < 0.0f)
     {
         InternalSend(message);
@@ -138,6 +131,13 @@ void MessagingSystem::SendImmediate(const T& message)
 template <class T>
 CallbackHandle<T> MessagingSystem::RegisterCallback(std::function<void(const T&)> callback)
 {
+    static bool didRegister = false;
+    if (!didRegister)
+    {
+        didRegister = true;
+        _updateCalls.push_back(&MessagingSystem::UpdateTypedMessageQueue<T>);
+    }
+
     auto& callbacks = _messageCallbacks<T>;
     auto& freeList = _messageCallbacksFreeList<T>;
     if (!freeList.empty())
@@ -185,7 +185,10 @@ void MessagingSystem::UpdateTypedMessageQueue(const Clock* clock)
         if (message.timeToSend > currentTimeInCylces)
             break;
 
-        for (auto& callback : _messageCallbacks<T>) callback(message.message);
+        auto& callbacks = _messageCallbacks<T>;
+        for (auto& callback : callbacks)
+            if (callback)
+                callback(message.message);
 
         _messageQueue<T>.pop();
     }
