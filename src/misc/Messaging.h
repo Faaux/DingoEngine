@@ -1,3 +1,9 @@
+/**
+*  @file    Messaging.h
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #pragma once
 #include <functional>
 #include <optional>

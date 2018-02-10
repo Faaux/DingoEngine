@@ -1,3 +1,9 @@
+/**
+*  @file    ResourceHelper.cpp
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #include "ResourceHelper.h"
 #include <filesystem>
 #include "Mesh.h"

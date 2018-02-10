@@ -1,3 +1,9 @@
+/**
+*  @file    DG_Windows.h
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #pragma once
 #if defined(__WIN32__) || defined(__WINRT__)
 #define VC_EXTRALEAN

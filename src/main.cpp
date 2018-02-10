@@ -1,3 +1,9 @@
+/**
+*  @file    main.cpp
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #include <SDL.h>
 
 #include "DG_Include.h"

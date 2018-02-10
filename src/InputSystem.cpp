@@ -1,3 +1,9 @@
+/**
+*  @file    InputSystem.cpp
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #include "InputSystem.h"
 #include <cstring>
 #include "DG_Include.h"

@@ -1,3 +1,9 @@
+/**
+*  @file    StringIdCRC32.h
+*  @author  Faaux (github.com/Faaux)
+*  @date    11 February 2018
+*/
+
 #pragma once
 #include "DG_Include.h"
 #include <vector>

@@ -22,9 +22,9 @@ for path in pathlist:
 
     with open(path_in_str, 'r') as original:
         data = original.read()
-    if data.startswith("/**\n *  @file"):
+    if data.startswith("/**\n"):
         continue
-    with open('filename', 'w') as modified:
+    with open(path_in_str, 'w') as modified:
         modified.write("/**\n"
                        "*  @file    {}\n"
                        "*  @author  Faaux (github.com/Faaux)\n"
