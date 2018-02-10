@@ -1,3 +1,9 @@
+/**
+ *  @file    DG_Imgui.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #include "DG_Imgui.h"
 #include <imgui.h>
 #include "InputSystem.h"
@@ -10,7 +16,7 @@ std::unordered_map<std::string, std::vector<Tweaker>> g_TweakersPerFrame;
 bool isVisible = false;
 
 static void AddTweaker(const ImGuiTextFilter &filter, const std::vector<Tweaker> &tweakers,
-                       float speed, const char* catName)
+                       float speed, const char *catName)
 {
     ImGui::Columns(2);
     ImGui::Text("Variable");

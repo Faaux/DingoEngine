@@ -1,3 +1,9 @@
+/**
+ *  @file    ShaderManager.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #include "ShaderManager.h"
 
 namespace DG::graphics

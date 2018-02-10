@@ -141,10 +141,10 @@ void PhysicsWorld::Update()
         auto rigidActor = activeActors[i]->is<PxRigidActor>();
         if (rigidActor)
         {
-            GameObject* gameObject = static_cast<GameObject*>(rigidActor->userData);
+            /*GameObject* gameObject = static_cast<GameObject*>(rigidActor->userData);
             PxTransform transform = rigidActor->getGlobalPose();
 
-            gameObject->GetTransform().Set(ToVec3(transform.p), ToQuat(transform.q));
+            gameObject->GetTransform().Set(ToVec3(transform.p), ToQuat(transform.q));*/
         }
     }
 
@@ -187,91 +187,91 @@ void PhysicsWorld::Shutdown()
     scene.Dispatcher->release();
     WorldToPhysX.erase(this);
 }
-
-void PhysicsWorld::AddModel(GameObject& obj, bool forEditing)
-{
-    auto scene = WorldToPhysX[this].Scene;
-
-    auto model = gManagers->ModelManager->Exists(obj.Renderable->RenderableId);
-    Assert(model);
-
-    if (forEditing)
-    {
-        // Disassemble local matrix for model
-        mat4 worldMatrix = obj.GetTransform().GetModelMatrix() * model->meshes[0].localTransform;
-
-        vec3 scale, translation, skew;
-        vec4 perspective;
-        glm::quat orientation;
-        glm::decompose(worldMatrix, scale, orientation, translation, skew, perspective);
-        orientation = glm::conjugate(orientation);
-
-        // Get Mesh
-        auto triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
-        if (!triangleMesh)
-        {
-            SDL_LogWarn(0, "Runtime cooking for EDITOR Mesh");
-            CookModel(gManagers->ModelManager->Exists(obj.Renderable->RenderableId));
-            triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
-        }
-        Assert(triangleMesh);
-
-        // Create Geometry and then Shape
-        PxTriangleMeshGeometry geom(*triangleMesh, PxMeshScale(ToPxVec3(scale)));
-        PxShape* shape = gPhysics->createShape(geom, *gMaterial);
-
-        // Create Rigid Static
-        PxRigidStatic* staticActor =
-            gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
-
-        staticActor->userData = &obj;
-        staticActor->attachShape(*shape);
-        shape->release();
-        scene->addActor(*staticActor);
-
-        // Add to gameobject
-        obj.Physics = new PhysicsComponent();
-        obj.Physics->Data = staticActor;
-        obj.Physics->Type = PhysicsComponent::Type::Static;
-    }
-    else
-    {
-        auto& objectTransform = obj.GetTransform();
-        const auto translation = ToPxVec3(objectTransform.GetPosition());
-        const auto orientation = ToPxQuat(objectTransform.GetOrientation());
-        // Create Actor
-        PxRigidDynamic* dynamic =
-            gPhysics->createRigidDynamic(PxTransform(translation, orientation));
-
-        // Attach Shape
-        PxShape* dynamicShape = PxRigidActorExt::createExclusiveShape(
-            *dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
-        PxTransform relativePose(PxVec3(0, 0.5f, 0));
-        dynamicShape->setLocalPose(relativePose);
-
-        // Update with new shape
-        PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
-
-        // Add to scene
-        dynamic->userData = &obj;
-        scene->addActor(*dynamic);
-
-        // Add to gameobject
-        obj.Physics = new PhysicsComponent();
-        obj.Physics->Data = dynamic;
-        obj.Physics->Type = PhysicsComponent::Type::Dynamic;
-    }
-}
-
-void PhysicsWorld::RemoveModel(GameObject& obj)
-{
-    auto scene = WorldToPhysX[this].Scene;
-    PxRigidBody* rigidBody = (PxRigidBody*)obj.Physics->Data;
-    rigidBody->release();
-
-    delete obj.Physics;
-    obj.Physics = nullptr;
-}
+//
+//void PhysicsWorld::AddModel(GameObject& obj, bool forEditing)
+//{
+//    auto scene = WorldToPhysX[this].Scene;
+//
+//    auto model = gManagers->ModelManager->Exists(obj.Renderable->RenderableId);
+//    Assert(model);
+//
+//    if (forEditing)
+//    {
+//        // Disassemble local matrix for model
+//        mat4 worldMatrix = obj.GetTransform().GetModelMatrix() * model->meshes[0].localTransform;
+//
+//        vec3 scale, translation, skew;
+//        vec4 perspective;
+//        glm::quat orientation;
+//        glm::decompose(worldMatrix, scale, orientation, translation, skew, perspective);
+//        orientation = glm::conjugate(orientation);
+//
+//        // Get Mesh
+//        auto triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
+//        if (!triangleMesh)
+//        {
+//            SDL_LogWarn(0, "Runtime cooking for EDITOR Mesh");
+//            CookModel(gManagers->ModelManager->Exists(obj.Renderable->RenderableId));
+//            triangleMesh = gPhysicsMeshManager.Exists(obj.Renderable->RenderableId);
+//        }
+//        Assert(triangleMesh);
+//
+//        // Create Geometry and then Shape
+//        PxTriangleMeshGeometry geom(*triangleMesh, PxMeshScale(ToPxVec3(scale)));
+//        PxShape* shape = gPhysics->createShape(geom, *gMaterial);
+//
+//        // Create Rigid Static
+//        PxRigidStatic* staticActor =
+//            gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
+//
+//        staticActor->userData = &obj;
+//        staticActor->attachShape(*shape);
+//        shape->release();
+//        scene->addActor(*staticActor);
+//
+//        // Add to gameobject
+//        obj.Physics = new PhysicsComponent();
+//        obj.Physics->Data = staticActor;
+//        obj.Physics->Type = PhysicsComponent::Type::Static;
+//    }
+//    else
+//    {
+//        auto& objectTransform = obj.GetTransform();
+//        const auto translation = ToPxVec3(objectTransform.GetPosition());
+//        const auto orientation = ToPxQuat(objectTransform.GetOrientation());
+//        // Create Actor
+//        PxRigidDynamic* dynamic =
+//            gPhysics->createRigidDynamic(PxTransform(translation, orientation));
+//
+//        // Attach Shape
+//        PxShape* dynamicShape = PxRigidActorExt::createExclusiveShape(
+//            *dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
+//        PxTransform relativePose(PxVec3(0, 0.5f, 0));
+//        dynamicShape->setLocalPose(relativePose);
+//
+//        // Update with new shape
+//        PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
+//
+//        // Add to scene
+//        dynamic->userData = &obj;
+//        scene->addActor(*dynamic);
+//
+//        // Add to gameobject
+//        obj.Physics = new PhysicsComponent();
+//        obj.Physics->Data = dynamic;
+//        obj.Physics->Type = PhysicsComponent::Type::Dynamic;
+//    }
+//}
+//
+//void PhysicsWorld::RemoveModel(GameObject& obj)
+//{
+//    auto scene = WorldToPhysX[this].Scene;
+//    PxRigidBody* rigidBody = (PxRigidBody*)obj.Physics->Data;
+//    rigidBody->release();
+//
+//    delete obj.Physics;
+//    obj.Physics = nullptr;
+//}
 
 bool InitPhysics()
 {

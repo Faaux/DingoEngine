@@ -1,3 +1,9 @@
+/**
+ *  @file    Font.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #pragma once
 #include <ft2build.h>
 #include "DG_Include.h"
@@ -53,7 +59,8 @@ class Font
 
    public:
     Font();
-    bool Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight, u32 textureSize = 256);
+    bool Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight,
+              u32 textureSize = 256);
     void RenderTextWorldBillboard(const std::string& textToRender, const RenderContext* context,
                                   const vec3& position, const Color& color = Color(1));
     void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,

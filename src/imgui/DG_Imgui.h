@@ -1,3 +1,9 @@
+/**
+ *  @file    DG_Imgui.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #pragma once
 #include <unordered_map>
 #include <vector>

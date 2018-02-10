@@ -1,3 +1,9 @@
+/**
+ *  @file    GraphicsSystem.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #pragma once
 #include <glad/glad.h>
 #include <imgui.h>
@@ -6,7 +12,6 @@
 #include "Camera.h"
 #include "DG_Include.h"
 #include "Framebuffer.h"
-#include "GameObject.h"
 #include "Mesh.h"
 #include "Shader.h"
 #include "Transform.h"

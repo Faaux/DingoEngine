@@ -1,3 +1,9 @@
+/**
+ *  @file    Shader.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #include "Shader.h"
 #include <glad/glad.h>
 #include <fstream>

@@ -59,7 +59,7 @@ void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, Tran
     }
 }
 
-WorldEdit::WorldEdit() : _gameWorld(vec3(60, 60, 60), g_EditingClock), _selectedGameModel(nullptr)
+WorldEdit::WorldEdit() : _selectedActor(nullptr)
 {
     g_MessagingSystem.RegisterCallback<InputMessage>([=](const InputMessage& message) {
         _lastInputMessage = message;
@@ -69,34 +69,29 @@ WorldEdit::WorldEdit() : _gameWorld(vec3(60, 60, 60), g_EditingClock), _selected
 
 void WorldEdit::Update()
 {
-    if (!g_EditingClock.IsPaused() && !_lastInputMessageHandled)
-    {
-        UpdateFreeCameraFromInput(_gameWorld.GetPlayerCamera(), _lastInputMessage, g_EditingClock);
-    }
-
     static int SelectedIndex = -1;
 
     if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled && !ImGuizmo::IsOver())
     {
-        vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
+        /* vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
 
-        void* actor =
-            _gameWorld.PhysicsWorld.RayCast(_gameWorld.GetPlayerCamera().GetPosition(), ray);
-        for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
-        {
-            auto& gameObject = _gameWorld.GetGameObject(i);
-            if (gameObject.Physics->Data == actor)
-            {
-                SelectedIndex = i;
-                break;
-            }
-        }
+         void* actor =
+             _gameWorld.PhysicsWorld.RayCast(_gameWorld.GetPlayerCamera().GetPosition(), ray);
+         for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
+         {
+             auto& gameObject = _gameWorld.GetGameObject(i);
+             if (gameObject.Physics->Data == actor)
+             {
+                 SelectedIndex = i;
+                 break;
+             }
+         }*/
     }
     _lastInputMessageHandled = true;
     bool hasSelection = false;
     if (ImGui::BeginDock("Entity List"))
     {
-        for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
+        /*for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
         {
             ImGui::PushID(i);
             hasSelection = hasSelection | (i == SelectedIndex);
@@ -106,7 +101,7 @@ void WorldEdit::Update()
                 SelectedIndex = i;
             }
             ImGui::PopID();
-        }
+        }*/
     }
     ImGui::EndDock();
 
@@ -114,7 +109,7 @@ void WorldEdit::Update()
 
     if (ImGui::BeginDock("Entity Manager"))
     {
-        if (!hasSelection)
+        /*if (!hasSelection)
         {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -164,38 +159,38 @@ void WorldEdit::Update()
                     index++;
                 }
             }
-        }
+        }*/
     }
     ImGui::EndDock();
 
     if (!g_EditingClock.IsPaused() && hasSelection)
     {
-        auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
-        // ToDo Make this show up in another window
-        if (gameObject.Renderable->RenderableId != "")
-        {
-            if (ImGui::BeginChild("Scene Window"))
-            {
-                ImVec2 size = ImGui::GetContentRegionAvail();
-                ImVec2 pos = ImGui::GetCursorScreenPos();
-                ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
+        // auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
+        //// ToDo Make this show up in another window
+        // if (gameObject.Renderable->RenderableId != "")
+        //{
+        //    if (ImGui::BeginChild("Scene Window"))
+        //    {
+        //        ImVec2 size = ImGui::GetContentRegionAvail();
+        //        ImVec2 pos = ImGui::GetCursorScreenPos();
+        //        ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
 
-                mat4 localEditable = gameObject.GetTransform().GetModelMatrix();
+        //        mat4 localEditable = gameObject.GetTransform().GetModelMatrix();
 
-                ImGuizmo::Manipulate(&_gameWorld.GetPlayerCamera().GetViewMatrix()[0][0],
-                                     &_gameWorld.GetPlayerCamera().GetProjectionMatrix()[0][0],
-                                     mCurrentGizmoOperation, mCurrentGizmoMode,
-                                     &localEditable[0][0], NULL, useSnap ? &snap[0] : NULL);
+        //        ImGuizmo::Manipulate(&_gameWorld.GetPlayerCamera().GetViewMatrix()[0][0],
+        //                             &_gameWorld.GetPlayerCamera().GetProjectionMatrix()[0][0],
+        //                             mCurrentGizmoOperation, mCurrentGizmoMode,
+        //                             &localEditable[0][0], NULL, useSnap ? &snap[0] : NULL);
 
-                if (gameObject.GetTransform().GetModelMatrix() != localEditable)
-                {
-                    gameObject.GetTransform().Set(localEditable);
-                    _gameWorld.PhysicsWorld.RemoveModel(gameObject);
-                    _gameWorld.PhysicsWorld.AddModel(gameObject, true);
-                }
-            }
-            ImGui::EndChild();
-        }
+        //        if (gameObject.GetTransform().GetModelMatrix() != localEditable)
+        //        {
+        //            gameObject.GetTransform().Set(localEditable);
+        //            _gameWorld.PhysicsWorld.RemoveModel(gameObject);
+        //            _gameWorld.PhysicsWorld.AddModel(gameObject, true);
+        //        }
+        //    }
+        //    ImGui::EndChild();
+        //}
     }
 }
 

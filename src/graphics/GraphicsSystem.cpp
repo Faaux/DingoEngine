@@ -368,7 +368,7 @@ void DebugRenderSystem::Render(const RenderContext* renderContext,
     if (!isFontInit)
     {
         vec2 currentSize = renderContext->Framebuffer->GetSize();
-        font.Init("Roboto-Regular.ttf", 16, currentSize.x, currentSize.y);
+        font.Init("Roboto-Regular.ttf", 16, (u32)currentSize.x, (u32)currentSize.y);
         isFontInit = true;
     }
 

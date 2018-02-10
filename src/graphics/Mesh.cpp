@@ -1,3 +1,9 @@
+/**
+ *  @file    Mesh.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #include "Mesh.h"
 #include "DG_Include.h"
 #include "GraphicsSystem.h"

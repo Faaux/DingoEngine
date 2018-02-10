@@ -11,7 +11,6 @@
 
 namespace DG
 {
-class GameObject;
 class PhysicsWorld
 {
    public:
@@ -21,8 +20,8 @@ class PhysicsWorld
     void Update();
     void* RayCast(vec3 origin, vec3 unitDir);
     void Shutdown();
-    void AddModel(GameObject& obj, bool forEditing);
-    void RemoveModel(GameObject& obj);
+    /*void AddModel(GameObject& obj, bool forEditing);
+    void RemoveModel(GameObject& obj);*/
 
    private:
     const Clock* _clock;

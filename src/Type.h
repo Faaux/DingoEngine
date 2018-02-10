@@ -13,53 +13,55 @@ typedef const char* TypeLoc;
 typedef TypeLoc* TypeId;
 
 #define STRFY(a) #a
-#define DECLARE_CLASS_TYPE(Class, BaseClass)                                         \
-   public:                                                                           \
-    template <class T>                                                               \
-    SDL_FORCE_INLINE bool isTypeOrSubType() const                                    \
-    {                                                                                \
-        static_assert(std::is_base_of<Base, T>::value, "T not derived from Base");   \
-        const TypeId type = T::getClassType();                                       \
-        return Class::isType(type) || BaseClass::isTypeOrSubType(type);              \
-    }                                                                                \
-    SDL_FORCE_INLINE bool isTypeOrSubType(TypeId type) const override                \
-    {                                                                                \
-        return Class::isType(type) || BaseClass::isTypeOrSubType(type);              \
-    }                                                                                \
-    template <class T>                                                               \
-    SDL_FORCE_INLINE bool isType() const                                             \
-    {                                                                                \
-        static_assert(std::is_base_of<Base, T>::value, "T not derived from Base");   \
-        return T::getClassType() == Class::getInstanceType();                        \
-    }                                                                                \
-    SDL_FORCE_INLINE bool isType(TypeId type) const override                         \
-    {                                                                                \
-        return type == Class::getInstanceType();                                     \
-    }                                                                                \
-    SDL_FORCE_INLINE TypeId getInstanceType() const override { return &s_myTypeId; } \
-    SDL_FORCE_INLINE static TypeId getClassType() { return &s_myTypeId; }            \
-    operator TypeId() const { return getInstanceType(); }                            \
-                                                                                     \
-   private:                                                                          \
+#define DECLARE_CLASS_TYPE(Class, BaseClass)                                                 \
+   public:                                                                                   \
+    template <class T>                                                                       \
+    SDL_FORCE_INLINE bool IsTypeOrSubType() const                                            \
+    {                                                                                        \
+        const TypeId type = T::GetClassType();                                               \
+        return Class::IsType(type) || BaseClass::IsTypeOrSubType(type);                      \
+    }                                                                                        \
+    SDL_FORCE_INLINE bool IsTypeOrSubType(TypeId type) const override                        \
+    {                                                                                        \
+        return Class::IsType(type) || BaseClass::IsTypeOrSubType(type);                      \
+    }                                                                                        \
+    template <class T>                                                                       \
+    SDL_FORCE_INLINE bool IsType() const                                                     \
+    {                                                                                        \
+        return T::GetClassType() == Class::GetInstanceType();                                \
+    }                                                                                        \
+    SDL_FORCE_INLINE bool IsType(TypeId type) const override                                 \
+    {                                                                                        \
+        return type == Class::GetInstanceType();                                             \
+    }                                                                                        \
+    SDL_FORCE_INLINE TypeId GetInstanceType() const override { return &s_myTypeId; }         \
+    SDL_FORCE_INLINE static TypeId GetClassType() { return &s_myTypeId; }                    \
+    operator TypeId() const { return GetInstanceType(); }                                    \
+                                                                                             \
+   private:                                                                                  \
     inline static TypeLoc s_myTypeId = STRFY(Class);
 
-class Base
+class TypeBase
 {
-   public:
-    virtual ~Base() = default;
+protected:
+    ~TypeBase() = default;
+public:
     template <typename T>
-    SDL_FORCE_INLINE bool isTypeOrSubType() const
+    SDL_FORCE_INLINE bool IsTypeOrSubType() const
     {
-        const TypeId type = T::getClassType();
-        return A::isType(type) || Base::isTypeOrSubType(type);
+        const TypeId type = T::GetClassType();
+        return IsType(type) || TypeBase::IsTypeOrSubType(type);
     }
-    SDL_FORCE_INLINE virtual bool isTypeOrSubType(TypeId type) const { return Base::isType(type); };
-    SDL_FORCE_INLINE virtual bool isType(TypeId type) const
+    SDL_FORCE_INLINE virtual bool IsTypeOrSubType(TypeId type) const
     {
-        return type == Base::getInstanceType();
+        return TypeBase::IsType(type);
+    };
+    SDL_FORCE_INLINE virtual bool IsType(TypeId type) const
+    {
+        return type == TypeBase::GetInstanceType();
     }
-    SDL_FORCE_INLINE virtual TypeId getInstanceType() const { return &s_myTypeId; };
-    SDL_FORCE_INLINE static TypeId getClassType() { return &s_myTypeId; }
+    SDL_FORCE_INLINE virtual TypeId GetInstanceType() const { return &s_myTypeId; };
+    SDL_FORCE_INLINE static TypeId GetClassType() { return &s_myTypeId; }
 
    private:
     inline static TypeLoc s_myTypeId = STRFY(Base);

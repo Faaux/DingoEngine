@@ -1,5 +1,10 @@
-#include "Font.h"
+/**
+ *  @file    Font.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
 
+#include "Font.h"
 #include "GraphicsSystem.h"
 #include "InputSystem.h"
 #include "Messaging.h"
@@ -10,7 +15,8 @@ namespace DG::graphics
 {
 Font::Font() : _isValid(false), _fontCache() {}
 
-bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight, u32 textureSize)
+bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
+                u32 backbufferHeight, u32 textureSize)
 {
     auto fontPath = SearchForFile(fontName.c_str());
     _windowSize.WindowSize = vec2(backbufferWidth, backbufferHeight);

@@ -1,3 +1,9 @@
+/**
+ *  @file    Shader.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #pragma once
 #include <filesystem>
 #include <string>
@@ -10,7 +16,7 @@ class Shader
    public:
     bool Use();
     u32 GetProgramId() const { return _programId; }
-    Shader(const char* shaderName);
+    Shader(const char *shaderName);
 
     void SetUniform(std::string_view, const int &);
     void SetUniform(std::string_view, const glm::ivec2 &);
@@ -25,9 +31,8 @@ class Shader
     void SetUniform(std::string_view, const glm::mat4 &);
 
     void ReloadShader();
-   protected:
-    
 
+   protected:
    private:
     s32 GetUniformLocation(std::string_view name);
     bool HasGeometryShader() const;

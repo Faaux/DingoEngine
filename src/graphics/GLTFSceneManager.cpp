@@ -1,11 +1,17 @@
+/**
+ *  @file    GLTFSceneManager.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    10 February 2018
+ */
+
 #include "GLTFSceneManager.h"
 #include <filesystem>
 #include "ResourceHelper.h"
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
+#include "BoundingBox.h"
 #include "json.hpp"
 #include "tiny_gltf.h"
-#include "BoundingBox.h"
 
 namespace DG::graphics
 {

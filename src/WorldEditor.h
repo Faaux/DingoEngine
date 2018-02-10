@@ -1,7 +1,6 @@
 #pragma once
-#include "GameObject.h"
-#include "GameWorld.h"
 #include "DG_Include.h"
+#include "GameWorld.h"
 
 namespace DG
 {
@@ -15,7 +14,7 @@ class WorldEdit
 
    private:
     GameWorld _gameWorld;
-    GameObject* _selectedGameModel;
+    Actor* _selectedActor;
     InputMessage _lastInputMessage;
     bool _lastInputMessageHandled = true;
 };

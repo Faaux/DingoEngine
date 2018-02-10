@@ -22,6 +22,8 @@
 #include "StringIdCRC32.h"
 #include "Type.h"
 #include "WorldEditor.h"
+#include "components/ComponentStorage.h"
+#include "components/TransformComponent.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
@@ -174,7 +176,7 @@ bool InitOpenGL()
                 current.w, current.h, current.refresh_rate);
 
     // Use Vsync
-    if (SDL_GL_SetSwapInterval(0) < 0)
+    if (SDL_GL_SetSwapInterval(1) < 0)
     {
         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n",
                      SDL_GetError());
@@ -404,9 +406,6 @@ int main(int, char* [])
     gManagers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
 
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
-    GameObject obj("BoxMatModel");
-    obj.GetTransform().SetScale(vec3(10, 0.0001f, 10));
-    Game->WorldEdit->GetWorld()->AddGameObject(obj, true);
 
     while (!Game->RawInputSystem->IsQuitRequested())
     {
@@ -649,32 +648,32 @@ int main(int, char* [])
             Game->ActiveWorld->GetPlayerCamera().GetViewMatrix(),
             Game->ActiveWorld->GetPlayerCamera().GetProjectionMatrix());
 
-        // Queueing gameobjects to be rendered
-        RenderQueue* renderQueue = currentFrameData.FrameMemory.Push<RenderQueue>();
-        renderQueue->Count = Game->ActiveWorld->GetGameObjectCount();
-        renderQueue->Renderables =
-            currentFrameData.FrameMemory.Push<Renderable>(renderQueue->Count);
+        //// Queueing gameobjects to be rendered
+        // RenderQueue* renderQueue = currentFrameData.FrameMemory.Push<RenderQueue>();
+        // renderQueue->Count = Game->ActiveWorld->GetGameObjectCount();
+        // renderQueue->Renderables =
+        //    currentFrameData.FrameMemory.Push<Renderable>(renderQueue->Count);
 
-        for (u32 i = 0; i < renderQueue->Count; ++i)
-        {
-            // Get Data
-            auto& gameObject = Game->ActiveWorld->GetGameObject(i);
-            GraphicsModel* model =
-                gManagers->ModelManager->Exists(gameObject.Renderable->RenderableId);
-            Assert(model);
+        // for (u32 i = 0; i < renderQueue->Count; ++i)
+        //{
+        //    // Get Data
+        //    auto& gameObject = Game->ActiveWorld->GetGameObject(i);
+        //    GraphicsModel* model =
+        //        gManagers->ModelManager->Exists(gameObject.Renderable->RenderableId);
+        //    Assert(model);
 
-            // Set Shader if not set yet
-            if (!renderQueue->Shader)
-                renderQueue->Shader = &model->shader;
-            Assert(renderQueue->Shader == &model->shader);
+        //    // Set Shader if not set yet
+        //    if (!renderQueue->Shader)
+        //        renderQueue->Shader = &model->shader;
+        //    Assert(renderQueue->Shader == &model->shader);
 
-            // Define renderable
-            auto& renderable = renderQueue->Renderables[i];
-            renderable.model = model;
-            renderable.transform = gameObject.GetTransform();
-        }
-        if (renderQueue->Count > 0)
-            currentFrameData.RenderCTX->AddRenderQueue(renderQueue);
+        //    // Define renderable
+        //    auto& renderable = renderQueue->Renderables[i];
+        //    renderable.model = model;
+        //    renderable.transform = gameObject.GetTransform();
+        //}
+        // if (renderQueue->Count > 0)
+        //    currentFrameData.RenderCTX->AddRenderQueue(renderQueue);
         currentFrameData.RenderCTX->SetFramebuffer(&framebuffer);
 
         currentFrameData.IsPreRenderDone = true;
