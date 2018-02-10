@@ -1,7 +1,7 @@
 #include "DG_Imgui.h"
 #include <imgui.h>
-#include "DG_InputSystem.h"
-#include "DG_Messaging.h"
+#include "InputSystem.h"
+#include "Messaging.h"
 
 namespace DG
 {
