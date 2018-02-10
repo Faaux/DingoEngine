@@ -5,6 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "json.hpp"
 #include "tiny_gltf.h"
+#include "DG_BoundingBox.h"
 
 namespace DG::graphics
 {
@@ -74,10 +75,16 @@ GLTFScene* LoadGLTF(const char* f)
     {
         for (auto& accessor : model.accessors)
         {
+            AABB aabb;
+            for (s32 i = 0; i < accessor.maxValues.size() && i < 3; ++i)
+            {
+                aabb.Max[i] = (float)accessor.maxValues[i];
+                aabb.Min[i] = (float)accessor.minValues[i];
+            }
             result->accessors.emplace_back(
                 accessor.bufferView, &(result->bufferViews[accessor.bufferView]),
                 accessor.byteOffset, accessor.count,
-                accessor.ByteStride(model.bufferViews[accessor.bufferView]),
+                accessor.ByteStride(model.bufferViews[accessor.bufferView]), aabb,
                 static_cast<ComponentType>(accessor.componentType),
                 static_cast<GLTFAccessor::Type>(accessor.type), accessor.normalized);
         }

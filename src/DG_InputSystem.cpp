@@ -24,6 +24,11 @@ struct RawInputMessage
     s32 MouseY = 0;
 };
 
+struct RawWindowSizeMessage
+{
+    vec2 WindowSize = vec2(0);
+};
+
 bool Key::isDown() const { return _isDown; }
 
 bool Key::isUp() const { return !_isDown; }
@@ -93,7 +98,7 @@ void RawInputSystem::Update()
                 if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                 {
                     // Resize Window and rebuild render pipeline
-                    WindowSizeMessage message;
+                    RawWindowSizeMessage message;
                     message.WindowSize.x = static_cast<float>(event.window.data1);
                     message.WindowSize.y = static_cast<float>(event.window.data2);
                     g_MessagingSystem.SendNextFrame(message);
@@ -205,7 +210,7 @@ InputSystem::InputSystem()
 
         // Sanitize Mouse Input
         message.MouseX = (s32)(m.MouseX - p.x);
-        message.MouseY = (s32)(m.MouseY - p.x);
+        message.MouseY = (s32)(m.MouseY - p.y);
 
         if (message.MouseX > size.x || message.MouseY > size.y)
         {

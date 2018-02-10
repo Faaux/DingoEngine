@@ -6,6 +6,7 @@
 #include "DG_Shader.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include "main.h"
 
 namespace DG::graphics
 {
@@ -42,12 +43,14 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
 {
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
     static vec3 lightColor(1);
-    static vec3 lightPos(10, 10, 0);
+    static vec3 lightDirection(0.1, -1, 0);
+    static float bias = 0.001f;
     TWEAKER_CAT("OpenGL", Color3Small, "Clear Color", &clearColor);
+    TWEAKER_CAT("OpenGL", F1, "Shadow Bias", &bias);
     TWEAKER(Color3Small, "Light Color", &lightColor);
-    TWEAKER(F3, "Light Position", &lightPos);
+    TWEAKER(F3, "Light Direction", &lightDirection);
 
-    AddDebugCross(lightPos);
+    AddDebugLine(vec3(5), vec3(5) + lightDirection);
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -64,6 +67,93 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     }
     glEnable(GL_DEPTH_TEST);
 
+    // Dir Light Shadowmap
+    static bool wasFBInit = false;
+    static Framebuffer framebuffer(2048, 2048);
+    static Shader* shadowShader =
+        gManagers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
+    static mat4 lightProjection;
+    static mat4 lightViewMatrix;
+    {
+        if (!wasFBInit)
+        {
+            wasFBInit = true;
+            framebuffer.AddDepthTexture(true);
+        }
+
+        lightViewMatrix = glm::lookAt(-lightDirection, vec3(0.f), vec3(0.f, 1.f, 0.f));
+
+        // Calculate projection for light
+        {
+            auto renderQueues = context->GetRenderQueues();
+            AABB aabb;
+            for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+            {
+                // Setup Shader
+                auto renderQueue = renderQueues[queueIndex];
+
+                // Render Models
+                for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count;
+                     ++renderableIndex)
+                {
+                    auto& renderable = renderQueue->Renderables[renderableIndex];
+                    auto& model = renderable.model;
+                    if (model)
+                    {
+                        AABB modelSpaceAABB =
+                            TransformAABB(model->aabb, renderable.transform.GetModelMatrix());
+                        if (queueIndex == 0 && renderableIndex == 0)
+                        {
+                            aabb = modelSpaceAABB;
+                        }
+                        aabb = CombineAABB(aabb, modelSpaceAABB);
+                    }
+                }
+            }
+
+            // We got our AABB transform it to light space
+            AABB lightaabb = TransformAABB(aabb, Transform(lightViewMatrix));
+            lightProjection = glm::ortho(lightaabb.Min.x, lightaabb.Max.x, lightaabb.Min.y,
+                                         lightaabb.Max.y, -10.f, 100.f);
+        }
+
+        framebuffer.Bind();
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        auto renderQueues = context->GetRenderQueues();
+        for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+        {
+            // Setup Shader
+            auto renderQueue = renderQueues[queueIndex];
+            shadowShader->Use();
+            shadowShader->SetUniform("vp", lightProjection * lightViewMatrix);
+
+            // Render Models
+            for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
+            {
+                auto& renderable = renderQueue->Renderables[renderableIndex];
+                auto& model = renderable.model;
+                if (model)
+                {
+                    for (auto& mesh : model->meshes)
+                    {
+                        shadowShader->SetUniform(
+                            "m", renderable.transform.GetModelMatrix() * mesh.localTransform);
+
+                        glBindVertexArray(mesh.vao);
+                        glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
+                                       reinterpret_cast<void*>(mesh.byteOffset));
+                    }
+                    CheckOpenGLError(__FILE__, __LINE__);
+                }
+            }
+        }
+        framebuffer.UnBind();
+        // Unbind after we are done rendering
+        glBindVertexArray(0);
+    }
+
     context->Framebuffer->Bind();
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -76,8 +166,14 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
         renderQueue->Shader->Use();
         renderQueue->Shader->SetUniform("proj", context->GetCameraProjMatrix());
         renderQueue->Shader->SetUniform("view", context->GetCameraViewMatrix());
-        renderQueue->Shader->SetUniform("lightPos", lightPos);
+        renderQueue->Shader->SetUniform("lightMVP", lightProjection * lightViewMatrix);
+        renderQueue->Shader->SetUniform("lightDirection", lightDirection);
         renderQueue->Shader->SetUniform("lightColor", lightColor);
+        renderQueue->Shader->SetUniform("bias", bias);
+        renderQueue->Shader->SetUniform("resolution", context->Framebuffer->GetSize());
+
+        glActiveTexture(GL_TEXTURE0);
+        framebuffer.DepthTexture.Bind();
 
         // Render Models
         for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
@@ -271,7 +367,8 @@ void DebugRenderSystem::Render(const RenderContext* renderContext,
     static Font font;
     if (!isFontInit)
     {
-        font.Init("Roboto-Regular.ttf", 32);
+        vec2 currentSize = renderContext->Framebuffer->GetSize();
+        font.Init("Roboto-Regular.ttf", 16, currentSize.x, currentSize.y);
         isFontInit = true;
     }
 
@@ -459,6 +556,27 @@ void AddDebugTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vert
 void AddDebugAABB(const vec3& minCoords, const vec3& maxCoords, Color color, f32 lineWidth,
                   f32 durationSeconds, bool depthEnabled)
 {
+    vec3 p1 = minCoords;
+    vec3 p2 = maxCoords;
+    vec3 p3 = vec3(maxCoords.x, minCoords.y, minCoords.z);
+    vec3 p4 = vec3(minCoords.x, maxCoords.y, minCoords.z);
+    vec3 p5 = vec3(minCoords.x, minCoords.y, maxCoords.z);
+    vec3 p6 = vec3(minCoords.x, maxCoords.y, maxCoords.z);
+    vec3 p7 = vec3(maxCoords.x, minCoords.y, maxCoords.z);
+    vec3 p8 = vec3(maxCoords.x, maxCoords.y, minCoords.z);
+
+    AddDebugLine(p1, p3, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p1, p4, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p1, p5, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p3, p7, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p3, p8, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p6, p4, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p6, p5, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p8, p4, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p5, p7, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p2, p6, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p2, p7, color, lineWidth, durationSeconds, depthEnabled);
+    AddDebugLine(p2, p8, color, lineWidth, durationSeconds, depthEnabled);
 }
 
 void AddDebugTextWorld(const vec3& position, const std::string& text, Color color,

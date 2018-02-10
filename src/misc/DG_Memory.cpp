@@ -5,35 +5,42 @@ u8* StackAllocator::Push(u32 size, u32 alignment)
 {
     Assert(_isInitialized);
 
-    size_t baseAddress = (size_t)(_base + _currentUse);
+    size_t baseAddress = (size_t)(_current - size);
     size_t padding = (((baseAddress / alignment) + 1) * alignment) - baseAddress;
-
-    Assert(size + padding + _currentUse <= _size);
-    Assert(padding >= sizeof(StackHeader));
+    padding = alignment - padding;
+    Assert(padding >= 0);
     Assert(padding <= 255);
 
-    reinterpret_cast<StackHeader*>(baseAddress + padding - sizeof(StackHeader))->padding =
-        static_cast<u8>(padding);
+    Assert(_current + (size + padding + sizeof(StackHeader)) >= _base);
 
-    void* result = reinterpret_cast<void*>(baseAddress + padding);
-    _currentUse += size + static_cast<u8>(padding);
-    _hwm = glm::max(_currentUse, _hwm);
-    return static_cast<u8*>(result);
+    u8* data = _current - (size + padding);
+    StackHeader* header = (StackHeader*)(data - sizeof(StackHeader));
+    header->free = false;
+    header->size = size + padding;
+
+    _current = (u8*)header;
+
+    Assert((size_t)data % alignment == 0);
+    _hwm = glm::max((u32)((size_t)(_base + _size) - (size_t)_current), _hwm);
+    return data;
 }
 
 void StackAllocator::Pop(void* p)
 {
     Assert(_isInitialized);
-    Assert(p <= _base + _size);
+    u8* data = (u8*)p;
+    StackHeader* header = (StackHeader*)(data - sizeof(StackHeader));
+    header->free = true;
 
-    u8* ptr = static_cast<u8*>(p);
-    u8 padding = reinterpret_cast<StackHeader*>(ptr - 1)->padding;
-
-    u8* newHeadLocation = ptr - padding;
-
-    Assert(newHeadLocation >= _base);
-    _currentUse = static_cast<u32>(newHeadLocation - _base);
+    // Pop everything off that was freed
+    header = (StackHeader*)_current;
+    while (header->free)
+    {
+        _current = _current + (header->size + sizeof(StackHeader));
+        header = (StackHeader*)_current;
+    }
+    Assert( _base + _size >= _current);
 }
 
-void StackAllocator::Reset() { _currentUse = 0; }
+void StackAllocator::Reset() { _current = _base + _size; }
 }  // namespace DG

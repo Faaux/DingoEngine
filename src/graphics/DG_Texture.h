@@ -6,8 +6,10 @@ namespace DG::graphics
 class Texture
 {
    public:
+    // ToDo: Clean this linear flag! This is dirty hacking
     Texture() = default;
-    void InitTexture(const u8* data, const u32 width, const u32 height, u32 internalFormat, u32 format, u32 type);
+    void InitTexture(const u8* data, const u32 width, const u32 height, u32 internalFormat,
+                     u32 format, u32 type, bool linear = false);
     void Bind() const;
     void Cleanup();
     GLuint GetTextureId() const

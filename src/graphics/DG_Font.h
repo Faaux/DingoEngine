@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "DG_Camera.h"
+#include "DG_Framebuffer.h"
 #include "DG_InputSystem.h"
 #include "DG_Texture.h"
 
@@ -52,7 +53,7 @@ class Font
 
    public:
     Font();
-    bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
+    bool Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight, u32 textureSize = 256);
     void RenderTextWorldBillboard(const std::string& textToRender, const RenderContext* context,
                                   const vec3& position, const Color& color = Color(1));
     void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
@@ -69,7 +70,7 @@ class Font
     GLuint _fontEBO = -1;
     Texture _fontTexture;
     std::array<Glyph, 96> _fontCache;
-    WindowSizeMessage _windowSize;
+    MainBackbufferSizeMessage _windowSize;
 };
 
 class GlyphPacker

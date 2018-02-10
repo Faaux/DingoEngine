@@ -18,10 +18,12 @@ void Framebuffer::Bind()
 
 void Framebuffer::UnBind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
-void Framebuffer::AddDepthTexture()
+void Framebuffer::AddDepthTexture(bool linear)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    DepthTexture.InitTexture(0, _width, _height, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
+
+    DepthTexture.InitTexture(0, _width, _height, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT,
+                             linear);
 
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthTexture.GetTextureId(), 0);
     _hasDepth = true;
@@ -45,8 +47,15 @@ void Framebuffer::Resize(u32 width, u32 height)
     _width = width;
     _height = height;
 
+
+
     Cleanup();
     Initialize();
+}
+
+vec2 Framebuffer::GetSize()
+{
+    return vec2(_width, _height);
 }
 
 void Framebuffer::Initialize()

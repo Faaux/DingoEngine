@@ -12,13 +12,13 @@ namespace DG::graphics
 {
 Font::Font() : _isValid(false), _fontCache() {}
 
-bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
+bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight, u32 textureSize)
 {
     auto fontPath = SearchForFile(fontName.c_str());
-    _windowSize.WindowSize = vec2(1280, 720);
+    _windowSize.WindowSize = vec2(backbufferWidth, backbufferHeight);
 
-    g_MessagingSystem.RegisterCallback<WindowSizeMessage>(
-        [=](const WindowSizeMessage& windowSize) { _windowSize = windowSize; });
+    g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
+        [=](const MainBackbufferSizeMessage& windowSize) { _windowSize = windowSize; });
 
     FT_Library library;
     auto error = FT_Init_FreeType(&library);

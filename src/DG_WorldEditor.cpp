@@ -76,7 +76,7 @@ void WorldEdit::Update()
 
     static int SelectedIndex = -1;
 
-    if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled)
+    if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled && !ImGuizmo::IsOver())
     {
         vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
 

@@ -20,6 +20,7 @@
 #include "DG_ModelManager.h"
 #include "DG_ShaderManager.h"
 #include "DG_StringIdCRC32.h"
+#include "DG_Type.h"
 #include "DG_WorldEditor.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
@@ -173,7 +174,7 @@ bool InitOpenGL()
                 current.w, current.h, current.refresh_rate);
 
     // Use Vsync
-    if (SDL_GL_SetSwapInterval(1) < 0)
+    if (SDL_GL_SetSwapInterval(0) < 0)
     {
         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n",
                      SDL_GetError());
@@ -240,9 +241,11 @@ void Cleanup()
 
 void AttachDebugListenersToMessageSystem()
 {
-    g_MessagingSystem.RegisterCallback<WindowSizeMessage>([](const WindowSizeMessage& message) {
-        SDL_Log("Window was resized: %.2f x %.2f", message.WindowSize.x, message.WindowSize.y);
-    });
+    g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
+        [](const MainBackbufferSizeMessage& message) {
+            SDL_LogVerbose(0, "Backbuffer was resized: %.2f x %.2f", message.WindowSize.x,
+                           message.WindowSize.y);
+        });
 
     g_MessagingSystem.RegisterCallback<ToggleFullscreenMessage>(
         [](const ToggleFullscreenMessage& message) {
@@ -271,9 +274,13 @@ void Update(FrameData* frameData)
 {
     Game->ActiveWorld->Update();
     Game->WorldEdit->Update();
+    static bool showGrid = false;
+    TWEAKER(CB, "Grid", &showGrid);
 
-    AddDebugAxes(Transform(), 5.f, 2.5f);
-    AddDebugXZGrid(vec2(0), -5, 5, 0);
+    if (showGrid)
+        AddDebugXZGrid(vec2(0), -5, 5, 0);
+    AddDebugAxes(Transform(vec3(0, 0.01f, 0), vec3(), vec3(1)), 5.f, 2.5f);
+
     AddDebugTextScreen(vec2(0), "Test test test");
 }
 
@@ -379,11 +386,28 @@ int main(int, char* [])
 
     // ToDo Remove(Testing)
     Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+
     GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    GraphicsModel* model2 =
-        gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
+    gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
+
+    scene =
+        gManagers->GLTFSceneManager->LoadOrGet(StringId("boxmaterial.gltf"), "boxmaterial.gltf");
+    gManagers->ModelManager->LoadOrGet(StringId("BoxMatModel"), scene, shader);
+
+    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("boxtexture.gltf"), "boxtexture.gltf");
+    gManagers->ModelManager->LoadOrGet(StringId("BoxTexModel"), scene, shader);
+
+    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    gManagers->ModelManager->LoadOrGet(StringId("DuckModel2"), scene, shader);
+
+    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    gManagers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
 
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
+    GameObject obj("BoxMatModel");
+    obj.GetTransform().SetScale(vec3(10, 0.0001f, 10));
+    Game->WorldEdit->GetWorld()->AddGameObject(obj, true);
+
     while (!Game->RawInputSystem->IsQuitRequested())
     {
         // Frame Data Setup
@@ -487,7 +511,7 @@ int main(int, char* [])
             ImGui::EndMainMenuBar();
         }
 
-        ImVec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
+        vec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
         adjustedDisplaySize.y -= mainBarSize.y;
         ImGui::SetNextWindowPos(ImVec2(0, mainBarSize.y));
         ImGui::SetNextWindowSize(adjustedDisplaySize, ImGuiCond_Always);
@@ -506,16 +530,23 @@ int main(int, char* [])
                 Game->InputSystem->IsForwardingToGame =
                     ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
-                ImVec2 pos = ImGui::GetCursorScreenPos();
-                ImVec2 avaialbeSize = ImGui::GetContentRegionAvail();
+                vec2 pos = ImGui::GetCursorScreenPos();
+                vec2 avaialbeSize = ImGui::GetContentRegionAvail();
 
-                framebuffer.Resize(static_cast<u32>(avaialbeSize.x),
-                                   static_cast<u32>(avaialbeSize.y));
+                // This is our game size! Send events!
+
+                if (framebuffer.GetSize() != avaialbeSize)
+                {
+                    framebuffer.Resize(static_cast<u32>(avaialbeSize.x),
+                                       static_cast<u32>(avaialbeSize.y));
+                    MainBackbufferSizeMessage message;
+                    message.WindowSize = avaialbeSize;
+                    g_MessagingSystem.SendNextFrame(message);
+                }
 
                 ImGui::GetWindowDrawList()->AddImage(
-                    (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos,
-                    ImVec2(pos.x + avaialbeSize.x, pos.y + avaialbeSize.y), ImVec2(0, 1),
-                    ImVec2(1, 0));
+                    (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos, pos + avaialbeSize,
+                    ImVec2(0, 1), ImVec2(1, 0));
 
                 Game->ActiveWorld->GetPlayerCamera().UpdateProjection(avaialbeSize.x,
                                                                       avaialbeSize.y);
@@ -527,6 +558,49 @@ int main(int, char* [])
             Update(&currentFrameData);
 
             AddImguiTweakers();
+
+            if (ImGui::BeginDock("Models"))
+            {
+                const vec2 origPos = ImGui::GetCursorScreenPos();
+                const vec2 avaialbeSize = ImGui::GetContentRegionAvail();
+
+                const vec2 imageSize(90);
+                const vec2 wantedSizePerImage = imageSize + vec2(0, 20);
+                const f32 padding = 5;
+
+                u32 imagesPerRow = (u32)(avaialbeSize.x / wantedSizePerImage.x);
+
+                if (imagesPerRow < 1)
+                    imagesPerRow = 1;
+
+                if (imagesPerRow * wantedSizePerImage.x + (imagesPerRow - 1) * padding >
+                    avaialbeSize.x)
+                    --imagesPerRow;
+
+                if (imagesPerRow < 1)
+                    imagesPerRow = 1;
+
+                vec2 pos = origPos;
+                auto it = gManagers->ModelManager->begin();
+                auto end = gManagers->ModelManager->end();
+                while (it != end)
+                {
+                    for (u32 i = 0; i < imagesPerRow && it != end; ++i)
+                    {
+                        ImGui::GetWindowDrawList()->AddImage(
+                            (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos,
+                            pos + imageSize, ImVec2(0, 1), ImVec2(1, 0));
+                        pos.x += wantedSizePerImage.x + padding;
+                        ++it;
+                    }
+                    pos.x = origPos.x;
+                    pos.y += wantedSizePerImage.y + padding;
+                }
+            }
+            ImGui::EndDock();
+
+            // Add a Dock which visualizes all models
+
             ImGui::EndDockspace();
         }
 

@@ -37,7 +37,8 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
         drawMode = primitive.mode;
         type = primitive.indices->componentType;
 
-        indices = primitive.indices->bufferView->buffer->data + primitive.indices->bufferView->byteOffset;
+        indices =
+            primitive.indices->bufferView->buffer->data + primitive.indices->bufferView->byteOffset;
     }
     // Attribute Pointers!
     for (u32 i = 0; i < primitive.attributes.size(); ++i)
@@ -50,11 +51,15 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
         glBindBuffer(bufferView.target, bufferView.vb);
         graphics::CheckOpenGLError(__FILE__, __LINE__);
 
-        if (i == 0)
+        if (i == 0)  // POSITION
         {
             stride = accessor->bufferView->byteStride;
-            data = accessor->bufferView->buffer->data + accessor->bufferView->byteOffset + accessor->byteOffset;
+            data = accessor->bufferView->buffer->data + accessor->bufferView->byteOffset +
+                   accessor->byteOffset;
             vertexCount = accessor->count;
+
+            Transform transform(localTransform);
+            aabb = TransformAABB(accessor->aabb, transform);
         }
 
         s32 count = 0;
@@ -116,7 +121,8 @@ void RecursiveSceneLoad(const std::vector<GLTFNode*>& nodes,
         }
     }
 }
-GraphicsModel::GraphicsModel(const GLTFScene& scene, graphics::Shader& shader, StringId id) : id(id), shader(shader)
+GraphicsModel::GraphicsModel(const GLTFScene& scene, graphics::Shader& shader, StringId id)
+    : id(id), shader(shader)
 {
     meshes.reserve(scene.meshes.size());
     bufferViews.reserve(scene.bufferViews.size());
@@ -125,6 +131,14 @@ GraphicsModel::GraphicsModel(const GLTFScene& scene, graphics::Shader& shader, S
         bufferViews.emplace_back(bufferView);
     }
     RecursiveSceneLoad(scene.children, bufferViews, meshes, mat4());
+
+    // Calculate bounding box from meshes
+    Assert(meshes.size() > 0);
+    aabb = meshes[0].aabb;
+    for (auto& mesh : meshes)
+    {
+        aabb = CombineAABB(aabb, mesh.aabb);
+    }
 }
 
 const std::vector<BufferView>& GraphicsModel::GetBufferViews() const { return bufferViews; }

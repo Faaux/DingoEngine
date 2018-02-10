@@ -22,11 +22,6 @@ class Key
     bool _isDown = false;
 };
 
-struct WindowSizeMessage
-{
-    vec2 WindowSize = vec2(0);
-};
-
 struct ToggleFullscreenMessage
 {
     bool SetFullScreen = false;

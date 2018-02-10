@@ -10,8 +10,8 @@ struct StackAllocator
         Assert(!_isInitialized);
         _isInitialized = true;
         _base = base;
+        _current = base + size;
         _size = size;
-        _currentUse = 0;
     }
 
     u8* Push(u32 size, u32 alignment);
@@ -28,12 +28,13 @@ struct StackAllocator
    private:
     struct StackHeader
     {
-        u8 padding;
+        bool free;
+        u32 size;
     };
 
     bool _isInitialized = false;
     u8* _base = 0;
-    u32 _currentUse = 0;
+    u8* _current = 0;
     u32 _size = 0;
     u32 _hwm = 0;
 };

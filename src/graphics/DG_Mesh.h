@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <array>
 #include <vector>
+#include "DG_BoundingBox.h"
 #include "DG_Include.h"
 #include "DG_Shader.h"
 #include "DG_StringIdCRC32.h"
@@ -61,13 +62,14 @@ struct GLTFAccessor
         Scalar = (64 + 1)
     };
     GLTFAccessor(size_t bufferViewIndex, GLTFBufferView* bufferView, size_t byteOffset,
-                 size_t count, size_t byteStride, ComponentType componentType, Type type,
+                 size_t count, size_t byteStride, AABB aabb, ComponentType componentType, Type type,
                  bool normalized = false)
         : bufferViewIndex(bufferViewIndex),
           bufferView(bufferView),
           byteOffset(byteOffset),
           count(count),
           byteStride(byteStride),
+          aabb(aabb),
           componentType(componentType),
           type(type),
           normalized(normalized)
@@ -80,6 +82,7 @@ struct GLTFAccessor
     size_t byteOffset;
     size_t count;
     size_t byteStride;
+    AABB aabb;
     ComponentType componentType;
     Type type;
     bool normalized;
@@ -184,6 +187,8 @@ class Mesh
     std::vector<Mesh> childMeshes;
     mat4 localTransform;
 
+    AABB aabb;
+
     u8* indices;
 
     u8* data;
@@ -201,6 +206,8 @@ class GraphicsModel
     Shader& shader;
     std::vector<BufferView> bufferViews;
     std::vector<Mesh> meshes;
+
+    AABB aabb;
 };
 
 }  // namespace DG::graphics

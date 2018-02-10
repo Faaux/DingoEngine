@@ -8,6 +8,11 @@ namespace DG
 {
 struct WindowSizeMessage;
 
+struct MainBackbufferSizeMessage
+{
+    vec2 WindowSize = vec2(0);
+};
+
 class Framebuffer
 {
    public:
@@ -15,10 +20,11 @@ class Framebuffer
     ~Framebuffer();
     void Bind();
     void UnBind();
-    void AddDepthTexture();
+    void AddDepthTexture(bool linear = false);
     void AddColorTexture();
 
     void Resize(u32 width, u32 height);
+    vec2 GetSize();
 
     graphics::Texture ColorTexture;
     graphics::Texture DepthTexture;
