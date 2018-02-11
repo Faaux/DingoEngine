@@ -7,13 +7,19 @@
 #pragma once
 #include "BaseComponent.h"
 #include "DG_Include.h"
+#include "Transform.h"
 
 namespace DG
 {
 class SceneComponent : public BaseComponent
 {
+   private:
     DECLARE_CLASS_TYPE(SceneComponent, BaseComponent)
    public:
-    SceneComponent(Actor* actor) : BaseComponent(actor) {}
+    explicit SceneComponent(Actor* actor) : BaseComponent(actor) {}
+
+   private:
+    DPROPERTY Transform transform;
+    DPROPERTY SceneComponent* parent = nullptr;
 };
 }  // namespace DG

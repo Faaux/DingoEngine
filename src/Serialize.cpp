@@ -5,27 +5,22 @@
  */
 
 #include "Serialize.h"
-#include <fstream>
-#include "Serialize.generated.h"
 #include "json.hpp"
 
 namespace DG
 {
 using namespace nlohmann;
 
-nlohmann::json SerializeActor(const Actor* actor)
+void SerializeActor(const Actor* actor, json& a)
 {
-    json a;
     a["type"] = *actor->GetInstanceType();
     json components;
     for (auto& component : actor->_components)
     {
-        components.push_back(component->Serialize());
+        json c;
+        component->Serialize(c);
+        components.push_back(c);
     }
     a["components"] = components;
-    // write prettified JSON to another file
-    std::ofstream o("pretty.json");
-    o << std::setw(4) << a << std::endl;
-    return a;
 }
 }  // namespace DG

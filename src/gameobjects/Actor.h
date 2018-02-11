@@ -10,7 +10,6 @@
 #include "Type.h"
 #include "components/BaseComponent.h"
 #include "components/SceneComponent.h"
-#include "components/TransformComponent.h"
 
 namespace DG
 {

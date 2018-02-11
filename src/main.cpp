@@ -1,10 +1,11 @@
 /**
-*  @file    main.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    main.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include <SDL.h>
+#include <fstream>
 
 #include "DG_Include.h"
 #include "Job.h"
@@ -24,17 +25,16 @@
 #include "GLTFSceneManager.h"
 #include "Messaging.h"
 #include "ModelManager.h"
+#include "Serialize.h"
 #include "ShaderManager.h"
 #include "StringIdCRC32.h"
 #include "Type.h"
 #include "WorldEditor.h"
 #include "components/ComponentStorage.h"
-#include "components/TransformComponent.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "main.h"
-#include "Serialize.h"
 
 namespace DG
 {
@@ -414,7 +414,12 @@ int main(int, char* [])
 
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
     Actor* actor = Game->ActiveWorld->CreateNewActor<Actor>();
-    SerializeActor(actor);
+
+    // ToDo: Remove
+    nlohmann::json a;
+    SerializeActor(actor, a);
+    std::ofstream o("pretty.json");
+    o << std::setw(4) << a << std::endl;
 
     while (!Game->RawInputSystem->IsQuitRequested())
     {

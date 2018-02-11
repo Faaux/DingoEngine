@@ -15,24 +15,21 @@ class Actor;
 
 class BaseComponent : public TypeBase
 {
-   protected:
-    ~BaseComponent() = default;
-
-   private:
     DECLARE_CLASS_TYPE(BaseComponent, TypeBase)
    public:
     BaseComponent(Actor* actor) : _actor(actor) {}
 
     Actor* GetOwningActor() const { return _actor; }
 
+   protected:
+    ~BaseComponent() = default;
+
    private:
     Actor* _actor;
 };
 
-SDL_FORCE_INLINE nlohmann::json SerializeBaseComponent(const BaseComponent* component)
+SDL_FORCE_INLINE void SerializeBaseComponent(const BaseComponent* component, nlohmann::json& json)
 {
-    Assert(false);
-    return nlohmann::json();
 }
 
 }  // namespace DG

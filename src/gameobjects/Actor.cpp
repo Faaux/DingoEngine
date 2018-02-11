@@ -10,7 +10,6 @@ namespace DG
 {
 Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld)
 {
-    RegisterComponent<TransformComponent>();
     RegisterComponent<SceneComponent>();
 }
 

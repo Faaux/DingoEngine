@@ -20,35 +20,39 @@ typedef TypeLoc* TypeId;
 #endif
 
 #define STRFY(a) #a
-#define DECLARE_CLASS_TYPE(Class, BaseClass)                                                      \
-    friend nlohmann::json Serialize##Class(const Class* component);                               \
-                                                                                                  \
-   public:                                                                                        \
-    template <class T>                                                                            \
-    SDL_FORCE_INLINE bool IsTypeOrDerivedType() const                                             \
-    {                                                                                             \
-        const TypeId type = T::GetClassType();                                                    \
-        return IsTypeOrDerivedType(type);                                                         \
-    }                                                                                             \
-    SDL_FORCE_INLINE bool IsTypeOrDerivedType(TypeId type) const override                         \
-    {                                                                                             \
-        return Class::IsTypeInternal(type) || BaseClass::IsTypeOrDerivedType(type);               \
-    }                                                                                             \
-    SDL_FORCE_INLINE nlohmann::json Serialize() const override { return Serialize##Class(this); } \
-                                                                                                  \
-   private:                                                                                       \
-    SDL_FORCE_INLINE bool IsTypeInternal(TypeId type) const override                              \
-    {                                                                                             \
-        auto myType = Class::GetInstanceType();                                                   \
-        return type == myType;                                                                    \
-    }                                                                                             \
-                                                                                                  \
-   public:                                                                                        \
-    SDL_FORCE_INLINE TypeId GetInstanceType() const override { return &s_myTypeId; }              \
-    SDL_FORCE_INLINE static TypeId GetClassType() { return &s_myTypeId; }                         \
-    operator TypeId() const { return GetInstanceType(); }                                         \
-                                                                                                  \
-   private:                                                                                       \
+#define DECLARE_CLASS_TYPE(Class, BaseClass)                                         \
+    friend void Serialize##Class(const Class* component, nlohmann::json& json);      \
+                                                                                     \
+   public:                                                                           \
+    template <class T>                                                               \
+    SDL_FORCE_INLINE bool IsTypeOrDerivedType() const                                \
+    {                                                                                \
+        const TypeId type = T::GetClassType();                                       \
+        return IsTypeOrDerivedType(type);                                            \
+    }                                                                                \
+    SDL_FORCE_INLINE bool IsTypeOrDerivedType(TypeId type) const override            \
+    {                                                                                \
+        return Class::IsTypeInternal(type) || BaseClass::IsTypeOrDerivedType(type);  \
+    }                                                                                \
+    SDL_FORCE_INLINE void Serialize(nlohmann::json& json) const override             \
+    {                                                                                \
+        BaseClass::Serialize(json);                                                  \
+        Serialize##Class(this, json);                                                \
+    }                                                                                \
+                                                                                     \
+   private:                                                                          \
+    SDL_FORCE_INLINE bool IsTypeInternal(TypeId type) const override                 \
+    {                                                                                \
+        auto myType = Class::GetInstanceType();                                      \
+        return type == myType;                                                       \
+    }                                                                                \
+                                                                                     \
+   public:                                                                           \
+    SDL_FORCE_INLINE TypeId GetInstanceType() const override { return &s_myTypeId; } \
+    SDL_FORCE_INLINE static TypeId GetClassType() { return &s_myTypeId; }            \
+    operator TypeId() const { return GetInstanceType(); }                            \
+                                                                                     \
+   private:                                                                          \
     inline static TypeLoc s_myTypeId = STRFY(Class);
 
 class TypeBase
@@ -76,7 +80,13 @@ class TypeBase
     SDL_FORCE_INLINE virtual TypeId GetInstanceType() const { return &s_myTypeId; };
     SDL_FORCE_INLINE static TypeId GetClassType() { return &s_myTypeId; }
 
-    SDL_FORCE_INLINE virtual nlohmann::json Serialize() const = 0;
+    SDL_FORCE_INLINE virtual void Serialize(nlohmann::json& json) const
+    {
+        json["id"] = _uniqueId;
+        json["type"] = *GetInstanceType();
+    };
+
+    SDL_FORCE_INLINE u32 GetUniqueId() const { return _uniqueId; }
 
    private:
     SDL_FORCE_INLINE virtual bool IsTypeInternal(TypeId type) const
@@ -84,6 +94,9 @@ class TypeBase
         return type == TypeBase::GetInstanceType();
     }
 
+    u32 _uniqueId = uniqueCounter++;
+
     inline static TypeLoc s_myTypeId = STRFY(TypeBase);
+    inline static u32 uniqueCounter = 0;
 };
 }  // namespace DG

@@ -18,6 +18,13 @@ SDL_FORCE_INLINE nlohmann::json Serialize(const vec3& v3)
     result.push_back(v3.z);
     return result;
 }
+SDL_FORCE_INLINE nlohmann::json Serialize(const BaseComponent* ptr)
+{
+    nlohmann::json json;
+    if (ptr)
+        json["id"] = ptr->GetUniqueId();
+    return json;
+}
 SDL_FORCE_INLINE nlohmann::json Serialize(const Transform& transform)
 {
     nlohmann::json json;
@@ -30,5 +37,5 @@ SDL_FORCE_INLINE nlohmann::json Serialize(const Transform& transform)
     return json;
 }
 
-nlohmann::json SerializeActor(const Actor* actor);
+void SerializeActor(const Actor* actor, nlohmann::json& a);
 }  // namespace DG
