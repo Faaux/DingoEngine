@@ -1,8 +1,8 @@
 /**
-*  @file    DG_Memory.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    DG_Memory.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include "DG_memory.h"
 namespace DG

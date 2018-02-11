@@ -5,8 +5,9 @@
 
 // Forward declarations
 typedef int ImGuiWindowFlags;
-    
-typedef enum ImGuiDockSlot {
+
+typedef enum ImGuiDockSlot
+{
     ImGuiDockSlot_Left,
     ImGuiDockSlot_Right,
     ImGuiDockSlot_Top,
@@ -17,8 +18,8 @@ typedef enum ImGuiDockSlot {
     ImGuiDockSlot_None
 } ImGuiDockSlot;
 
-namespace ImGui{
-
+namespace ImGui
+{
 IMGUI_API void BeginDockspace();
 IMGUI_API void EndDockspace();
 IMGUI_API void ShutdownDock();
@@ -30,4 +31,4 @@ IMGUI_API void DockDebugWindow();
 IMGUI_API void SaveDock();
 IMGUI_API void LoadDock();
 
-};
+};  // namespace ImGui

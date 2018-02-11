@@ -1,8 +1,8 @@
 /**
-*  @file    GraphicsSystem.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    GraphicsSystem.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include "GraphicsSystem.h"
 #include <ImGuizmo.h>

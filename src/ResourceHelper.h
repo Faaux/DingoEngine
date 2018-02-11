@@ -1,14 +1,14 @@
 /**
-*  @file    ResourceHelper.h
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    ResourceHelper.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #pragma once
-#include "DG_Include.h"
 #include <filesystem>
 #include <string>
 #include <vector>
+#include "DG_Include.h"
 
 namespace DG
 {

@@ -8,7 +8,7 @@
 
 namespace DG
 {
-//void Test()
+// void Test()
 //{
 //    A* a = new A();
 //    A* b = new B();

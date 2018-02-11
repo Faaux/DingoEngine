@@ -1,8 +1,8 @@
 /**
-*  @file    SDLHelper.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    SDLHelper.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include "SDLHelper.h"
 #include "DG_Include.h"

@@ -8,5 +8,4 @@
 
 namespace DG
 {
-
 }  // namespace DG

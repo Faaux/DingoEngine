@@ -8,10 +8,7 @@
 
 namespace DG
 {
-Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld)
-{
-    RegisterComponent<SceneComponent>();
-}
+Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld) { RegisterComponent<SceneComponent>(); }
 
 Actor::~Actor()
 {

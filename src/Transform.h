@@ -1,8 +1,8 @@
 /**
-*  @file    Transform.h
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    Transform.h
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #pragma once
 #include "DG_Include.h"
@@ -13,7 +13,7 @@ class Transform
 {
    public:
     Transform() {}
-    
+
     Transform(const mat4& toCopy);
     Transform(vec3 position, vec3 rotationEuler, vec3 scale);
     Transform(vec3 position, quat orientation, vec3 scale);
@@ -35,18 +35,13 @@ class Transform
 
     const mat4& GetModelMatrix() const;
 
-
     friend bool operator==(const Transform& lhs, const Transform& rhs)
     {
-        return lhs._orientation == rhs._orientation
-               && lhs._position == rhs._position
-               && lhs._scale == rhs._scale;
+        return lhs._orientation == rhs._orientation && lhs._position == rhs._position &&
+               lhs._scale == rhs._scale;
     }
 
-    friend bool operator!=(const Transform& lhs, const Transform& rhs)
-    {
-        return !(lhs == rhs);
-    }
+    friend bool operator!=(const Transform& lhs, const Transform& rhs) { return !(lhs == rhs); }
 
    private:
     void UpdateModelMatrix() const;

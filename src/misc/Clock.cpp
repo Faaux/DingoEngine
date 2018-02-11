@@ -1,8 +1,8 @@
 /**
-*  @file    Clock.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    Clock.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include "Clock.h"
 namespace DG

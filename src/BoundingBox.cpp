@@ -9,7 +9,6 @@
 
 namespace DG
 {
-
 AABB TransformAABB(const AABB& aabb, const Transform& transform)
 {
     AABB result;

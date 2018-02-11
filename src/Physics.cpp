@@ -6,8 +6,8 @@
 
 #include "Physics.h"
 #include "GraphicsSystem.h"
-#include "ResourceManager.h"
 #include "PxPhysicsAPI.h"
+#include "ResourceManager.h"
 #include "main.h"
 
 namespace DG
@@ -94,7 +94,8 @@ bool PhysicsWorld::Init(const Clock& clock)
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
     }
 
-    //ToDo: Remove, no actor should be added to the scene, let the user (world edit) take care of it
+    // ToDo: Remove, no actor should be added to the scene, let the user (world edit) take care of
+    // it
     PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, PxPlane(0, 1, 0, 0), *gMaterial);
     newScene.Scene->addActor(*groundPlane);
 
@@ -188,7 +189,7 @@ void PhysicsWorld::Shutdown()
     WorldToPhysX.erase(this);
 }
 //
-//void PhysicsWorld::AddModel(GameObject& obj, bool forEditing)
+// void PhysicsWorld::AddModel(GameObject& obj, bool forEditing)
 //{
 //    auto scene = WorldToPhysX[this].Scene;
 //
@@ -222,7 +223,8 @@ void PhysicsWorld::Shutdown()
 //
 //        // Create Rigid Static
 //        PxRigidStatic* staticActor =
-//            gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
+//            gPhysics->createRigidStatic(PxTransform(ToPxVec3(translation),
+//            ToPxQuat(orientation)));
 //
 //        staticActor->userData = &obj;
 //        staticActor->attachShape(*shape);
@@ -263,7 +265,7 @@ void PhysicsWorld::Shutdown()
 //    }
 //}
 //
-//void PhysicsWorld::RemoveModel(GameObject& obj)
+// void PhysicsWorld::RemoveModel(GameObject& obj)
 //{
 //    auto scene = WorldToPhysX[this].Scene;
 //    PxRigidBody* rigidBody = (PxRigidBody*)obj.Physics->Data;

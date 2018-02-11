@@ -1,8 +1,8 @@
 /**
-*  @file    WorldEditor.cpp
-*  @author  Faaux (github.com/Faaux)
-*  @date    11 February 2018
-*/
+ *  @file    WorldEditor.cpp
+ *  @author  Faaux (github.com/Faaux)
+ *  @date    11 February 2018
+ */
 
 #include "WorldEditor.h"
 #include <ImGuizmo.h>

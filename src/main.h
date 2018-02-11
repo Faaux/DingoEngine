@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "GLTFSceneManager.h"
 #include "DG_Include.h"
+#include "GLTFSceneManager.h"
 #include "ModelManager.h"
 #include "ShaderManager.h"
 
