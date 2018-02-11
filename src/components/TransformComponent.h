@@ -16,10 +16,9 @@ class TransformComponent : public BaseComponent
     DECLARE_CLASS_TYPE(TransformComponent, BaseComponent)
    public:
     TransformComponent(Actor* actor) : BaseComponent(actor) {}
-
     operator Transform&() { return transform; }
 
    private:
-    Transform transform;
+    DPROPERTY Transform transform;
 };
 }  // namespace DG

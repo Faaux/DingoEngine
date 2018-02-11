@@ -41,7 +41,7 @@ BaseComponent* Actor::GetFirstComponentOfType(TypeId type, bool orSubtype)
         }
         else
         {
-            if (component->IsTypeOrSubType(type))
+            if (component->IsTypeOrDerivedType(type))
                 return component;
         }
     }
@@ -60,7 +60,7 @@ std::vector<BaseComponent*> Actor::GetComponentsOfType(TypeId type, bool orSubty
         }
         else
         {
-            if (component->IsTypeOrSubType(type))
+            if (component->IsTypeOrDerivedType(type))
                 result.push_back(component);
         }
     }

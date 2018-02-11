@@ -42,6 +42,7 @@ void GameWorld::Shutdown()
 void GameWorld::DestroyActor(Actor* actor)
 {
     Assert(!_isShutdown);
+    actor->~Actor();
     _actorMemory.Pop(actor);
 }
 

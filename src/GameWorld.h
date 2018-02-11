@@ -53,8 +53,6 @@ template <typename T, typename... Args>
 T* GameWorld::CreateNewActor(Args&&... args)
 {
     static_assert(std::is_base_of<Actor, T>::value, "T not derived from Actor");
-    static_assert(std::is_trivially_destructible<T>::value,
-                  "Actors need to be trivially destructible");
 
     Assert(!_isShutdown);
     return _actorMemory.PushAndConstruct<T>(this, std::forward<Args>(args)...);

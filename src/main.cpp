@@ -34,6 +34,7 @@
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "main.h"
+#include "Serialize.h"
 
 namespace DG
 {
@@ -412,6 +413,8 @@ int main(int, char* [])
     gManagers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
 
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
+    Actor* actor = Game->ActiveWorld->CreateNewActor<Actor>();
+    SerializeActor(actor);
 
     while (!Game->RawInputSystem->IsQuitRequested())
     {

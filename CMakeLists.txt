@@ -134,6 +134,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 									ThirdParty/freetype-2.9
 									ThirdParty/stb
 									ThirdParty/physx-3.4/Include
+									ThirdParty/json
 									)
 		
 		
