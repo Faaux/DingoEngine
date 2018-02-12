@@ -5,11 +5,8 @@
  */
 
 #pragma once
-#include "DG_Include.h"
-#include "GameWorld.h"
-#include "Type.h"
 #include "components/BaseComponent.h"
-#include "components/SceneComponent.h"
+#include "engine/GameWorld.h"
 
 namespace DG
 {

@@ -5,6 +5,8 @@
  */
 
 #include "Actor.h"
+#include "components/SceneComponent.h"
+
 
 namespace DG
 {

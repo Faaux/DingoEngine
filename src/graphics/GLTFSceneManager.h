@@ -5,9 +5,8 @@
  */
 
 #pragma once
-#include "DG_Include.h"
 #include "Mesh.h"
-#include "ResourceManager.h"
+#include "platform/ResourceManager.h"
 
 namespace DG::graphics
 {

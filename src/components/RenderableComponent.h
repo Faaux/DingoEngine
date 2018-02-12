@@ -6,8 +6,7 @@
 
 #pragma once
 #include "BaseComponent.h"
-#include "DG_Include.h"
-#include "StringIdCRC32.h"
+#include "platform/StringIdCRC32.h"
 
 namespace DG
 {

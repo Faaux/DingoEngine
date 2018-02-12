@@ -5,7 +5,7 @@
 *  This file was generated, do not edit!*/
 
 #pragma once
-#include "Serialize.h"
+#include "engine/Serialize.h"
 #include "RenderableComponent.generated.h"
 #include "../RenderableComponent.h"
 

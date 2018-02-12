@@ -6,8 +6,7 @@
 
 #pragma once
 #include "BaseComponent.h"
-#include "DG_Include.h"
-#include "Transform.h"
+#include "math/Transform.h"
 
 namespace DG
 {

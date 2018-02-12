@@ -6,8 +6,9 @@
 
 #include "DG_Imgui.h"
 #include <imgui.h>
-#include "InputSystem.h"
-#include "Messaging.h"
+#include <algorithm>
+#include "engine/Messaging.h"
+#include "platform/InputSystem.h"
 
 namespace DG
 {

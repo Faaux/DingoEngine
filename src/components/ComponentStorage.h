@@ -6,8 +6,8 @@
 
 #pragma once
 #include "BaseComponent.h"
-#include "DG_Include.h"
-#include "DG_Memory.h"
+#include "engine/Types.h"
+#include "memory/Memory.h"
 
 namespace DG
 {
@@ -65,7 +65,7 @@ ComponentStorage<T>::ComponentStorage(StackAllocator *allocator)
 template <class T>
 T *ComponentStorage<T>::CreateComponent()
 {
-    return reinterpret_cast<T *>(BaseComponentStorage::CreateComponent());
+    return (T *)BaseComponentStorage::CreateComponent();
 }
 
 }  // namespace DG

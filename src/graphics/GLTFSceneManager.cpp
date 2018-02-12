@@ -6,11 +6,14 @@
 
 #include "GLTFSceneManager.h"
 #include <filesystem>
-#include "ResourceHelper.h"
+#include "engine/Types.h"
+#include "json.hpp"
+#include "math/BoundingBox.h"
+#include "math/GLMInclude.h"
+#include "platform/ResourceHelper.h"
+
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
-#include "BoundingBox.h"
-#include "json.hpp"
 #include "tiny_gltf.h"
 
 namespace DG::graphics
@@ -91,8 +94,8 @@ GLTFScene* LoadGLTF(const char* f)
                 accessor.bufferView, &(result->bufferViews[accessor.bufferView]),
                 accessor.byteOffset, accessor.count,
                 accessor.ByteStride(model.bufferViews[accessor.bufferView]), aabb,
-                static_cast<ComponentType>(accessor.componentType),
-                static_cast<GLTFAccessor::Type>(accessor.type), accessor.normalized);
+                (ComponentType)accessor.componentType, (GLTFAccessor::Type)accessor.type,
+                accessor.normalized);
         }
     }
     // Material
@@ -119,7 +122,7 @@ GLTFScene* LoadGLTF(const char* f)
             mesh.weights.reserve(gltfMesh.weights.size());
             for (auto weight : gltfMesh.weights)
             {
-                mesh.weights.push_back(static_cast<float>(weight));
+                mesh.weights.push_back((f32)weight);
             }
 
             // Primitives
@@ -133,7 +136,7 @@ GLTFScene* LoadGLTF(const char* f)
                 //     primitive.material = &result->materials[gltfPrimitive.material];
                 if (gltfPrimitive.indices != -1)
                     primitive.indices = &result->accessors[gltfPrimitive.indices];
-                primitive.mode = static_cast<GLTFPrimitive::Mode>(gltfPrimitive.mode);
+                primitive.mode = (GLTFPrimitive::Mode)gltfPrimitive.mode;
 
                 // Parse attributes
                 for (auto& pair : gltfPrimitive.attributes)
@@ -247,22 +250,22 @@ GLTFScene* LoadGLTF(const char* f)
                 quat rotation(1, 0, 0, 0);
                 if (gltfNode.translation.size() == 3)
                 {
-                    translation.x = static_cast<float>(gltfNode.translation[0]);
-                    translation.y = static_cast<float>(gltfNode.translation[1]);
-                    translation.z = static_cast<float>(gltfNode.translation[2]);
+                    translation.x = (f32)gltfNode.translation[0];
+                    translation.y = (f32)gltfNode.translation[1];
+                    translation.z = (f32)gltfNode.translation[2];
                 }
                 if (gltfNode.scale.size() == 3)
                 {
-                    scale.x = static_cast<float>(gltfNode.scale[0]);
-                    scale.y = static_cast<float>(gltfNode.scale[1]);
-                    scale.z = static_cast<float>(gltfNode.scale[2]);
+                    scale.x = (f32)gltfNode.scale[0];
+                    scale.y = (f32)gltfNode.scale[1];
+                    scale.z = (f32)gltfNode.scale[2];
                 }
                 if (gltfNode.rotation.size() == 4)
                 {
-                    rotation.x = static_cast<float>(gltfNode.rotation[0]);
-                    rotation.y = static_cast<float>(gltfNode.rotation[1]);
-                    rotation.z = static_cast<float>(gltfNode.rotation[2]);
-                    rotation.w = static_cast<float>(gltfNode.rotation[3]);
+                    rotation.x = (f32)gltfNode.rotation[0];
+                    rotation.y = (f32)gltfNode.rotation[1];
+                    rotation.z = (f32)gltfNode.rotation[2];
+                    rotation.w = (f32)gltfNode.rotation[3];
                 }
 
                 node.localMatrix =
@@ -278,7 +281,7 @@ GLTFScene* LoadGLTF(const char* f)
             // Add weights
             for (auto& weight : gltfNode.weights)
             {
-                node.weights.push_back(static_cast<float>(weight));
+                node.weights.push_back((f32)(weight));
             }
         }
     }

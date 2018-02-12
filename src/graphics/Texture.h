@@ -6,7 +6,7 @@
 
 #pragma once
 #include <glad/glad.h>
-#include "DG_Include.h"
+#include "engine/Types.h"
 namespace DG::graphics
 {
 class Texture

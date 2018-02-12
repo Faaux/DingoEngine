@@ -50,3 +50,52 @@ Reimplement WorldEdit....
 
 Concept of Viewport, input handling, backbuffer handling, 
 
+
+// Cleanup current
+
+Remove any c++ style cast!
+
+
+Rewrite messaging without tempalte madness!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

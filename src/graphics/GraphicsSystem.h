@@ -7,14 +7,11 @@
 #pragma once
 #include <glad/glad.h>
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <vector>
-#include "Camera.h"
-#include "DG_Include.h"
 #include "Framebuffer.h"
 #include "Mesh.h"
 #include "Shader.h"
-#include "Transform.h"
+#include "math/Transform.h"
 
 namespace DG::graphics
 {

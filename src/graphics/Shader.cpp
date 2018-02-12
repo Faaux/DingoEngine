@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include "GraphicsSystem.h"
-#include "ResourceHelper.h"
+#include "platform/ResourceHelper.h"
 
 namespace DG::graphics
 {
@@ -89,7 +89,7 @@ static u32 CompileShaderFromFile(s32 i, std::string_view filename)
     std::stringstream buffer;
     buffer << t.rdbuf();
     auto source = buffer.str();
-    const GLchar* file = static_cast<const GLchar*>(source.c_str());
+    const GLchar* file = (const GLchar*)source.c_str();
 
     return CompileShaderFromString(i, file);
 }

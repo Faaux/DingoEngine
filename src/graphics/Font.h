@@ -5,17 +5,16 @@
  */
 
 #pragma once
-#include <ft2build.h>
-#include "DG_Include.h"
-#include FT_FREETYPE_H
+#include <ft2build.h> 
+#include FT_FREETYPE_H 
 #include <glad/glad.h>
 #include <array>
 #include <string>
 #include <vector>
-#include "Camera.h"
 #include "Framebuffer.h"
-#include "InputSystem.h"
 #include "Texture.h"
+#include "engine/Types.h"
+#include "math/GLMInclude.h"
 
 namespace DG::graphics
 {

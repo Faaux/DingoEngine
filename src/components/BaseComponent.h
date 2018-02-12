@@ -5,8 +5,7 @@
  */
 
 #pragma once
-#include "DG_Include.h"
-#include "Type.h"
+#include "engine/Type.h"
 
 namespace DG
 {
@@ -20,9 +19,6 @@ class BaseComponent : public TypeBase
     BaseComponent(Actor* actor) : _actor(actor) {}
 
     Actor* GetOwningActor() const { return _actor; }
-
-   protected:
-    ~BaseComponent() = default;
 
    private:
     Actor* _actor;

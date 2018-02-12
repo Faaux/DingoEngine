@@ -13,6 +13,7 @@
 
 #include "imgui_impl_sdl_gl3.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 // SDL,GL3W
 #include <SDL.h>

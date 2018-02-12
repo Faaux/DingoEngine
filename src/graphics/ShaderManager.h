@@ -5,9 +5,8 @@
  */
 
 #pragma once
-#include "DG_Include.h"
-#include "ResourceManager.h"
 #include "Shader.h"
+#include "platform/ResourceManager.h"
 
 namespace DG::graphics
 {

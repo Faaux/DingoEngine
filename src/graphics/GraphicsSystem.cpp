@@ -5,14 +5,12 @@
  */
 
 #include "GraphicsSystem.h"
-#include <ImGuizmo.h>
-#include "Clock.h"
 #include "Font.h"
-#include "ResourceHelper.h"
 #include "Shader.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "main.h"
+#include "math/BoundingBox.h"
 
 namespace DG::graphics
 {
@@ -148,8 +146,8 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
                             "m", renderable.transform.GetModelMatrix() * mesh.localTransform);
 
                         glBindVertexArray(mesh.vao);
-                        glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
-                                       reinterpret_cast<void*>(mesh.byteOffset));
+                        glDrawElements(mesh.drawMode, (s32)mesh.count, mesh.type,
+                                       (void*)mesh.byteOffset);
                     }
                     CheckOpenGLError(__FILE__, __LINE__);
                 }
@@ -194,8 +192,8 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
                         "model", renderable.transform.GetModelMatrix() * mesh.localTransform);
 
                     glBindVertexArray(mesh.vao);
-                    glDrawElements(mesh.drawMode, static_cast<s32>(mesh.count), mesh.type,
-                                   reinterpret_cast<void*>(mesh.byteOffset));
+                    glDrawElements(mesh.drawMode, (s32)(mesh.count), mesh.type,
+                                   (void*)(mesh.byteOffset));
                 }
                 CheckOpenGLError(__FILE__, __LINE__);
             }
@@ -329,7 +327,7 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
     offset += sizeof(vec3);
     glEnableVertexAttribArray(1);  // in_second (vec3)
     glVertexAttribPointer(
@@ -338,7 +336,7 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
     offset += sizeof(vec3);
     glEnableVertexAttribArray(2);  // in_ColorPointSize (vec4)
     glVertexAttribPointer(
@@ -347,7 +345,7 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
 
     offset += sizeof(vec4);
     glEnableVertexAttribArray(3);  // direction (float)
@@ -357,7 +355,7 @@ void DebugRenderSystem::SetupVertexBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ sizeof(DebugPoint),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
 
     CheckOpenGLError(__FILE__, __LINE__);
 
@@ -423,7 +421,7 @@ void DebugRenderSystem::RenderDebugLines(const RenderContext* renderContext, boo
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
-    s32 size_left = static_cast<s32>(lines.size());
+    s32 size_left = (s32)lines.size();
     s32 size_drawn = 0;
     while (size_left != 0)
     {
@@ -481,7 +479,7 @@ void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 dur
     vec3 lastPoint, temp;
     for (int i = stepSize; i <= 180; i += stepSize)
     {
-        const float rad = glm::radians(static_cast<f32>(i));
+        const float rad = glm::radians((f32)i);
         const float s = glm::sin(rad);
         const float c = glm::cos(rad);
 
@@ -491,7 +489,7 @@ void AddDebugSphere(const vec3& centerPosition, Color color, f32 radius, f32 dur
 
         for (int n = 0, j = stepSize; j <= 360; j += stepSize, ++n)
         {
-            const float radTemp = glm::radians(static_cast<f32>(j));
+            const float radTemp = glm::radians((f32)j);
             temp.x = centerPosition.x + glm::sin(radTemp) * radius * s;
             temp.y = centerPosition.y + glm::cos(radTemp) * radius * s;
             temp.z = lastPoint.z;
@@ -520,7 +518,7 @@ void AddDebugCircle(const vec3& centerPosition, const vec3& planeNormal, Color c
     vec3 lastPoint = centerPosition + vecZ;
     for (int i = stepSize; i <= 360; i += stepSize)
     {
-        const float rad = glm::radians(static_cast<f32>(i));
+        const float rad = glm::radians((f32)i);
         const float s = glm::sin(rad);
         const float c = glm::cos(rad);
 

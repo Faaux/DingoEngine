@@ -6,8 +6,8 @@
 
 #pragma once
 #include <filesystem>
-#include <string>
-#include "DG_Include.h"
+#include "engine/Types.h"
+#include "math/GLMInclude.h"
 
 namespace DG::graphics
 {

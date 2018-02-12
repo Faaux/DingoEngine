@@ -6,10 +6,9 @@
 
 #pragma once
 
-#include "DG_Include.h"
-#include "GLTFSceneManager.h"
-#include "ModelManager.h"
-#include "ShaderManager.h"
+#include "engine/ModelManager.h"
+#include "graphics/GLTFSceneManager.h"
+#include "graphics/ShaderManager.h"
 
 namespace DG
 {

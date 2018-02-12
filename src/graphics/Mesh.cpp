@@ -5,7 +5,6 @@
  */
 
 #include "Mesh.h"
-#include "DG_Include.h"
 #include "GraphicsSystem.h"
 
 namespace DG::graphics
@@ -102,8 +101,8 @@ Mesh::Mesh(const std::vector<BufferView>& bufferViews, const GLTFPrimitive& prim
             /* size      = */ count,
             /* type      = */ accessor->componentType,
             /* normalize = */ accessor->normalized,
-            /* stride    = */ static_cast<s32>(accessor->byteStride),
-            /* offset    = */ reinterpret_cast<void*>(accessor->byteOffset));
+            /* stride    = */ (s32)accessor->byteStride,
+            /* offset    = */ (void*)accessor->byteOffset);
         graphics::CheckOpenGLError(__FILE__, __LINE__);
     }
     glBindVertexArray(0);

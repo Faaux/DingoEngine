@@ -9,10 +9,10 @@
 #include <glad/glad.h>
 #include <array>
 #include <vector>
-#include "BoundingBox.h"
-#include "DG_Include.h"
 #include "Shader.h"
-#include "StringIdCRC32.h"
+#include "engine/Types.h"
+#include "math/BoundingBox.h"
+#include "platform/StringIdCRC32.h"
 
 namespace DG::graphics
 {

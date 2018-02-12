@@ -4,42 +4,28 @@
  *  @date    11 February 2018
  */
 
-#include <SDL.h>
-#include <fstream>
-
-#include "DG_Include.h"
-#include "Job.h"
-#include "SDLHelper.h"
-
-#include "Camera.h"
-#include "Clock.h"
-#include "GraphicsSystem.h"
-#include "InputSystem.h"
-#include "Mesh.h"
-#include "ResourceHelper.h"
-#include "Shader.h"
+#include "main.h"
 
 #include <ImGuizmo.h>
-#include "DG_Memory.h"
-#include "Framebuffer.h"
-#include "GLTFSceneManager.h"
-#include "Messaging.h"
-#include "ModelManager.h"
-#include "Serialize.h"
-#include "ShaderManager.h"
-#include "StringIdCRC32.h"
-#include "Type.h"
-#include "WorldEditor.h"
-#include "components/ComponentStorage.h"
+#include <SDL.h>
+#include <fstream>
+#include "engine/Messaging.h"
+#include "engine/Types.h"
+#include "engine/WorldEditor.h"
+#include "graphics/GraphicsSystem.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "main.h"
+#include "math/Transform.h"
+#include "memory/Memory.h"
+#include "physics/Physics.h"
+#include "platform/InputSystem.h"
+#include "platform/Job.h"
+#include "platform/SDLHelper.h"
+#include "platform/StringIdCRC32.h"
 
 namespace DG
 {
-using namespace graphics;
-
 struct GameState
 {
     enum class GameMode
@@ -61,7 +47,7 @@ struct GameState
 
     RawInputSystem* RawInputSystem;
     InputSystem* InputSystem;
-    GraphicsSystem* GraphicsSystem;
+    graphics::GraphicsSystem* GraphicsSystem;
 
     WorldEdit* WorldEdit;
     GameWorld* ActiveWorld;
@@ -74,8 +60,8 @@ struct FrameData
     bool IsPreRenderDone = false;
     bool IsRenderDone = false;
 
-    RenderContext* RenderCTX;
-    DebugRenderContext* DebugRenderCTX;
+    graphics::RenderContext* RenderCTX;
+    graphics::DebugRenderContext* DebugRenderCTX;
 
     void Reset()
     {
@@ -91,13 +77,15 @@ struct FrameData
         IsPreRenderDone = false;
         IsRenderDone = false;
 
-        RenderCTX = FrameMemory.Push<RenderContext>();
-        DebugRenderCTX = FrameMemory.PushAndConstruct<DebugRenderContext>();
+        RenderCTX = FrameMemory.Push<graphics::RenderContext>();
+        DebugRenderCTX = FrameMemory.PushAndConstruct<graphics::DebugRenderContext>();
     }
 };
+
 #if _DEBUG
 StringHashTable<2048> g_StringHashTable;
 #endif
+
 GameMemory Memory;
 GameState* Game;
 Managers* gManagers;
@@ -287,15 +275,15 @@ void Update(FrameData* frameData)
     TWEAKER(CB, "Grid", &showGrid);
 
     if (showGrid)
-        AddDebugXZGrid(vec2(0), -5, 5, 0);
-    AddDebugAxes(Transform(vec3(0, 0.01f, 0), vec3(), vec3(1)), 5.f, 2.5f);
+        graphics::AddDebugXZGrid(vec2(0), -5, 5, 0);
+    graphics::AddDebugAxes(Transform(vec3(0, 0.01f, 0), vec3(), vec3(1)), 5.f, 2.5f);
 
-    AddDebugTextScreen(vec2(0), "Test test test");
+    graphics::AddDebugTextScreen(vec2(0), "Test test test");
 }
 
 u64 GetFrameBufferIndex(u64 frameIndex, u64 size)
 {
-    s64 index = static_cast<s64>(frameIndex);
+    s64 index = (s64)frameIndex;
     if (index < 0)
     {
         return (size - (-index % size));
@@ -350,10 +338,12 @@ int main(int, char* [])
     gManagers = Memory.TransientMemory.PushAndConstruct<Managers>();
     Game->RawInputSystem = Memory.TransientMemory.PushAndConstruct<RawInputSystem>();
     Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
-    Game->GraphicsSystem = Memory.TransientMemory.PushAndConstruct<GraphicsSystem>(Game->Window);
+    Game->GraphicsSystem =
+        Memory.TransientMemory.PushAndConstruct<graphics::GraphicsSystem>(Game->Window);
     gManagers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
-    gManagers->GLTFSceneManager = Memory.TransientMemory.PushAndConstruct<GLTFSceneManager>();
-    gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<ShaderManager>();
+    gManagers->GLTFSceneManager =
+        Memory.TransientMemory.PushAndConstruct<graphics::GLTFSceneManager>();
+    gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<graphics::ShaderManager>();
     Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>();
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
 
@@ -365,7 +355,7 @@ int main(int, char* [])
     AttachDebugListenersToMessageSystem();
 
     u64 currentTime = SDL_GetPerformanceCounter();
-    f32 cpuFrequency = static_cast<f32>(SDL_GetPerformanceFrequency());
+    f32 cpuFrequency = (f32)(SDL_GetPerformanceFrequency());
     u64 currentFrameIdx = 0;
 
     // Init FrameRingBuffer
@@ -394,9 +384,11 @@ int main(int, char* [])
     framebuffer.AddDepthTexture();
 
     // ToDo Remove(Testing)
-    Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+    graphics::Shader* shader =
+        gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
 
-    GLTFScene* scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+    graphics::GLTFScene* scene =
+        gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
     gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
 
     scene =
@@ -428,7 +420,7 @@ int main(int, char* [])
         FrameData& currentFrameData = frames[GetFrameBufferIndex(currentFrameIdx, 5)];
         Assert(currentFrameData.IsRenderDone);
         currentFrameData.Reset();
-        g_DebugRenderContext = currentFrameData.DebugRenderCTX;
+        graphics::g_DebugRenderContext = currentFrameData.DebugRenderCTX;
         currentFrameData.RenderCTX->_isWireframe = previousFrameData.RenderCTX->IsWireframe();
         TWEAKER_FRAME_CAT("OpenGL", CB, "Wireframe", &currentFrameData.RenderCTX->_isWireframe);
 
@@ -438,7 +430,7 @@ int main(int, char* [])
         // Measure time and update clocks!
         const u64 lastTime = currentTime;
         currentTime = SDL_GetPerformanceCounter();
-        f32 dtSeconds = static_cast<f32>(currentTime - lastTime) / cpuFrequency;
+        f32 dtSeconds = (f32)(currentTime - lastTime) / cpuFrequency;
 
         // This usually happens once we hit a breakpoint when debugging
         if (dtSeconds > 0.25f)
@@ -499,7 +491,7 @@ int main(int, char* [])
                     Game->ActiveWorld = Game->PlayModeStack.Push<GameWorld>();
 
                     // Copy World from Edit mode over
-                    CopyGameWorld(Game->ActiveWorld, Game->WorldEdit->GetWorld());
+                    // CopyGameWorld(Game->ActiveWorld, Game->WorldEdit->GetWorld());
                 }
             }
             else if (Game->Mode == GameState::GameMode::PlayMode)
@@ -550,8 +542,7 @@ int main(int, char* [])
 
                 if (framebuffer.GetSize() != avaialbeSize)
                 {
-                    framebuffer.Resize(static_cast<u32>(avaialbeSize.x),
-                                       static_cast<u32>(avaialbeSize.y));
+                    framebuffer.Resize((u32)avaialbeSize.x, (u32)avaialbeSize.y);
                     MainBackbufferSizeMessage message;
                     message.WindowSize = avaialbeSize;
                     g_MessagingSystem.SendNextFrame(message);
@@ -694,7 +685,7 @@ int main(int, char* [])
         // Render
 
         Game->GraphicsSystem->Render(currentFrameData.RenderCTX, currentFrameData.DebugRenderCTX);
-        g_DebugRenderContext->Reset();
+        graphics::g_DebugRenderContext->Reset();
 
         currentFrameData.IsRenderDone = true;
 

@@ -41,40 +41,8 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 #Third Party Builds
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 	
-	## SDL	
-		set(DIRECTX OFF CACHE BOOL "" FORCE)
-		set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
-		set(DISKAUDIO OFF CACHE BOOL "" FORCE)
-		set(DUMMYAUDIO OFF CACHE BOOL "" FORCE)
-		set(SDL_RENDER OFF CACHE BOOL "" FORCE)
-		set(VIDEO_OPENGLES OFF CACHE BOOL "" FORCE)
-		set(VIDEO_DUMMY OFF CACHE BOOL "" FORCE)
-		set(SDL_POWER ON CACHE BOOL "" FORCE)
-		set(SDL_THREADS ON CACHE BOOL "" FORCE)
-		set(SDL_FILE ON CACHE BOOL "" FORCE)
-		set(SDL_SHARED ON CACHE BOOL "" FORCE)
-		set(SDL_STATIC OFF CACHE BOOL "" FORCE)
-		set(LIBC ON CACHE BOOL "" FORCE)
-		
-		add_subdirectory(ThirdParty/SDL-mirror)
-		
-		set_target_properties (SDL2 PROPERTIES
-			FOLDER ThirdParty/SDL
-		)
-		set_target_properties (SDL2main PROPERTIES
-			FOLDER ThirdParty/SDL
-		)
-		set_target_properties (uninstall PROPERTIES
-			FOLDER ThirdParty/SDL
-		)
-
-		set(SDL_LIBS
-			SDL2
-			SDL2main
-		)
-	
 	## GLM
-#Nothing needed just added the includes to THIRD_PARTY_INCLUDES
+		#Nothing needed just added the includes to THIRD_PARTY_INCLUDES
 		
 	## IMGUI
 		set (IMGUI_SOURCE_FILES 	ThirdParty/imgui/imgui.cpp
@@ -90,19 +58,26 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 		set (GLAD_SOURCE_FILES 		ThirdParty/glad/src/glad.c)
 		
 	## FreeType
-		
-		
 		set(FREETYPE_LIBS ${CMAKE_SOURCE_DIR}/ThirdParty/freetype-2.9/freetype.lib)
+
+	## SDL	
+		SET (SDL_LIB_PATH_DEBUG ${CMAKE_SOURCE_DIR}/ThirdParty/SDL/lib/Debug)
+		SET (SDL_LIB_PATH_RELEASE ${CMAKE_SOURCE_DIR}/ThirdParty/SDL/lib/Release)
+
+
+		set(SDL_LIBS
+						debug ${SDL_LIB_PATH_DEBUG}/SDL2maind.lib
+						debug ${SDL_LIB_PATH_DEBUG}/SDL2d.lib
+						optimized ${SDL_LIB_PATH_RELEASE}/SDL2main.lib
+						optimized ${SDL_LIB_PATH_RELEASE}/SDL2.lib
+						)
 		
 	## PhsyX 3.4
+		SET (PHYSX_LIB_PATH_DEBUG ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Debug)
+		SET (PHYSX_LIB_AFFIX_DEBUG DEBUG_x64.lib)
 
-		# Debug Settings
-			set(PHSYX_LIBS  )	
-			SET (PHYSX_LIB_PATH_DEBUG ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Debug)
-			SET (PHYSX_LIB_AFFIX_DEBUG DEBUG_x64.lib)
-
-			SET (PHYSX_LIB_PATH_RELEASE ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Release)
-			SET (PHYSX_LIB_AFFIX_RELEASE CHECKED_x64.lib)
+		SET (PHYSX_LIB_PATH_RELEASE ${CMAKE_SOURCE_DIR}/ThirdParty/physx-3.4/lib/Release)
+		SET (PHYSX_LIB_AFFIX_RELEASE CHECKED_x64.lib)
 
 		set(PHSYX_LIBS 		
 							optimized ${PHYSX_LIB_PATH_RELEASE}/PhysX3CharacterKinematic${PHYSX_LIB_AFFIX_RELEASE}
@@ -125,14 +100,13 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 		
 	## 3rd Party Includes
-		set(THIRD_PARTY_INCLUDES 	${SDL2_SOURCE_DIR}/include
+		set(THIRD_PARTY_INCLUDES 	ThirdParty/SDL/include
 									ThirdParty/glm
 									ThirdParty/glad/include
 									ThirdParty/imgui
 									ThirdParty/imguiGizmo
 									ThirdParty/tinyGltf
 									ThirdParty/freetype-2.9
-									ThirdParty/stb
 									ThirdParty/physx-3.4/Include
 									ThirdParty/json
 									)
@@ -145,9 +119,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 									${IMGUI_GIZMO_SOURCE_FILES})
 
 #Includes
-include_directories(src 
-					src/misc 
-					src/graphics
+include_directories(src
 					${THIRD_PARTY_INCLUDES})
 
 #Source Files
@@ -179,14 +151,19 @@ target_compile_definitions(${PROJECT_NAME}	PRIVATE	SOURCEPATH=${CMAKE_CURRENT_LI
 
 
 # Copy PhysX Dlls
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD        # Adds a post-build event to MyTest
-    COMMAND ${CMAKE_COMMAND} -E copy_directory				# which executes "cmake - E copy_if_different..."
-        "${PROJECT_SOURCE_DIR}/ThirdParty/physx-3.4/bin/$<CONFIGURATION>"				# <--this is in-file
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>)				
-		# <--this is out-file path
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${PROJECT_SOURCE_DIR}/ThirdParty/physx-3.4/bin/$<CONFIGURATION>"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 
-# Copy PhysX Dlls
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD        # Adds a post-build event to MyTest
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different				# which executes "cmake - E copy_if_different..."
-        "${PROJECT_SOURCE_DIR}/ThirdParty/freetype-2.9/freetype.dll"				# <--this is in-file
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>)							# <--this is out-file path
+# Copy Freetype Dll
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD        
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different			
+        "${PROJECT_SOURCE_DIR}/ThirdParty/freetype-2.9/freetype.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+# Copy SDL Dll
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${PROJECT_SOURCE_DIR}/ThirdParty/SDL/bin/$<CONFIGURATION>"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)

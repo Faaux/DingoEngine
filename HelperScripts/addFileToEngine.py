@@ -31,7 +31,6 @@ def output_header(name):
         output_file_comment(file, filename)
         file.write(
             "#pragma once\n"
-            '#include "DG_Include.h"\n'
             "\n"
             "namespace DG\n"
             "{\n"
@@ -39,11 +38,12 @@ def output_header(name):
         )
 
 
-def output_source(name):
+def output_source(name, has_header):
     filename = (name + ".cpp")
     with open(str(path_to_src / filename), "w") as file:
         output_file_comment(file, filename)
-        file.write('#include "{}"\n'.format((name + ".h")))
+        if has_header:
+            file.write('#include "{}"\n'.format((name + ".h")))
         file.write("\n"
                    "namespace DG\n"
                    "{\n"
@@ -78,7 +78,7 @@ def main():
             if choice == 1 or choice == 3:
                 output_header(filename)
             if choice == 2 or choice == 3:
-                output_source(filename)
+                output_source(filename, choice == 3)
             if choice == 4:
                 output_shaders(filename)
 

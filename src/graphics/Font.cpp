@@ -6,10 +6,9 @@
 
 #include "Font.h"
 #include "GraphicsSystem.h"
-#include "InputSystem.h"
-#include "Messaging.h"
-#include "ResourceHelper.h"
 #include "Texture.h"
+#include "engine/Messaging.h"
+#include "platform/ResourceHelper.h"
 
 namespace DG::graphics
 {
@@ -56,7 +55,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
     }
 
     GlyphPacker tree(0, 0, textureSize, textureSize);
-    u8* packed = static_cast<u8*>(calloc(textureSize * textureSize, 1));
+    u8* packed = (u8*)calloc(textureSize * textureSize, 1);
 
     std::vector<std::tuple<char, u32>> tempSorting;
     tempSorting.reserve(_fontCache.size());
@@ -88,7 +87,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
 
         auto& glyph = _fontCache[unicode - 32];
         glyph.code = unicode;
-        glyph.advance = static_cast<u8>(slot->metrics.horiAdvance / 64);
+        glyph.advance = (u8)(slot->metrics.horiAdvance / 64);
         if (slot->bitmap.buffer)
         {
             glyph.width = slot->bitmap.width;
@@ -96,11 +95,11 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
         }
         else
         {
-            glyph.width = static_cast<u8>(slot->metrics.width / 64);
-            glyph.height = static_cast<u8>(slot->metrics.height / 64);
+            glyph.width = (u8)(slot->metrics.width / 64);
+            glyph.height = (u8)(slot->metrics.height / 64);
         }
-        glyph.bearingX = static_cast<u8>(slot->metrics.horiBearingX / 64);
-        glyph.bearingY = static_cast<u8>(slot->metrics.horiBearingY / 64);
+        glyph.bearingX = (u8)(slot->metrics.horiBearingX / 64);
+        glyph.bearingY = (u8)(slot->metrics.horiBearingY / 64);
 
         tree.AddGlyph(glyph, slot, packed, textureSize, textureSize);
     }
@@ -231,7 +230,7 @@ void Font::Render(const std::vector<DebugCharacter>& textBufferData) const
     glActiveTexture(GL_TEXTURE0);
     _fontTexture.Bind();
     glBindBuffer(GL_ARRAY_BUFFER, _fontVBO);
-    u32 size_left = static_cast<u32>(textBufferData.size());
+    u32 size_left = (u32)textBufferData.size();
     u32 size_drawn = 0;
     while (size_left != 0)
     {
@@ -291,7 +290,7 @@ void Font::SetupBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ 2 * sizeof(vec2),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
     offset += sizeof(vec2);
     glEnableVertexAttribArray(1);  // uv (vec2)
     glVertexAttribPointer(
@@ -300,7 +299,7 @@ void Font::SetupBuffers()
         /* type      = */ GL_FLOAT,
         /* normalize = */ GL_FALSE,
         /* stride    = */ 2 * sizeof(vec2),
-        /* offset    = */ reinterpret_cast<void*>(offset));
+        /* offset    = */ (void*)offset);
 
     graphics::CheckOpenGLError(__FILE__, __LINE__);
 
@@ -374,11 +373,11 @@ void GlyphPacker::AddGlyphDataToArray(Glyph& glyph, const FT_GlyphSlot& slot, u8
         }
     }
 
-    glyph.uTopLeft = _posX / static_cast<f32>(width);
-    glyph.vTopLeft = (_posY + glyph.height) / static_cast<f32>(height);
+    glyph.uTopLeft = _posX / (f32)width;
+    glyph.vTopLeft = (_posY + glyph.height) / (f32)height;
 
-    glyph.uBottomRight = (_posX + glyph.width) / static_cast<f32>(width);
-    glyph.vBottomRight = _posY / static_cast<f32>(height);
+    glyph.uBottomRight = (_posX + glyph.width) / (f32)width;
+    glyph.vBottomRight = _posY / (f32)height;
 }
 
 }  // namespace DG::graphics

@@ -111,6 +111,7 @@ class File:
             if base.cursor.type.spelling == "DG::TypeBase":
                 self.classes.append(candidate)
 
+        path = self.filename.parent / "generated"
         if len(self.classes) > 0:
             self.print()
             # Make sure folder exists
@@ -159,7 +160,7 @@ def output_file(file, with_impl, filename, ast_file):
     )
 
     if with_impl:
-        file.write('#include "Serialize.h"\n')
+        file.write('#include "engine/Serialize.h"\n')
         file.write('#include "{}"\n'.format(filename.replace(".cpp", ".h")))
 
     file.write(
@@ -224,7 +225,7 @@ def main():
         else:
             for file in filelist:
                 file.generate()
-                
+
         path_to_cmake.touch()
 
 
