@@ -72,15 +72,33 @@ class File:
     def __init__(self, filename):
         self.classes = []
         self.candidateClasses = {}
-        self.filename = filename
+        self.filename: Path = filename
+        self.output_filename_h: Path = filename.name.replace(".h", ".generated.h")
+        self.output_filename_cpp: Path = filename.name.replace(".h", ".generated.cpp")
 
+    def needs_update(self):
+        path = self.filename.parent / "generated"
+        path_gen_header = (path / self.output_filename_h)
+        path_gen_cpp = (path / self.output_filename_cpp)
+
+        if path_gen_header.is_file() and path_gen_cpp.is_file():
+            modify_generated_h = path_gen_header.lstat().st_mtime
+            modify_generated_cpp = path_gen_cpp.lstat().st_mtime
+            modify_header = self.filename.lstat().st_mtime
+            if modify_header < modify_generated_h and modify_header < modify_generated_cpp:
+                return False
+
+        return True
+
+    def generate(self):
+        # Output to file
         index = clang.cindex.Index.create()
-        translation_unit = index.parse(str(filename), args)
+        translation_unit = index.parse(str(self.filename), args)
 
         self.build_classes(translation_unit.cursor)
 
         candidates = [c for c in self.candidateClasses.values() if
-                      filename.samefile(Path(c.cursor.location.file.name)) and len(c.base) == 1]
+                      self.filename.samefile(Path(c.cursor.location.file.name)) and len(c.base) == 1]
 
         for candidate in candidates:
             base = candidate
@@ -92,6 +110,18 @@ class File:
 
             if base.cursor.type.spelling == "DG::TypeBase":
                 self.classes.append(candidate)
+
+        if len(self.classes) > 0:
+            self.print()
+            # Make sure folder exists
+            if not os.path.exists(str(path)):
+                os.makedirs(str(path))
+
+            with open(str(path / self.output_filename_h), "w") as file:
+                output_file(file, False, self.output_filename_h, self)
+
+            with open(str(path / self.output_filename_cpp), "w") as file:
+                output_file(file, True, self.output_filename_cpp, self)
 
     def build_classes(self, cursor):
         for c in cursor.get_children():
@@ -173,44 +203,29 @@ def output_file(file, with_impl, filename, ast_file):
     )
 
 
-def generate_for_path(path):
-    if not path.is_file():
-        print("Error: Given path was not a file: {}".format(str(path)))
-        return
-
-    # Parse Into file structure
-    ast_file = File(path)
-
-    # Output to file
-    filename_h = path.name.replace(".h", ".generated.h")
-    filename_cpp = path.name.replace(".h", ".generated.cpp")
-    path = path.parent / "generated"
-
-    if len(ast_file.classes) > 0:
-        ast_file.print()
-        # Make sure folder exists
-        if not os.path.exists(str(path)):
-            os.makedirs(str(path))
-
-        with open(str(path / filename_h), "w") as file:
-            output_file(file, False, filename_h, ast_file)
-
-        with open(str(path / filename_cpp), "w") as file:
-            output_file(file, True, filename_cpp, ast_file)
+def generate_for_file(file):
+    file.generate()
 
 
 def main():
     freeze_support()
     pathlist = list(Path(path_to_components).glob('**/*.h'))
     pathlist = pathlist + list(Path(path_to_gameobjects).glob('**/*.h'))
-    pathlist = [p for p in pathlist
+    filelist = [File(p) for p in pathlist
                 if not str(p).endswith(".generated.h")
                 and not str(p).endswith("Actor.h")
                 and not str(p).endswith("BaseComponent.h")]
 
-    p = Pool(4)
-    p.map(generate_for_path, pathlist)
-    path_to_cmake.touch()
+    filelist = [f for f in filelist if f.needs_update()]
+    if len(filelist) > 0:
+        if len(filelist) >= 4:
+            p = Pool(4)
+            p.map(generate_for_file, filelist)
+        else:
+            for file in filelist:
+                file.generate()
+                
+        path_to_cmake.touch()
 
 
 if __name__ == "__main__":
