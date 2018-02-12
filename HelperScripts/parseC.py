@@ -3,6 +3,7 @@ from multiprocessing import Pool, freeze_support
 import os
 import datetime
 import clang.cindex
+import subprocess
 from paths import path_to_components, path_to_gameobjects, path_to_cmake, path_to_src
 
 args = ["-xc++",
@@ -118,11 +119,16 @@ class File:
             if not os.path.exists(str(path)):
                 os.makedirs(str(path))
 
-            with open(str(path / self.output_filename_h), "w") as file:
+            with open(str(), "w") as file:
                 output_file(file, False, self.output_filename_h, self)
 
             with open(str(path / self.output_filename_cpp), "w") as file:
                 output_file(file, True, self.output_filename_cpp, self)
+
+        # format outputted files
+        arguments = [r"c:\Program Files\LLVM\bin\clang-format.exe", "-i", "-style=file",
+                     str(path / self.output_filename_h), str(path / self.output_filename_cpp)]
+        subprocess.Popen(arguments)
 
     def build_classes(self, cursor):
         for c in cursor.get_children():

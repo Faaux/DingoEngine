@@ -1,5 +1,5 @@
 import datetime
-
+import subprocess
 from paths import path_to_src, path_to_cmake
 
 
@@ -37,6 +37,10 @@ def output_header(name):
             "}  // namespace DG\n"
         )
 
+    arguments = [r"c:\Program Files\LLVM\bin\clang-format.exe", "-i", "-style=file",
+                 str(path_to_src / filename)]
+    subprocess.Popen(arguments)
+
 
 def output_source(name, has_header):
     filename = (name + ".cpp")
@@ -49,6 +53,10 @@ def output_source(name, has_header):
                    "{\n"
                    "}  // namespace DG\n"
                    )
+
+    arguments = [r"c:\Program Files\LLVM\bin\clang-format.exe", "-i", "-style=file",
+                 str(path_to_src / filename)]
+    subprocess.Popen(arguments)
 
 
 def output_shaders(name):
