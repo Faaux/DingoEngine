@@ -7,7 +7,6 @@
 #include "Actor.h"
 #include "components/SceneComponent.h"
 
-
 namespace DG
 {
 Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld) { RegisterComponent<SceneComponent>(); }

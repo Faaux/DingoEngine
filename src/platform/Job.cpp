@@ -6,7 +6,7 @@
 
 #include "Job.h"
 #include <SDL.h>
-#include <atomic> // ToDo: Remove this!
+#include <atomic>  // ToDo: Remove this!
 
 namespace DG
 {

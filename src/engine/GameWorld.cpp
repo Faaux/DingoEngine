@@ -8,7 +8,6 @@
 
 namespace DG
 {
-
 GameWorld::GameWorld()
 {
     // ToDo: This leaks for now
