@@ -8,5 +8,5 @@
 	branch = 0.9.8
 [submodule "ThirdParty/imgui"]
 	path = ThirdParty/imgui
-	url = https://github.com/ocornut/imgui
+	url = https://github.com/Faaux/imgui.git
 	branch = master
