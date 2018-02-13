@@ -8,24 +8,21 @@
 
 namespace DG
 {
-GameWorld::GameWorld()
+void GameWorld::Startup(u8* worldMemory, s32 worldMemorySize)
 {
-    // ToDo: This leaks for now
-    const u32 worldMemorySize = 5 * 1024 * 1024;
-    const u32 actorMemorySize = worldMemorySize / 10;
-    _worldMemory.Init((u8*)malloc(worldMemorySize), worldMemorySize);
-    _actorMemory.Init(_worldMemory.Push(actorMemorySize, 16), actorMemorySize);
-    PhysicsWorld.Init(_worldClock);
+    Assert(!_isShutdown);
+    _worldMemory.Init(worldMemory, worldMemorySize);
+    _actorMemory.Init(_worldMemory.Push(worldMemorySize / 10, 16), worldMemorySize / 10);
+    _physicsWorld.Init(_worldClock);
 }
-
-GameWorld::~GameWorld() {}
 
 void GameWorld::Shutdown()
 {
     Assert(!_isShutdown);
-    _isShutdown = true;
+    _physicsWorld.Shutdown();
     _worldMemory.Reset();
     _actorMemory.Reset();
+    _isShutdown = true;
 }
 
 void GameWorld::DestroyActor(Actor* actor)
@@ -35,22 +32,23 @@ void GameWorld::DestroyActor(Actor* actor)
     _actorMemory.Pop(actor);
 }
 
+Camera* GameWorld::GetActiveCamera()
+{
+    static Camera camera(vec3(1), vec3(0), vec3(0, 1, 0), 45.f, 0.01f, 100.f, 16.f / 9.f);
+    return &camera;
+}
+
 void GameWorld::Update()
 {
+    Assert(!_isShutdown);
     _worldClock.Update(1.f / 60.f);
-    PhysicsWorld.Update();
+    _physicsWorld.Update();
 }
 
-Camera& GameWorld::GetPlayerCamera()
-{
-    static Camera camera(vec3(1), vec3(0), vec3(0, 1, 0), 45.f, 0.01f, 1000.f, 16.f / 9.f);
-    return camera;
-}
-
-void GameWorld::ReleaseComponent(BaseComponent* component)
+void GameWorld::DestroyComponent(BaseComponent* component)
 {
     Assert(!_isShutdown);
     Assert(_componentStorages[component->GetInstanceType()]);
-    _componentStorages[component->GetInstanceType()]->ReleaseComponent(component);
+    _componentStorages[component->GetInstanceType()]->DestroyComponent(component);
 }
 }  // namespace DG

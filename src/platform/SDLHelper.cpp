@@ -6,8 +6,12 @@
 
 #include "SDLHelper.h"
 #include "engine/Types.h"
+
+#if defined(__WIN32__) || defined(__WINRT__)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#endif /*defined(__WIN32__) || defined(__WINRT__)*/
+
 namespace DG
 {
 /* All of the code is mostly taken from SDLs code but is now using colors to print to Windows
@@ -160,10 +164,28 @@ void LogOutput(void *, int, SDL_LogPriority priority, const char *message)
 #endif
 }
 
-void LogCleanup()
+bool InitSDL()
 {
-#if !defined(HAVE_STDIO_H) && !defined(__WINRT__)
-    SetConsoleTextAttribute(stderrHandle, 7);
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "SDL could not initialize! SDL Error: %s\n",
+                        SDL_GetError());
+        return false;
+    }
+#if _DEBUG
+    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+#else
+    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 #endif
+    SDL_LogSetOutputFunction(LogOutput, nullptr);
+
+    // When in fullscreen dont minimize when loosing focus! (Borderless windowed)
+    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+
+    SDL_LogVerbose(0, "----- Hardware Information -----");
+    SDL_LogVerbose(0, "CPU Cores: %i", SDL_GetCPUCount());
+    SDL_LogVerbose(0, "CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
+
+    return true;
 }
 }  // namespace DG

@@ -18,6 +18,10 @@ class Texture
                      u32 format, u32 type, bool linear = false);
     void Bind() const;
     void Cleanup();
+    bool IsValid() const
+    {
+        return _isValid;
+    }
     GLuint GetTextureId() const
     {
         Assert(_isValid);

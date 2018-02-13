@@ -69,6 +69,8 @@ static glm::quat LookRotation(vec3 forward, vec3 up)
     ;
 }
 
+Camera::Camera() : Camera(vec3(0, 0, 1), vec3(), vec3(0, 1, 0), 45.f, 0.01f, 100.f, 16.f / 9.f) {}
+
 Camera::Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far, float aspectRatio)
     : _position(pos), _fov(fov), _near(near), _far(far), _aspectRatio(aspectRatio), _up(up)
 {
@@ -99,8 +101,11 @@ const mat4& Camera::GetProjectionMatrix() const
 
 void Camera::UpdateProjection(float width, float height)
 {
+    float aspect = width / height;
+    if (aspect == _aspectRatio)
+        return;
+    _aspectRatio = aspect;
     _isProjectionValid = false;
-    _aspectRatio = width / height;
 }
 
 const vec3& Camera::GetPosition() const { return _position; }

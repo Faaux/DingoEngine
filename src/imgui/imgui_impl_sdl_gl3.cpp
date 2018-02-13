@@ -36,6 +36,12 @@ static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 // order to be able to run within any OpenGL engine that doesn't do so. If text or lines are blurry
 // when integrating ImGui in your engine: in your Render function, try translating your projection
 // matrix by (0.5f,0.5f) or (0.375f,0.375f)
+
+void RenderTextureFromViewport(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+{
+    
+}
+
 void ImGui_ImplSdlGL3_RenderDrawLists(ImDrawData* draw_data)
 {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates !=
@@ -417,15 +423,11 @@ bool ImGui_ImplSdlGL3_Init(SDL_Window* window)
 
 void ImGui_ImplSdlGL3_Shutdown()
 {
-    ImGui_ImplSdlGL3_InvalidateDeviceObjects();
     ImGui::Shutdown();
 }
 
 void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
 {
-    if (!g_FontTexture)
-        ImGui_ImplSdlGL3_CreateDeviceObjects();
-
     ImGuiIO& io = ImGui::GetIO();
 
     // Setup display size (every frame to accommodate for window resizing)

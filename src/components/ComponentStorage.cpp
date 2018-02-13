@@ -25,7 +25,7 @@ void *BaseComponentStorage::CreateComponent()
     return component;
 }
 
-void BaseComponentStorage::ReleaseComponent(BaseComponent *component)
+void BaseComponentStorage::DestroyComponent(BaseComponent *component)
 {
     *(BaseComponent **)component = _nextFree;
     _nextFree = component;

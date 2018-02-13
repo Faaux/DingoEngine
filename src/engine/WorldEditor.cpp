@@ -64,13 +64,7 @@ void AddEditTransform(const mat4& cameraView, const mat4& cameraProjection, Tran
     }
 }
 
-WorldEdit::WorldEdit() : _selectedActor(nullptr)
-{
-    g_MessagingSystem.RegisterCallback<InputMessage>([=](const InputMessage& message) {
-        _lastInputMessage = message;
-        _lastInputMessageHandled = false;
-    });
-}
+WorldEdit::WorldEdit() : _selectedActor(nullptr) {}
 
 void WorldEdit::Update()
 {
@@ -200,6 +194,18 @@ void WorldEdit::Update()
 }
 
 GameWorld* WorldEdit::GetWorld() { return &_gameWorld; }
+
+void WorldEdit::Startup(StackAllocator* allocator)
+{
+    const s32 worldSize = 1 * 1024 * 1024;
+    u8* worldMemory = allocator->Push(worldSize, 4);
+    _gameWorld.Startup(worldMemory, worldSize);
+}
+
+void WorldEdit::Shutdown()
+{
+    _gameWorld.Shutdown();
+}
 
 vec3 GetMouseRayGameClient(const InputMessage& message, const Camera& camera)
 {

@@ -14,7 +14,6 @@
 
 namespace DG::graphics
 {
-RenderContext* g_RenderContext = nullptr;
 DebugRenderContext* g_DebugRenderContext = nullptr;
 
 inline const char* ErrorToString(const GLenum errorCode)
@@ -35,7 +34,7 @@ inline const char* ErrorToString(const GLenum errorCode)
             return "Unknown GL error";
     }  // switch (errorCode)
 }
-GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
+GraphicsSystem::GraphicsSystem()
 {
     // Enable Depthtesting
     glEnable(GL_DEPTH_TEST);
@@ -43,23 +42,34 @@ GraphicsSystem::GraphicsSystem(SDL_Window* window) : _window(window)
     glDepthFunc(GL_LESS);
 }
 
-void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* debugContext)
+void GraphicsSystem::Render(ImDrawData* imOverlayDrawData, WorldRenderData** renderData, s32 count)
 {
     static vec4 clearColor(0.1f, 0.1f, 0.1f, 1.f);
+
+    TWEAKER_CAT("OpenGL", Color3Small, "Clear Color", &clearColor);
+
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+    for (int i = 0; i < count; ++i)
+    {
+        RenderWorldInternal(renderData[i]);
+    }
+
+    // Imgui
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ImGui_ImplSdlGL3_RenderDrawLists(imOverlayDrawData);
+}
+
+void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
+{
     static vec3 lightColor(1);
     static vec3 lightDirection(0.1, -1, 0);
     static float bias = 0.001f;
-    TWEAKER_CAT("OpenGL", Color3Small, "Clear Color", &clearColor);
     TWEAKER_CAT("OpenGL", F1, "Shadow Bias", &bias);
     TWEAKER(Color3Small, "Light Color", &lightColor);
     TWEAKER(F3, "Light Direction", &lightDirection);
 
-    AddDebugLine(vec3(5), vec3(5) + lightDirection);
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glPolygonMode(GL_FRONT_AND_BACK, context->IsWireframe() ? GL_LINE : GL_FILL);
-    if (context->IsWireframe())
+    glPolygonMode(GL_FRONT_AND_BACK, worldData->RenderCTX->IsWireframe ? GL_LINE : GL_FILL);
+    if (worldData->RenderCTX->IsWireframe)
     {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_CULL_FACE);
@@ -73,25 +83,28 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
 
     // Dir Light Shadowmap
     static bool wasFBInit = false;
-    static Framebuffer framebuffer(2048, 2048);
+    static Framebuffer shadowFramebuffer;
     static Shader* shadowShader =
         gManagers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
     static mat4 lightProjection;
     static mat4 lightViewMatrix;
+    if (!wasFBInit)
     {
-        if (!wasFBInit)
-        {
-            wasFBInit = true;
-            framebuffer.AddDepthTexture(true);
-        }
+        wasFBInit = true;
+        shadowFramebuffer.Initialize(2048, 2048, false, true, true);
+    }
 
+    AABB aabb;
+    // Shadow Map Orthographic View Calculation
+    {
         lightViewMatrix = glm::lookAt(-lightDirection, vec3(0.f), vec3(0.f, 1.f, 0.f));
 
         // Calculate projection for light
         {
-            auto renderQueues = context->GetRenderQueues();
+            auto renderQueues = worldData->RenderCTX->GetRenderQueues();
             AABB aabb;
-            for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+            for (u32 queueIndex = 0; queueIndex < worldData->RenderCTX->GetRenderQueueCount();
+                 ++queueIndex)
             {
                 // Setup Shader
                 auto renderQueue = renderQueues[queueIndex];
@@ -121,12 +134,13 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
                                          lightaabb.Max.y, -10.f, 100.f);
         }
 
-        framebuffer.Bind();
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+        shadowFramebuffer.Bind();
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        auto renderQueues = context->GetRenderQueues();
-        for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+        // Render Shadowmap
+        auto renderQueues = worldData->RenderCTX->GetRenderQueues();
+        for (u32 queueIndex = 0; queueIndex < worldData->RenderCTX->GetRenderQueueCount();
+             ++queueIndex)
         {
             // Setup Shader
             auto renderQueue = renderQueues[queueIndex];
@@ -153,31 +167,31 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
                 }
             }
         }
-        framebuffer.UnBind();
+        shadowFramebuffer.UnBind();
         // Unbind after we are done rendering
         glBindVertexArray(0);
-    }
+    }  // End ShadowMap
 
-    context->Framebuffer->Bind();
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+    worldData->Viewport->GetBufferedFramebuffer()->Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    auto renderQueues = context->GetRenderQueues();
-    for (u32 queueIndex = 0; queueIndex < context->GetRenderQueueCount(); ++queueIndex)
+    const Camera& camera = worldData->Viewport->GetBufferedCamera();
+    auto renderQueues = worldData->RenderCTX->GetRenderQueues();
+    for (u32 queueIndex = 0; queueIndex < worldData->RenderCTX->GetRenderQueueCount(); ++queueIndex)
     {
         // Setup Shader
         auto renderQueue = renderQueues[queueIndex];
         renderQueue->Shader->Use();
-        renderQueue->Shader->SetUniform("proj", context->GetCameraProjMatrix());
-        renderQueue->Shader->SetUniform("view", context->GetCameraViewMatrix());
+        renderQueue->Shader->SetUniform("proj", camera.GetProjectionMatrix());
+        renderQueue->Shader->SetUniform("view", camera.GetViewMatrix());
         renderQueue->Shader->SetUniform("lightMVP", lightProjection * lightViewMatrix);
         renderQueue->Shader->SetUniform("lightDirection", lightDirection);
         renderQueue->Shader->SetUniform("lightColor", lightColor);
         renderQueue->Shader->SetUniform("bias", bias);
-        renderQueue->Shader->SetUniform("resolution", context->Framebuffer->GetSize());
+        renderQueue->Shader->SetUniform("resolution", worldData->Viewport->GetSize());
 
         glActiveTexture(GL_TEXTURE0);
-        framebuffer.DepthTexture.Bind();
+        shadowFramebuffer.DepthTexture.Bind();
 
         // Render Models
         for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
@@ -202,24 +216,10 @@ void GraphicsSystem::Render(RenderContext* context, const DebugRenderContext* de
     // Unbind after we are done rendering
     glBindVertexArray(0);
 
-    _debugRenderSystem.Render(context, debugContext);
+    _debugRenderSystem.Render(worldData);
 
-    context->Framebuffer->UnBind();
-
-    // Imgui
-    ImGui_ImplSdlGL3_RenderDrawLists(context->ImOverlayDrawData);
-    SDL_GL_SwapWindow(_window);
+    worldData->Viewport->GetBufferedFramebuffer()->UnBind();
 }
-
-void RenderContext::SetCamera(const mat4& viewMatrix, const mat4& projectionMatrix)
-{
-    _cameraViewMatrix = viewMatrix;
-    _cameraProjMatrix = projectionMatrix;
-}
-
-bool RenderContext::IsWireframe() const { return _isWireframe; }
-
-void RenderContext::SetFramebuffer(DG::Framebuffer* framebuffer) { Framebuffer = framebuffer; }
 
 void RenderContext::AddRenderQueue(RenderQueue* queue)
 {
@@ -364,43 +364,46 @@ void DebugRenderSystem::SetupVertexBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void DebugRenderSystem::Render(const RenderContext* renderContext,
-                               const DebugRenderContext* context)
+void DebugRenderSystem::Render(WorldRenderData* worldData)
 {
     static bool isFontInit = false;
     static Font font;
     if (!isFontInit)
     {
-        vec2 currentSize = renderContext->Framebuffer->GetSize();
-        font.Init("Roboto-Regular.ttf", 16, (u32)currentSize.x, (u32)currentSize.y);
+        vec2 currentSize = worldData->Viewport->GetSize();
+        font.Init("Roboto-Regular.ttf", 16);
         isFontInit = true;
     }
 
-    RenderDebugLines(renderContext, true, context->GetDebugLines(true));
-    RenderDebugLines(renderContext, false, context->GetDebugLines(false));
+    RenderDebugLines(worldData->Viewport->GetBufferedCamera(), true,
+                     worldData->DebugRenderCTX->GetDebugLines(true));
+    RenderDebugLines(worldData->Viewport->GetBufferedCamera(), false,
+                     worldData->DebugRenderCTX->GetDebugLines(false));
 
     glDisable(GL_DEPTH_TEST);
-    for (auto& text : context->GetDebugTextScreen(false))
+    for (auto& text : worldData->DebugRenderCTX->GetDebugTextScreen(false))
     {
         font.RenderTextScreen(text.text, text.position, text.color);
     }
-    for (auto& text : context->GetDebugTextWorld(false))
+    for (auto& text : worldData->DebugRenderCTX->GetDebugTextWorld(false))
     {
-        font.RenderTextWorldBillboard(text.text, renderContext, text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, worldData->Viewport->GetBufferedCamera(),
+                                      worldData->Viewport->GetSize(), text.position, text.color);
     }
 
     glEnable(GL_DEPTH_TEST);
-    for (auto& text : context->GetDebugTextScreen(true))
+    for (auto& text : worldData->DebugRenderCTX->GetDebugTextScreen(true))
     {
         font.RenderTextScreen(text.text, text.position, text.color);
     }
-    for (auto& text : context->GetDebugTextWorld(true))
+    for (auto& text : worldData->DebugRenderCTX->GetDebugTextWorld(true))
     {
-        font.RenderTextWorldBillboard(text.text, renderContext, text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, worldData->Viewport->GetBufferedCamera(),
+                                      worldData->Viewport->GetSize(), text.position, text.color);
     }
 }
 
-void DebugRenderSystem::RenderDebugLines(const RenderContext* renderContext, bool depthEnabled,
+void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled,
                                          const std::vector<DebugLine>& lines)
 {
     if (lines.empty())
@@ -408,8 +411,8 @@ void DebugRenderSystem::RenderDebugLines(const RenderContext* renderContext, boo
 
     glBindVertexArray(linePointVAO);
     _shader.Use();
-    _shader.SetUniform("mv_Matrix", renderContext->GetCameraViewMatrix());
-    _shader.SetUniform("p_Matrix", renderContext->GetCameraProjMatrix());
+    _shader.SetUniform("mv_Matrix", camera.GetViewMatrix());
+    _shader.SetUniform("p_Matrix", camera.GetProjectionMatrix());
 
     if (depthEnabled)
     {

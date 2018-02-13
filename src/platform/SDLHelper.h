@@ -8,6 +8,6 @@
 #include <SDL.h>
 namespace DG
 {
+bool InitSDL();
 void LogOutput(void *userdata, int category, SDL_LogPriority priority, const char *message);
-void LogCleanup();
 }  // namespace DG

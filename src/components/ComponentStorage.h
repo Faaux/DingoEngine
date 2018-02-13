@@ -19,7 +19,7 @@ class BaseComponentStorage
     };
 
    public:
-    void ReleaseComponent(BaseComponent *component);
+    void DestroyComponent(BaseComponent *component);
 
    protected:
     BaseComponentStorage(StackAllocator *allocator, u32 itemSize);

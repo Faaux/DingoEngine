@@ -15,7 +15,7 @@ Actor::~Actor()
 {
     for (auto& component : _components)
     {
-        _gameWorld->ReleaseComponent(component);
+        _gameWorld->DestroyComponent(component);
     }
 }
 
@@ -23,7 +23,7 @@ void Actor::DeRegisterComponent(BaseComponent* component)
 {
     const auto it = std::find(_components.begin(), _components.end(), component);
     Assert(it != _components.end());
-    _gameWorld->ReleaseComponent(component);
+    _gameWorld->DestroyComponent(component);
     _components.erase(it);
 }
 

@@ -8,9 +8,9 @@
 #include <glad/glad.h>
 #include <imgui.h>
 #include <vector>
-#include "Framebuffer.h"
 #include "Mesh.h"
 #include "Shader.h"
+#include "Viewport.h"
 #include "math/Transform.h"
 
 namespace DG::graphics
@@ -118,28 +118,25 @@ class RenderContext
    public:
     RenderContext() = default;
 
-    void SetCamera(const mat4 &viewMatrix, const mat4 &projectionMatrix);
-    const mat4 &GetCameraViewMatrix() const { return _cameraViewMatrix; }
-    const mat4 &GetCameraProjMatrix() const { return _cameraProjMatrix; }
-
-    bool IsWireframe() const;
-    void SetFramebuffer(Framebuffer *framebuffer);
-
     RenderQueue **GetRenderQueues() { return _renderQueues; }
     u32 GetRenderQueueCount() const { return _currentIndexRenderQueue; }
 
-    bool _isWireframe = false;  // ToDo Rename
-
     void AddRenderQueue(RenderQueue *queue);
 
-    Framebuffer *Framebuffer = nullptr;
-    ImDrawData *ImOverlayDrawData = nullptr;
+    bool IsWireframe = false;
 
    private:
     mat4 _cameraViewMatrix;
     mat4 _cameraProjMatrix;
     u32 _currentIndexRenderQueue = 0;
     RenderQueue *_renderQueues[10] = {};
+};
+
+struct WorldRenderData
+{
+    Viewport *Viewport;
+    RenderContext *RenderCTX;
+    DebugRenderContext *DebugRenderCTX;
 };
 
 extern DebugRenderContext *g_DebugRenderContext;
@@ -153,12 +150,12 @@ class DebugRenderSystem
 
    public:
     DebugRenderSystem();
-    void Render(const RenderContext *renderContext, const DebugRenderContext *context);
+    void Render(WorldRenderData *worldData);
 
    private:
     void SetupVertexBuffers();
 
-    void RenderDebugLines(const RenderContext *renderContext, bool depthEnabled,
+    void RenderDebugLines(const Camera &camera, bool depthEnabled,
                           const std::vector<DebugLine> &lines);
 
     Shader _shader;
@@ -170,13 +167,13 @@ class DebugRenderSystem
 class GraphicsSystem
 {
    public:
-    GraphicsSystem(SDL_Window *window);
+    GraphicsSystem();
 
-    void Render(RenderContext *context, const DebugRenderContext *debugContext);
+    void Render(ImDrawData *imOverlayDrawData, WorldRenderData **renderData, s32 count);
 
    private:
+    void RenderWorldInternal(WorldRenderData *worldData);
     DebugRenderSystem _debugRenderSystem;
-    SDL_Window *_window;
 };
 
 void AddDebugLine(const vec3 &fromPosition, const vec3 &toPosition, Color color = Color(0.7f),

@@ -16,8 +16,10 @@ class WorldEdit
 
     void Update();
     GameWorld* GetWorld();
+    void Startup(StackAllocator* allocator);
+    void Shutdown();
 
-   private:
+private:
     GameWorld _gameWorld;
     Actor* _selectedActor;
     InputMessage _lastInputMessage;

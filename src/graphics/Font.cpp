@@ -14,14 +14,11 @@ namespace DG::graphics
 {
 Font::Font() : _isValid(false), _fontCache() {}
 
-bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
-                u32 backbufferHeight, u32 textureSize)
+bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 {
     auto fontPath = SearchForFile(fontName.c_str());
-    _windowSize.WindowSize = vec2(backbufferWidth, backbufferHeight);
 
-    g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
-        [=](const MainBackbufferSizeMessage& windowSize) { _windowSize = windowSize; });
+    // ToDo: WindowSize Messaging
 
     FT_Library library;
     auto error = FT_Init_FreeType(&library);
@@ -119,8 +116,9 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth,
     return true;
 }
 
-void Font::RenderTextWorldBillboard(const std::string& textToRender, const RenderContext* context,
-                                    const vec3& worldPos, const Color& color)
+void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+                                    const vec2& viewportSize, const vec3& worldPos,
+                                    const Color& color)
 {
     if (!_isValid)
     {
@@ -151,9 +149,8 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Rende
     // Shader Setup<
     BillboardWorldFontShader.Use();
     BillboardWorldFontShader.SetUniform("color", color);
-    BillboardWorldFontShader.SetUniform("screenSize", _windowSize.WindowSize);
-    vec4 hcsPos =
-        context->GetCameraProjMatrix() * context->GetCameraViewMatrix() * vec4(worldPos, 1.0);
+    BillboardWorldFontShader.SetUniform("screenSize", viewportSize);
+    vec4 hcsPos = camera.GetProjectionMatrix() * camera.GetViewMatrix() * vec4(worldPos, 1.0);
     vec2 ndsPos(hcsPos.x / hcsPos.w, hcsPos.y / hcsPos.w);
 
     BillboardWorldFontShader.SetUniform("ndsPosition", ndsPos);
@@ -163,7 +160,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Rende
 }
 
 void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
-                            const Color& color)
+                            const vec2& viewportSize, const Color& color)
 {
     if (!_isValid)
     {
@@ -180,7 +177,7 @@ void Font::RenderTextScreen(const std::string& textToRender, const vec2& screenP
     // Setup Shader
     ScreenSpaceFontShader.Use();
     ScreenSpaceFontShader.SetUniform("color", color);
-    ScreenSpaceFontShader.SetUniform("screenSize", _windowSize.WindowSize);
+    ScreenSpaceFontShader.SetUniform("screenSize", viewportSize);
 
     // Render
     Render(textBufferData);

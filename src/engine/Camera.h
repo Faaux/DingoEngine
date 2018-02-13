@@ -14,7 +14,9 @@ namespace DG
 class Camera
 {
    public:
+    Camera();
     Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far, float aspectRatio);
+    
 
     const mat4& GetViewMatrix() const;
 

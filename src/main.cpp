@@ -12,13 +12,17 @@
 #include "engine/Messaging.h"
 #include "engine/Types.h"
 #include "engine/WorldEditor.h"
+#include "graphics/FrameData.h"
 #include "graphics/GraphicsSystem.h"
+#include "graphics/Renderer.h"
+#include "graphics/Viewport.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "math/Transform.h"
 #include "memory/Memory.h"
 #include "physics/Physics.h"
+#include "platform/ConditionVariable.h"
 #include "platform/InputSystem.h"
 #include "platform/Job.h"
 #include "platform/SDLHelper.h"
@@ -26,62 +30,6 @@
 
 namespace DG
 {
-struct GameState
-{
-    enum class GameMode
-    {
-        EditMode = 0,  // Since Game will be zeroed for init this is the default!
-        PlayMode = 1,
-
-    };
-
-    StackAllocator PlayModeStack;
-
-    bool GameIsRunning = true;
-    bool IsWireframe = false;
-
-    GameMode Mode = GameMode::EditMode;
-
-    SDL_GLContext GLContext;
-    SDL_Window* Window;
-
-    RawInputSystem* RawInputSystem;
-    InputSystem* InputSystem;
-    graphics::GraphicsSystem* GraphicsSystem;
-
-    WorldEdit* WorldEdit;
-    GameWorld* ActiveWorld;
-};
-
-struct FrameData
-{
-    StackAllocator FrameMemory;
-    bool IsUpdateDone = false;
-    bool IsPreRenderDone = false;
-    bool IsRenderDone = false;
-
-    graphics::RenderContext* RenderCTX;
-    graphics::DebugRenderContext* DebugRenderCTX;
-
-    void Reset()
-    {
-        // ToDo: Change implementation that this is NOT needed anymore!
-        // Free allocated memory
-        if (RenderCTX)
-            RenderCTX->~RenderContext();
-        if (DebugRenderCTX)
-            DebugRenderCTX->~DebugRenderContext();
-
-        FrameMemory.Reset();
-        IsUpdateDone = false;
-        IsPreRenderDone = false;
-        IsRenderDone = false;
-
-        RenderCTX = FrameMemory.Push<graphics::RenderContext>();
-        DebugRenderCTX = FrameMemory.PushAndConstruct<graphics::DebugRenderContext>();
-    }
-};
-
 #if _DEBUG
 StringHashTable<2048> g_StringHashTable;
 #endif
@@ -90,37 +38,12 @@ GameMemory Memory;
 GameState* Game;
 Managers* gManagers;
 
-bool InitSDL()
-{
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "SDL could not initialize! SDL Error: %s\n",
-                        SDL_GetError());
-        return false;
-    }
-#if _DEBUG
-    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
-#else
-    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
-#endif
-    SDL_LogSetOutputFunction(LogOutput, nullptr);
-
-    // When in fullscreen dont minimize when loosing focus! (Borderless windowed)
-    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
-
-    SDL_Log("----- Hardware Information -----");
-    SDL_Log("CPU Cores: %i", SDL_GetCPUCount());
-    SDL_Log("CPU Cache Line Size: %i", SDL_GetCPUCacheLineSize());
-
-    return true;
-}
-
 bool InitWindow()
 {
-    Game->Window =
+    Game->RenderState->Window =
         SDL_CreateWindow("Dingo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    if (Game->Window == nullptr)
+    if (Game->RenderState->Window == nullptr)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO, "Window could not be created! SDL Error: %s\n",
                         SDL_GetError());
@@ -129,60 +52,9 @@ bool InitWindow()
     return true;
 }
 
-bool InitOpenGL()
-{
-    // Configure OpenGL
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-
-    // Anti Aliasing
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
-
-    // Create context
-    Game->GLContext = SDL_GL_CreateContext(Game->Window);
-    if (Game->GLContext == NULL)
-    {
-        SDL_LogCritical(SDL_LOG_CATEGORY_VIDEO,
-                        "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
-        return false;
-    }
-
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-    {
-        SDL_LogError(0, "I did load GL with no context!\n");
-        return false;
-    }
-
-    SDL_DisplayMode current;
-    int should_be_zero = SDL_GetCurrentDisplayMode(0, &current);
-
-    if (should_be_zero != 0)
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not get display mode for video display #%d: %s",
-                     0, SDL_GetError());
-        return false;
-    }
-
-    SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "Display #%d: current display mode is %dx%dpx @ %dhz.", 0,
-                current.w, current.h, current.refresh_rate);
-
-    // Use Vsync
-    if (SDL_GL_SetSwapInterval(1) < 0)
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Warning: Unable to set VSync! SDL Error: %s\n",
-                     SDL_GetError());
-    }
-
-    return true;
-}
-
 bool InitImgui()
 {
-    ImGui_ImplSdlGL3_Init(Game->Window);
+    ImGui_ImplSdlGL3_Init(Game->RenderState->Window);
     ImGui::StyleColorsDark();
     ImGui::LoadDock();
     InitInternalImgui();
@@ -207,6 +79,7 @@ bool InitMemory()
 {
     // Grab a 1GB of memory
     const u32 TotalMemorySize = 1 * 1024 * 1024 * 1024;  // 1 GB
+    // ToDo: Get rid of this!
     u8* memory = (u8*)VirtualAlloc(0, TotalMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     if (!memory)
     {
@@ -227,47 +100,25 @@ bool InitMemory()
 void Cleanup()
 {
     // PhysX Cleanup
-    Game->WorldEdit->GetWorld()->Shutdown();
+    Game->WorldEdit->Shutdown();
     ShutdownPhysics();
 
     ImGui_ImplSdlGL3_Shutdown();
-    SDL_GL_DeleteContext(Game->GLContext);
+
     SDL_Quit();
-    LogCleanup();
 }
 
 void AttachDebugListenersToMessageSystem()
 {
-    g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
+    // ToDo: Messaging
+    /*g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
         [](const MainBackbufferSizeMessage& message) {
             SDL_LogVerbose(0, "Backbuffer was resized: %.2f x %.2f", message.WindowSize.x,
                            message.WindowSize.y);
-        });
-
-    g_MessagingSystem.RegisterCallback<ToggleFullscreenMessage>(
-        [](const ToggleFullscreenMessage& message) {
-            if (message.SetFullScreen)
-            {
-                // Set Fullscreen
-                auto result = SDL_SetWindowFullscreen(Game->Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                Assert(result == 0);
-
-                // Capture mouse
-                SDL_SetWindowGrab(Game->Window, SDL_TRUE);
-            }
-            else
-            {
-                // Set Windowed
-                auto result = SDL_SetWindowFullscreen(Game->Window, 0);
-                Assert(result == 0);
-
-                // Release Mouse
-                SDL_SetWindowGrab(Game->Window, SDL_FALSE);
-            }
-        });
+        });*/
 }
 
-void Update(FrameData* frameData)
+void Update(graphics::FrameData* frameData)
 {
     Game->ActiveWorld->Update();
     Game->WorldEdit->Update();
@@ -308,50 +159,57 @@ int main(int, char* [])
 {
     using namespace DG;
 
-    srand(1337);
-
     if (!InitMemory())
         return -1;
 
-    Game = Memory.PersistentMemory.Push<GameState>();
-    u32 playModeSize = 4 * 1024 * 1024;  // 4MB
-    Game->PlayModeStack.Init(Memory.TransientMemory.Push(playModeSize, 4), playModeSize);
-
     if (!InitSDL())
-        return -1;
-
-    if (!InitWindow())
-        return -1;
-
-    if (!InitOpenGL())
         return -1;
 
     if (!InitWorkerThreads())
         return -1;
 
-    if (!InitPhysics())
-        return -1;
-
     InitClocks();
 
-    // Start Init Systems
+    // Initialize Resource Managers
     gManagers = Memory.TransientMemory.PushAndConstruct<Managers>();
-    Game->RawInputSystem = Memory.TransientMemory.PushAndConstruct<RawInputSystem>();
-    Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
-    Game->GraphicsSystem =
-        Memory.TransientMemory.PushAndConstruct<graphics::GraphicsSystem>(Game->Window);
     gManagers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
     gManagers->GLTFSceneManager =
         Memory.TransientMemory.PushAndConstruct<graphics::GLTFSceneManager>();
     gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<graphics::ShaderManager>();
-    Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>();
-    Game->ActiveWorld = Game->WorldEdit->GetWorld();
 
-    // World Edit needs to be initialized for this to work!
+    // Initialize Game
+    const u32 playModeSize = 4 * 1024 * 1024;  // 4MB
+    Game = Memory.PersistentMemory.Push<GameState>();
+    Game->GameIsRunning = true;
+    Game->PlayModeStack.Init(Memory.TransientMemory.Push(playModeSize, 4), playModeSize);
+    Game->RawInputSystem = Memory.TransientMemory.PushAndConstruct<RawInputSystem>();
+    Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
+
+    // Init RenderState
+    Game->RenderState = Memory.TransientMemory.PushAndConstruct<graphics::RenderState>();
+    Game->RenderState->RenderMemory.Init(Memory.TransientMemory.Push(playModeSize, 4),
+                                         playModeSize);
+
+    // Create Window on main thread
+    if (!InitWindow())
+        return -1;
+
+    // This will boot up opengl on another thread
+    if (!graphics::StartRenderThread(Game->RenderState))
+        return -1;
+
     if (!InitImgui())
         return -1;
 
-    g_MessagingSystem.Init(g_InGameClock);
+    if (!InitPhysics())
+        return -1;
+
+    Game->WorldEdit = Memory.TransientMemory.PushAndConstruct<WorldEdit>();
+    Game->WorldEdit->Startup(&Memory.TransientMemory);
+    Game->ActiveWorld = Game->WorldEdit->GetWorld();
+
+    // ToDo: Messaging Init
+    // g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
     u64 currentTime = SDL_GetPerformanceCounter();
@@ -359,7 +217,7 @@ int main(int, char* [])
     u64 currentFrameIdx = 0;
 
     // Init FrameRingBuffer
-    FrameData* frames = Memory.TransientMemory.Push<FrameData>(5);
+    graphics::FrameData* frames = Memory.TransientMemory.Push<graphics::FrameData>(5);
 
     for (int i = 0; i < 5; ++i)
     {
@@ -367,10 +225,13 @@ int main(int, char* [])
         u8* base = Memory.TransientMemory.Push(frameDataSize, 4);
         frames[i].FrameMemory.Init(base, frameDataSize);
         frames[i].Reset();
-        frames[i].IsUpdateDone = true;
         frames[i].IsPreRenderDone = true;
-        frames[i].IsRenderDone = true;
+        frames[i].RenderDone.Create();
+        frames[i].DoubleBufferDone.Create();
     }
+
+    // Signal once, this opens the gate for the first frame to pass!
+    frames[4].RenderDone.Signal();
 
     // Stop clocks depending on edit mode
     if (Game->Mode == GameState::GameMode::EditMode)
@@ -378,51 +239,35 @@ int main(int, char* [])
     else if (Game->Mode == GameState::GameMode::PlayMode)
         g_EditingClock.SetPaused(true);
 
-    // ToDo: Move somehwere sensible
-    Framebuffer framebuffer(1280, 720);
-    framebuffer.AddColorTexture();
-    framebuffer.AddDepthTexture();
-
-    // ToDo Remove(Testing)
-    graphics::Shader* shader =
-        gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
-
-    graphics::GLTFScene* scene =
-        gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
-
-    scene =
-        gManagers->GLTFSceneManager->LoadOrGet(StringId("boxmaterial.gltf"), "boxmaterial.gltf");
-    gManagers->ModelManager->LoadOrGet(StringId("BoxMatModel"), scene, shader);
-
-    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("boxtexture.gltf"), "boxtexture.gltf");
-    gManagers->ModelManager->LoadOrGet(StringId("BoxTexModel"), scene, shader);
-
-    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    gManagers->ModelManager->LoadOrGet(StringId("DuckModel2"), scene, shader);
-
-    scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-    gManagers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
-
-    Game->ActiveWorld = Game->WorldEdit->GetWorld();
-    Actor* actor = Game->ActiveWorld->CreateNewActor<Actor>();
-
-    // ToDo: Remove
-    nlohmann::json a;
-    SerializeActor(actor, a);
-    std::ofstream o("pretty.json");
-    o << std::setw(4) << a << std::endl;
+    // ToDo: This is not the right place for this to live....
+    graphics::Viewport mainViewport;
+    mainViewport.Initialize(vec2(), vec2());
 
     while (!Game->RawInputSystem->IsQuitRequested())
     {
+        static bool isWireframe = false;
+        TWEAKER_CAT("OpenGL", CB, "Wireframe", &isWireframe);
+
         // Frame Data Setup
-        FrameData& previousFrameData = frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
-        FrameData& currentFrameData = frames[GetFrameBufferIndex(currentFrameIdx, 5)];
-        Assert(currentFrameData.IsRenderDone);
+        graphics::FrameData& previousFrameData =
+            frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
+        graphics::FrameData& currentFrameData = frames[GetFrameBufferIndex(currentFrameIdx, 5)];
         currentFrameData.Reset();
-        graphics::g_DebugRenderContext = currentFrameData.DebugRenderCTX;
-        currentFrameData.RenderCTX->_isWireframe = previousFrameData.RenderCTX->IsWireframe();
-        TWEAKER_FRAME_CAT("OpenGL", CB, "Wireframe", &currentFrameData.RenderCTX->_isWireframe);
+
+        // For now assume one world only
+        currentFrameData.WorldRenderDataCount = 1;
+        currentFrameData.WorldRenderData =
+            currentFrameData.FrameMemory.PushAndConstruct<graphics::WorldRenderData*>();
+
+        currentFrameData.WorldRenderData[0] =
+            currentFrameData.FrameMemory.PushAndConstruct<graphics::WorldRenderData>();
+        currentFrameData.WorldRenderData[0]->RenderCTX =
+            currentFrameData.FrameMemory.PushAndConstruct<graphics::RenderContext>();
+        currentFrameData.WorldRenderData[0]->DebugRenderCTX =
+            currentFrameData.FrameMemory.PushAndConstruct<graphics::DebugRenderContext>();
+
+        graphics::g_DebugRenderContext = currentFrameData.WorldRenderData[0]->DebugRenderCTX;
+        currentFrameData.WorldRenderData[0]->RenderCTX->IsWireframe = isWireframe;
 
         // Poll Events and Update Input accordingly
         Game->RawInputSystem->Update();
@@ -442,7 +287,7 @@ int main(int, char* [])
         g_InGameClock.Update(dtSeconds);
 
         // Imgui
-        ImGui_ImplSdlGL3_NewFrame(Game->Window);
+        ImGui_ImplSdlGL3_NewFrame(Game->RenderState->Window);
         ImGuizmo::BeginFrame();
         ImVec2 mainBarSize;
 
@@ -516,102 +361,94 @@ int main(int, char* [])
             ImGui::EndMainMenuBar();
         }
 
+        // Create Main Window
         vec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
         adjustedDisplaySize.y -= mainBarSize.y;
         ImGui::SetNextWindowPos(ImVec2(0, mainBarSize.y));
         ImGui::SetNextWindowSize(adjustedDisplaySize, ImGuiCond_Always);
-        if (ImGui::Begin("###content", 0,
-                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-                             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-                             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-                             ImGuiWindowFlags_NoBringToFrontOnFocus |
-                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoInputs))
+        bool isContentVisible = ImGui::Begin(
+            "###content", 0,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
+                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoInputs);
+        Assert(isContentVisible);
+
+        ImGui::BeginDockspace();
+
+        // Imgui Window for MainViewport
+        if (ImGui::BeginDock("Scene Window", 0, ImGuiWindowFlags_NoResize))
         {
-            ImGui::BeginDockspace();
+            Game->InputSystem->IsForwardingToGame =
+                ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
-            // Imgui Window for scene
-            if (ImGui::BeginDock("Scene Window", 0, ImGuiWindowFlags_NoResize))
+            vec2 pos = ImGui::GetCursorScreenPos();
+            vec2 avaialbeSize = ImGui::GetContentRegionAvail();
+
+            // Update viewport
+            mainViewport.SetLocation(pos, avaialbeSize);
+            mainViewport.SetCamera(Game->ActiveWorld->GetActiveCamera());
+
+            const Framebuffer* mainViewportFB = mainViewport.GetFramebuffer();
+            if (mainViewportFB->ColorTexture.IsValid())
             {
-                Game->InputSystem->IsForwardingToGame =
-                    ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
-
-                vec2 pos = ImGui::GetCursorScreenPos();
-                vec2 avaialbeSize = ImGui::GetContentRegionAvail();
-
-                // This is our game size! Send events!
-
-                if (framebuffer.GetSize() != avaialbeSize)
-                {
-                    framebuffer.Resize((u32)avaialbeSize.x, (u32)avaialbeSize.y);
-                    MainBackbufferSizeMessage message;
-                    message.WindowSize = avaialbeSize;
-                    g_MessagingSystem.SendNextFrame(message);
-                }
+                // Should use this to do custom rendering so that we do not
+                // flicker when resizing the viewport
+                /*ImGui::GetWindowDrawList()->AddDrawCmd();
+                ImGui::GetWindowDrawList()->AddCallback(, &mainViewport);*/
 
                 ImGui::GetWindowDrawList()->AddImage(
-                    (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos, pos + avaialbeSize,
-                    ImVec2(0, 1), ImVec2(1, 0));
-
-                Game->ActiveWorld->GetPlayerCamera().UpdateProjection(avaialbeSize.x,
-                                                                      avaialbeSize.y);
+                    (void*)(size_t)mainViewportFB->ColorTexture.GetTextureId(), pos,
+                    pos + avaialbeSize, ImVec2(0, 1), ImVec2(1, 0));
             }
-            ImGui::EndDock();
-
-            // Game Logic
-            g_MessagingSystem.Update();
-            Update(&currentFrameData);
-
-            AddImguiTweakers();
-
-            if (ImGui::BeginDock("Models"))
-            {
-                const vec2 origPos = ImGui::GetCursorScreenPos();
-                const vec2 avaialbeSize = ImGui::GetContentRegionAvail();
-
-                const vec2 imageSize(90);
-                const vec2 wantedSizePerImage = imageSize + vec2(0, 20);
-                const f32 padding = 5;
-
-                u32 imagesPerRow = (u32)(avaialbeSize.x / wantedSizePerImage.x);
-
-                if (imagesPerRow < 1)
-                    imagesPerRow = 1;
-
-                if (imagesPerRow * wantedSizePerImage.x + (imagesPerRow - 1) * padding >
-                    avaialbeSize.x)
-                    --imagesPerRow;
-
-                if (imagesPerRow < 1)
-                    imagesPerRow = 1;
-
-                vec2 pos = origPos;
-                auto it = gManagers->ModelManager->begin();
-                auto end = gManagers->ModelManager->end();
-                while (it != end)
-                {
-                    for (u32 i = 0; i < imagesPerRow && it != end; ++i)
-                    {
-                        ImGui::GetWindowDrawList()->AddImage(
-                            (void*)(size_t)framebuffer.ColorTexture.GetTextureId(), pos,
-                            pos + imageSize, ImVec2(0, 1), ImVec2(1, 0));
-                        pos.x += wantedSizePerImage.x + padding;
-                        ++it;
-                    }
-                    pos.x = origPos.x;
-                    pos.y += wantedSizePerImage.y + padding;
-                }
-            }
-            ImGui::EndDock();
-
-            // Add a Dock which visualizes all models
-
-            ImGui::EndDockspace();
         }
+        ImGui::EndDock();
 
+        // Game Logic
+        // ToDo: Messaging
+        // g_MessagingSystem.Update();
+        Update(&currentFrameData);
+
+        AddImguiTweakers();
+
+        if (ImGui::BeginDock("Models"))
+        {
+            const vec2 origPos = ImGui::GetCursorScreenPos();
+            const vec2 avaialbeSize = ImGui::GetContentRegionAvail();
+
+            const vec2 imageSize(90);
+            const vec2 wantedSizePerImage = imageSize + vec2(0, 20);
+            const f32 padding = 5;
+
+            u32 imagesPerRow = (u32)(avaialbeSize.x / wantedSizePerImage.x);
+
+            if (imagesPerRow < 1)
+                imagesPerRow = 1;
+
+            if (imagesPerRow * wantedSizePerImage.x + (imagesPerRow - 1) * padding > avaialbeSize.x)
+                --imagesPerRow;
+
+            if (imagesPerRow < 1)
+                imagesPerRow = 1;
+
+            vec2 pos = origPos;
+            auto it = gManagers->ModelManager->begin();
+            auto end = gManagers->ModelManager->end();
+            while (it != end)
+            {
+                for (u32 i = 0; i < imagesPerRow && it != end; ++i)
+                {
+                    // ToDo: Readd model viewer
+                    ++it;
+                }
+                pos.x = origPos.x;
+                pos.y += wantedSizePerImage.y + padding;
+            }
+        }
+        ImGui::EndDock();
+        ImGui::EndDockspace();
         ImGui::End();
-        ImGui::Render();
-
-        currentFrameData.IsUpdateDone = true;
+        ImGui::Render();  // Just generates statements to be rendered, doesnt actually render!
 
         // PreRender
         // Copying imgui render data to context
@@ -645,49 +482,17 @@ int main(int, char* [])
         drawData->CmdLists = newList;
 
         // Set Imgui Render Data
-        currentFrameData.RenderCTX->ImOverlayDrawData = drawData;
+        currentFrameData.ImOverlayDrawData = drawData;
 
-        // Set camera to render scene with
-
-        currentFrameData.RenderCTX->SetCamera(
-            Game->ActiveWorld->GetPlayerCamera().GetViewMatrix(),
-            Game->ActiveWorld->GetPlayerCamera().GetProjectionMatrix());
-
-        //// Queueing gameobjects to be rendered
-        // RenderQueue* renderQueue = currentFrameData.FrameMemory.Push<RenderQueue>();
-        // renderQueue->Count = Game->ActiveWorld->GetGameObjectCount();
-        // renderQueue->Renderables =
-        //    currentFrameData.FrameMemory.Push<Renderable>(renderQueue->Count);
-
-        // for (u32 i = 0; i < renderQueue->Count; ++i)
-        //{
-        //    // Get Data
-        //    auto& gameObject = Game->ActiveWorld->GetGameObject(i);
-        //    GraphicsModel* model =
-        //        gManagers->ModelManager->Exists(gameObject.Renderable->RenderableId);
-        //    Assert(model);
-
-        //    // Set Shader if not set yet
-        //    if (!renderQueue->Shader)
-        //        renderQueue->Shader = &model->shader;
-        //    Assert(renderQueue->Shader == &model->shader);
-
-        //    // Define renderable
-        //    auto& renderable = renderQueue->Renderables[i];
-        //    renderable.model = model;
-        //    renderable.transform = gameObject.GetTransform();
-        //}
-        // if (renderQueue->Count > 0)
-        //    currentFrameData.RenderCTX->AddRenderQueue(renderQueue);
-        currentFrameData.RenderCTX->SetFramebuffer(&framebuffer);
-
+        currentFrameData.WorldRenderData[0]->Viewport = &mainViewport;
         currentFrameData.IsPreRenderDone = true;
+
         // Render
+        previousFrameData.RenderDone.WaitAndReset();
 
-        Game->GraphicsSystem->Render(currentFrameData.RenderCTX, currentFrameData.DebugRenderCTX);
-        graphics::g_DebugRenderContext->Reset();
-
-        currentFrameData.IsRenderDone = true;
+        Game->RenderState->FrameDataToRender = &currentFrameData;
+        Game->RenderState->RenderCondition.Signal();
+        currentFrameData.DoubleBufferDone.WaitAndReset();
 
         currentFrameIdx++;
     }

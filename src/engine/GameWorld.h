@@ -19,37 +19,36 @@ class GameWorld
     friend class Actor;
 
    public:
-    GameWorld();
-    ~GameWorld();
+    GameWorld() = default;
+    ~GameWorld() = default;
 
+    void Startup(u8* worldMemory, s32 worldMemorySize);
     void Shutdown();
 
     template <typename T, typename... Args>
-    T* CreateNewActor(Args&&... args);
-
+    T* CreateActor(Args&&... args);
     void DestroyActor(Actor* actor);
-    void Update();
-    Camera& GetPlayerCamera();
 
-    PhysicsWorld PhysicsWorld;
+    Camera* GetActiveCamera();
+
+    void Update();
 
    private:
-    Clock _worldClock;
-
-    bool _isShutdown = false;
-
     template <typename T>
     T* CreateComponent(Actor* actor);
-
-    void ReleaseComponent(BaseComponent* component);
+    void DestroyComponent(BaseComponent* component);
 
     StackAllocator _actorMemory;
     StackAllocator _worldMemory;
+    PhysicsWorld _physicsWorld;
+    Clock _worldClock;
+    bool _isShutdown = false;
+
     std::unordered_map<TypeId, BaseComponentStorage*> _componentStorages;
 };
 
 template <typename T, typename... Args>
-T* GameWorld::CreateNewActor(Args&&... args)
+T* GameWorld::CreateActor(Args&&... args)
 {
     static_assert(std::is_base_of<Actor, T>::value, "T not derived from Actor");
 

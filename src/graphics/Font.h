@@ -13,6 +13,7 @@
 #include <vector>
 #include "Framebuffer.h"
 #include "Texture.h"
+#include "engine/Camera.h"
 #include "engine/Types.h"
 #include "math/GLMInclude.h"
 
@@ -58,12 +59,12 @@ class Font
 
    public:
     Font();
-    bool Init(const std::string& fontName, u32 fontSize, u32 backbufferWidth, u32 backbufferHeight,
-              u32 textureSize = 256);
-    void RenderTextWorldBillboard(const std::string& textToRender, const RenderContext* context,
-                                  const vec3& position, const Color& color = Color(1));
+    bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
+    void RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+                                  const vec2& viewportSize, const vec3& position,
+                                  const Color& color = Color(1));
     void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,
-                          const Color& color = Color(1));
+                          const vec2& viewportSize, const Color& color = Color(1));
 
    private:
     std::vector<DebugCharacter> CreateFontVertices(const std::string& textToRender, vec2 position);
@@ -76,7 +77,6 @@ class Font
     GLuint _fontEBO = -1;
     Texture _fontTexture;
     std::array<Glyph, 96> _fontCache;
-    MainBackbufferSizeMessage _windowSize;
 };
 
 class GlyphPacker
