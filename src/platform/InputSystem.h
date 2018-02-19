@@ -5,7 +5,9 @@
  */
 
 #pragma once
+#include "engine/Messaging.h"
 #include "engine/Types.h"
+#include "graphics/GameWorldWindow.h"
 
 namespace DG
 {
@@ -25,37 +27,6 @@ class Key
     bool _wasPressed = false;
     bool _wasReleased = false;
     bool _isDown = false;
-};
-
-struct ToggleFullscreenMessage
-{
-    bool SetFullScreen = false;
-};
-
-struct InputMessage
-{
-    float Right = 0.f;
-    float Forward = 0.f;
-    float Up = 0.f;
-    float MouseWheel = 0.f;
-    bool MouseLeftDown = false;
-    bool MouseRightDown = false;
-    bool MouseMiddleDown = false;
-    bool MouseLeftPressed = false;
-    bool MouseRightPressed = false;
-    bool MouseMiddlePressed = false;
-    s32 MouseDeltaX = 0;
-    s32 MouseDeltaY = 0;
-    s32 MouseX = 0;
-    s32 MouseY = 0;
-};
-
-struct KeyMessage
-{
-    SDL_Scancode scancode;
-    Key* key = nullptr;
-    bool wasCtrlDown;
-    bool wasAltDown;
 };
 
 class RawInputSystem
@@ -83,12 +54,5 @@ class RawInputSystem
     bool _quitRequested = false;
 
     Key _keys[SDL_NUM_SCANCODES];
-};
-
-class InputSystem
-{
-   public:
-    InputSystem();
-    bool IsForwardingToGame = true;
 };
 }  // namespace DG

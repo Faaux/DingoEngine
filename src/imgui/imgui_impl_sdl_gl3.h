@@ -26,3 +26,4 @@ IMGUI_API void ImGui_ImplSdlGL3_InvalidateDeviceObjects();
 IMGUI_API bool ImGui_ImplSdlGL3_CreateDeviceObjects();
 
 void ImGui_ImplSdlGL3_RenderDrawLists(ImDrawData* draw_data);
+void RenderBackbufferOfWindow(const ImDrawList* parent_list, const ImDrawCmd* cmd);

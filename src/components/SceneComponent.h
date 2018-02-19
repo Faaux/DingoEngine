@@ -17,8 +17,9 @@ class SceneComponent : public BaseComponent
    public:
     explicit SceneComponent(Actor* actor) : BaseComponent(actor) {}
 
-   private:
-    DPROPERTY Transform transform;
-    DPROPERTY SceneComponent* parent = nullptr;
+    mat4 GetGlobalModelMatrix() const;
+
+    DPROPERTY Transform Transform;
+    DPROPERTY SceneComponent* Parent = nullptr;
 };
 }  // namespace DG

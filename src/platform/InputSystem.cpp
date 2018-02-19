@@ -11,29 +11,6 @@
 
 namespace DG
 {
-struct RawInputMessage
-{
-    float Right = 0.f;
-    float Forward = 0.f;
-    float Up = 0.f;
-    float MouseWheel = 0.f;
-    bool MouseLeftDown = false;
-    bool MouseRightDown = false;
-    bool MouseMiddleDown = false;
-    bool MouseLeftPressed = false;
-    bool MouseRightPressed = false;
-    bool MouseMiddlePressed = false;
-    s32 MouseDeltaX = 0;
-    s32 MouseDeltaY = 0;
-    s32 MouseX = 0;
-    s32 MouseY = 0;
-};
-
-struct RawWindowSizeMessage
-{
-    vec2 WindowSize = vec2(0);
-};
-
 bool Key::isDown() const { return _isDown; }
 
 bool Key::isUp() const { return !_isDown; }
@@ -86,15 +63,16 @@ void RawInputSystem::Update()
                         key._wasReleased = true;
                     key._isDown = false;
                 }
-                KeyMessage message;
-                message.scancode = event.key.keysym.scancode;
-                message.key = &key;
-                message.wasCtrlDown =
+                Message message;
+                message.Type = MessageType::RawKey;
+                message.RawKey.Scancode = event.key.keysym.scancode;
+                message.RawKey.Key = &key;
+                message.RawKey.WasCtrlDown =
                     _keys[SDL_SCANCODE_LCTRL].isDown() || _keys[SDL_SCANCODE_RCTRL].isDown();
-                message.wasAltDown =
+                message.RawKey.WasAltDown =
                     _keys[SDL_SCANCODE_LALT].isDown() || _keys[SDL_SCANCODE_RALT].isDown();
-                // ToDo: Messaging
-                // g_MessagingSystem.SendNextFrame(message);
+
+                g_MessagingSystem.SendNextFrame(message);
             }
             break;
             case SDL_TEXTINPUT:
@@ -103,12 +81,13 @@ void RawInputSystem::Update()
             case SDL_WINDOWEVENT:
                 if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                 {
-                    // Resize Window and rebuild render pipeline
-                    RawWindowSizeMessage message;
-                    message.WindowSize.x = (f32)event.window.data1;
-                    message.WindowSize.y = (f32)event.window.data2;
-                    // ToDo: Messaging
-                    // g_MessagingSystem.SendNextFrame(message);
+                    // Resize Window
+                    Message message;
+                    message.Type = MessageType::RawWindowSize;
+                    message.RawWindowSize.Width = event.window.data1;
+                    message.RawWindowSize.Height = event.window.data2;
+
+                    g_MessagingSystem.SendNextFrame(message);
                 }
                 break;
             case SDL_MOUSEWHEEL:
@@ -147,89 +126,61 @@ void RawInputSystem::Update()
         _keys[SDL_SCANCODE_RETURN].wasPressed())
     {
         static bool isFullscreen = true;
-        ToggleFullscreenMessage message;
-        message.SetFullScreen = isFullscreen;
+        Message message;
+        message.Type = MessageType::Fullscreen;
+        message.Fullscreen.SetFullScreen = isFullscreen;
         isFullscreen = !isFullscreen;
-        // ToDo: Messaging
-        // g_MessagingSystem.SendNextFrame(message);
+        g_MessagingSystem.SendNextFrame(message);
     }
 
     // Input (Movement and mouse)
     {
-        RawInputMessage message;
+        Message message;
+        message.Type = MessageType::RawInput;
+        message.RawInput.Forward = 0.f;
+        message.RawInput.Right = 0.f;
+        message.RawInput.Up = 0.f;
+
         if (_keys[SDL_SCANCODE_W].isDown())
         {
-            message.Forward += 1.f;
+            message.RawInput.Forward += 1.f;
         }
         if (_keys[SDL_SCANCODE_S].isDown())
         {
-            message.Forward -= 1.f;
+            message.RawInput.Forward -= 1.f;
         }
         if (_keys[SDL_SCANCODE_D].isDown())
         {
-            message.Right += 1.f;
+            message.RawInput.Right += 1.f;
         }
         if (_keys[SDL_SCANCODE_A].isDown())
         {
-            message.Right -= 1.f;
+            message.RawInput.Right -= 1.f;
         }
         if (_keys[SDL_SCANCODE_SPACE].isDown())
         {
-            message.Up += 1.f;
+            message.RawInput.Up += 1.f;
         }
         if (_keys[SDL_SCANCODE_LSHIFT].isDown())
         {
-            message.Up -= 1.f;
+            message.RawInput.Up -= 1.f;
         }
-        message.MouseWheel = _mouseWheel;
-        message.MouseLeftDown = _mouseLeftDown;
-        message.MouseRightDown = _mouseRightDown;
-        message.MouseMiddleDown = _mouseMiddleDown;
-        message.MouseLeftPressed = _mouseLeftPressed;
-        message.MouseRightPressed = _mouseRightPressed;
-        message.MouseMiddlePressed = _mouseMiddlePressed;
-        message.MouseDeltaX = mouseDeltaX;
-        message.MouseDeltaY = mouseDeltaY;
-        message.MouseX = _mouseX;
-        message.MouseY = _mouseY;
-        // ToDo: Messaging
-        //g_MessagingSystem.SendNextFrame(message);
+        message.RawInput.MouseWheel = _mouseWheel;
+        message.RawInput.MouseLeftDown = _mouseLeftDown;
+        message.RawInput.MouseRightDown = _mouseRightDown;
+        message.RawInput.MouseMiddleDown = _mouseMiddleDown;
+        message.RawInput.MouseLeftPressed = _mouseLeftPressed;
+        message.RawInput.MouseRightPressed = _mouseRightPressed;
+        message.RawInput.MouseMiddlePressed = _mouseMiddlePressed;
+        message.RawInput.MouseDeltaX = mouseDeltaX;
+        message.RawInput.MouseDeltaY = mouseDeltaY;
+        message.RawInput.MouseX = _mouseX;
+        message.RawInput.MouseY = _mouseY;
+        g_MessagingSystem.SendNextFrame(message);
     }
 }
 
 bool RawInputSystem::IsQuitRequested() const { return _quitRequested; }
 
 void RawInputSystem::RequestClose() { _quitRequested = true; }
-
-InputSystem::InputSystem()
-{
-    // ToDo: Messaging
-    //g_MessagingSystem.RegisterCallback<RawInputMessage>([=](const RawInputMessage& m) {
-    //    if (!IsForwardingToGame)
-    //        return;
-
-    //    static_assert(sizeof(InputMessage) == sizeof(RawInputMessage));
-    //    InputMessage message;
-    //    SDL_memcpy(&message, &m, sizeof(InputMessage));
-
-    //    bool isVisible = ImGui::BeginChild("Scene Window");
-    //    Assert(isVisible);
-    //    ImVec2 p = ImGui::GetCursorScreenPos();
-    //    ImVec2 size = ImGui::GetContentRegionAvail();
-    //    ImGui::EndChild();
-
-    //    // Sanitize Mouse Input
-    //    message.MouseX = (s32)(m.MouseX - p.x);
-    //    message.MouseY = (s32)(m.MouseY - p.y);
-
-    //    if (message.MouseX > size.x || message.MouseY > size.y)
-    //    {
-    //        message.MouseLeftPressed = false;
-    //        message.MouseRightPressed = false;
-    //        message.MouseMiddlePressed = false;
-    //    }
-
-    //    g_MessagingSystem.SendImmediate(message);
-    //});
-}
 }  // namespace DG

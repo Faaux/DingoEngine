@@ -37,7 +37,6 @@ class BaseComponentStorage
 
     static_assert(sizeof(ChunkHeader) % 4 == 0);  // To not loose alignment for data
 
-    // ToDo: Make this grow as needed!
     u32 _itemSize;
     StackAllocator *_allocator;
     ChunkHeader *_baseChunk = nullptr;

@@ -12,6 +12,7 @@ namespace DG
 nlohmann::json Serialize(const vec3& v3);
 nlohmann::json Serialize(const BaseComponent* ptr);
 nlohmann::json Serialize(const Transform& transform);
+nlohmann::json Serialize(const StringId& id);
 
 void SerializeActor(const Actor* actor, nlohmann::json& a);
 }  // namespace DG

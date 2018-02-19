@@ -19,6 +19,7 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <glad/glad.h>  // This example is using gl3w to access OpenGL functions (because it is small). You may use glew/glad/glLoadGen/etc. whatever already works for you.
+#include "graphics/GameWorldWindow.h"
 
 // Data
 static double g_Time = 0.0f;
@@ -37,9 +38,104 @@ static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 // when integrating ImGui in your engine: in your Render function, try translating your projection
 // matrix by (0.5f,0.5f) or (0.375f,0.375f)
 
-void RenderTextureFromViewport(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+void RenderBackbufferOfWindow(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 {
-    
+    static bool wasInit = false;
+    static GLuint quad_vbo = 0;
+    static GLuint quad_ibo = 0;
+    static GLuint quad_vao = 0;
+
+    GLint last_array_buffer;
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+    GLint last_element_array_buffer;
+    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+    GLint last_vertex_array;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+
+    if (!wasInit)
+    {
+        glGenBuffers(1, &quad_vbo);
+        glGenBuffers(1, &quad_ibo);
+
+        glGenVertexArrays(1, &quad_vao);
+        glBindVertexArray(quad_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+        glEnableVertexAttribArray(g_AttribLocationPosition);
+        glEnableVertexAttribArray(g_AttribLocationUV);
+        glEnableVertexAttribArray(g_AttribLocationColor);
+
+        glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
+                              (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
+        glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
+                              (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
+        glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE,
+                              sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+
+        ImDrawIdx indices[6];
+
+        indices[0] = 0;
+        indices[1] = (ImDrawIdx)1;
+        indices[2] = (ImDrawIdx)2;
+        indices[3] = 0;
+        indices[4] = (ImDrawIdx)2;
+        indices[5] = (ImDrawIdx)3;
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)6 * sizeof(ImDrawIdx),
+                     (const GLvoid*)indices, GL_STATIC_DRAW);
+        wasInit = true;
+    }
+
+    glBindVertexArray(quad_vao);
+    DG::graphics::GameWorldWindow* window = (DG::graphics::GameWorldWindow*)cmd->UserCallbackData;
+
+    // Build quad data
+    ImDrawVert verts[4];
+
+    ImVec2 a = window->GetPosition();
+    ImVec2 c = window->GetPosition() + window->GetSize();
+    ImVec2 b(c.x, a.y);
+    ImVec2 d(a.x, c.y);
+    ImVec2 uv_a(0, 1);
+    ImVec2 uv_c(1, 0);
+    ImVec2 uv_b(uv_c.x, uv_a.y);
+    ImVec2 uv_d(uv_a.x, uv_c.y);
+
+    ImU32 col = 0xFFFFFFFF;
+    verts[0].pos = a;
+    verts[0].uv = uv_a;
+    verts[0].col = col;
+
+    verts[1].pos = b;
+    verts[1].uv = uv_b;
+    verts[1].col = col;
+
+    verts[2].pos = c;
+    verts[2].uv = uv_c;
+    verts[2].col = col;
+
+    verts[3].pos = d;
+    verts[3].uv = uv_d;
+    verts[3].col = col;
+
+    // Push quad data
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)4 * sizeof(ImDrawVert), (const GLvoid*)verts,
+                 GL_STREAM_DRAW);
+
+    ImGuiIO& io = ImGui::GetIO();
+    int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
+
+    glBindTexture(GL_TEXTURE_2D, window->GetFramebuffer()->ColorTexture.GetTextureId());
+    glScissor((int)cmd->ClipRect.x, (int)(fb_height - cmd->ClipRect.w),
+              (int)(cmd->ClipRect.z - cmd->ClipRect.x), (int)(cmd->ClipRect.w - cmd->ClipRect.y));
+
+    glDrawElements(GL_TRIANGLES, 6, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT,
+                   0);
+
+    glBindVertexArray(last_vertex_array);
+    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
 }
 
 void ImGui_ImplSdlGL3_RenderDrawLists(ImDrawData* draw_data)
@@ -421,10 +517,7 @@ bool ImGui_ImplSdlGL3_Init(SDL_Window* window)
     return true;
 }
 
-void ImGui_ImplSdlGL3_Shutdown()
-{
-    ImGui::Shutdown();
-}
+void ImGui_ImplSdlGL3_Shutdown() { ImGui::Shutdown(); }
 
 void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
 {

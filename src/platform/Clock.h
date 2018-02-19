@@ -44,6 +44,5 @@ class Clock
 extern Clock g_RealTimeClock;
 extern Clock g_InGameClock;
 extern Clock g_EditingClock;
-extern Clock g_AnimationClock;
 void InitClocks();
 }  // namespace DG

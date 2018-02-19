@@ -18,8 +18,6 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
 {
     auto fontPath = SearchForFile(fontName.c_str());
 
-    // ToDo: WindowSize Messaging
-
     FT_Library library;
     auto error = FT_Init_FreeType(&library);
     if (error)
@@ -116,7 +114,7 @@ bool Font::Init(const std::string& fontName, u32 fontSize, u32 textureSize)
     return true;
 }
 
-void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+void Font::RenderTextWorldBillboard(const std::string& textToRender, Camera* camera,
                                     const vec2& viewportSize, const vec3& worldPos,
                                     const Color& color)
 {
@@ -150,7 +148,7 @@ void Font::RenderTextWorldBillboard(const std::string& textToRender, const Camer
     BillboardWorldFontShader.Use();
     BillboardWorldFontShader.SetUniform("color", color);
     BillboardWorldFontShader.SetUniform("screenSize", viewportSize);
-    vec4 hcsPos = camera.GetProjectionMatrix() * camera.GetViewMatrix() * vec4(worldPos, 1.0);
+    vec4 hcsPos = camera->GetProjectionMatrix() * camera->GetViewMatrix() * vec4(worldPos, 1.0);
     vec2 ndsPos(hcsPos.x / hcsPos.w, hcsPos.y / hcsPos.w);
 
     BillboardWorldFontShader.SetUniform("ndsPosition", ndsPos);

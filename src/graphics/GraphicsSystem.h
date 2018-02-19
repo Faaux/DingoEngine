@@ -10,11 +10,12 @@
 #include <vector>
 #include "Mesh.h"
 #include "Shader.h"
-#include "Viewport.h"
+#include "engine/Camera.h"
 #include "math/Transform.h"
 
 namespace DG::graphics
 {
+class GameWorldWindow;
 struct DebugPoint
 {
     vec3 start;
@@ -102,8 +103,8 @@ class DebugRenderContext
 
 struct Renderable
 {
-    Transform transform;
-    GraphicsModel *model;
+    mat4 ModelMatrix;
+    GraphicsModel *Model;
 };
 
 struct RenderQueue
@@ -134,7 +135,7 @@ class RenderContext
 
 struct WorldRenderData
 {
-    Viewport *Viewport;
+    GameWorldWindow *Window;
     RenderContext *RenderCTX;
     DebugRenderContext *DebugRenderCTX;
 };
@@ -155,8 +156,7 @@ class DebugRenderSystem
    private:
     void SetupVertexBuffers();
 
-    void RenderDebugLines(const Camera &camera, bool depthEnabled,
-                          const std::vector<DebugLine> &lines);
+    void RenderDebugLines(Camera *camera, bool depthEnabled, const std::vector<DebugLine> &lines);
 
     Shader _shader;
     GLuint linePointVAO = -1;

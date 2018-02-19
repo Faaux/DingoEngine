@@ -83,7 +83,7 @@ class TypeBase
     {
         json["id"] = _uniqueId;
         json["type"] = *GetInstanceType();
-    };
+    }
 
     SDL_FORCE_INLINE u32 GetUniqueId() const { return _uniqueId; }
 

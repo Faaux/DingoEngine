@@ -76,6 +76,5 @@ void InitClocks()
     Clock::Init();
     g_RealTimeClock.Init();
     g_InGameClock.Init();
-    g_AnimationClock.Init();
 }
 }  // namespace DG

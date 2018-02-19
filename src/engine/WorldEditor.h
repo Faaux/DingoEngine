@@ -22,9 +22,6 @@ class WorldEdit
 private:
     GameWorld _gameWorld;
     Actor* _selectedActor;
-    InputMessage _lastInputMessage;
     bool _lastInputMessageHandled = true;
 };
-
-vec3 GetMouseRayGameClient(const InputMessage& message, const Camera& camera);
 }  // namespace DG

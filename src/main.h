@@ -41,11 +41,10 @@ struct GameState
     GameMode Mode = GameMode::EditMode;
 
     RawInputSystem* RawInputSystem;
-    InputSystem* InputSystem;    
 
     WorldEdit* WorldEdit;
     GameWorld* ActiveWorld;
 };
 
-extern Managers* gManagers;
+extern Managers* g_Managers;
 }  // namespace DG

@@ -38,6 +38,13 @@ nlohmann::json Serialize(const Transform& transform)
     return json;
 }
 
+nlohmann::json Serialize(const StringId& id)
+{
+    nlohmann::json json;
+    json["stringid"] = id.GetHash();
+    return json;
+}
+
 void SerializeActor(const Actor* actor, nlohmann::json& a)
 {
     a["type"] = *actor->GetInstanceType();

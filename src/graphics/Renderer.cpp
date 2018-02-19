@@ -76,26 +76,26 @@ static int RenderThreadStart(void* data)
         // Load all models on OpenGL Context render thread
         // ToDo Remove(Testing)
 
-        gManagers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
-        Shader* shader = gManagers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
+        g_Managers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
+        Shader* shader = g_Managers->ShaderManager->LoadOrGet(StringId("base_model"), "base_model");
 
         GLTFScene* scene =
-            gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-        gManagers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
+            g_Managers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("DuckModel"), scene, shader);
 
-        scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("boxmaterial.gltf"),
-                                                       "boxmaterial.gltf");
-        gManagers->ModelManager->LoadOrGet(StringId("BoxMatModel"), scene, shader);
+        scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("boxmaterial.gltf"),
+                                                        "boxmaterial.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("BoxMatModel"), scene, shader);
 
         scene =
-            gManagers->GLTFSceneManager->LoadOrGet(StringId("boxtexture.gltf"), "boxtexture.gltf");
-        gManagers->ModelManager->LoadOrGet(StringId("BoxTexModel"), scene, shader);
+            g_Managers->GLTFSceneManager->LoadOrGet(StringId("boxtexture.gltf"), "boxtexture.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("BoxTexModel"), scene, shader);
 
-        scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-        gManagers->ModelManager->LoadOrGet(StringId("DuckModel2"), scene, shader);
+        scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("DuckModel2"), scene, shader);
 
-        scene = gManagers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-        gManagers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
+        scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
     }
 
     SDL_Log("Renderer initialized.");
@@ -108,7 +108,7 @@ static int RenderThreadStart(void* data)
         // Double buffer ALL viewports
         for (int i = 0; i < renderState->FrameDataToRender->WorldRenderDataCount; ++i)
         {
-            renderState->FrameDataToRender->WorldRenderData[i]->Viewport->Apply();
+            renderState->FrameDataToRender->WorldRenderData[i]->Window->ApplyRenderState();
         }
 
         renderState->FrameDataToRender->DoubleBufferDone.Signal();

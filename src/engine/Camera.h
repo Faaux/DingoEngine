@@ -7,7 +7,6 @@
 #pragma once
 #include "math/GLMInclude.h"
 #include "platform/Clock.h"
-#include "platform/InputSystem.h"
 
 namespace DG
 {
@@ -21,13 +20,14 @@ class Camera
     const mat4& GetViewMatrix() const;
 
     const mat4& GetProjectionMatrix() const;
-    void UpdateProjection(float x, float y);
+    void UpdateProjection(float width, float height);
     const vec3& GetPosition() const;
     vec3 GetRight() const;
     vec3 GetUp() const;
     vec3 GetForward() const;
     const quat& GetOrientation() const;
     void Set(vec3 newPosition, quat newOrientation);
+    void Set(vec3 newPosition, vec3 lookAt);
 
    private:
     void RecalculateView() const;
@@ -46,6 +46,6 @@ class Camera
     vec3 _up;
 };
 
-void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock& clock);
+void UpdateFreeCameraFromInput(Camera& camera, const Clock& clock);
 
 }  // namespace DG

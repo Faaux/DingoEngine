@@ -60,7 +60,7 @@ class Font
    public:
     Font();
     bool Init(const std::string& fontName, u32 fontSize, u32 textureSize = 256);
-    void RenderTextWorldBillboard(const std::string& textToRender, const Camera& camera,
+    void RenderTextWorldBillboard(const std::string& textToRender, Camera* camera,
                                   const vec2& viewportSize, const vec3& position,
                                   const Color& color = Color(1));
     void RenderTextScreen(const std::string& textToRender, const vec2& screenPos,

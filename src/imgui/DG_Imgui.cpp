@@ -14,7 +14,7 @@ namespace DG
 {
 std::unordered_map<std::string, std::vector<Tweaker>> g_Tweakers;
 std::unordered_map<std::string, std::vector<Tweaker>> g_TweakersPerFrame;
-bool isVisible = true;
+bool isVisible = false;
 
 static void AddTweaker(const ImGuiTextFilter &filter, const std::vector<Tweaker> &tweakers,
                        float speed, const char *catName)
@@ -147,6 +147,12 @@ void AddImguiTweakers()
 
 void InitInternalImgui()
 {
-    // ToDo: F1 Hotkey TWEAKER messaging
+    g_MessagingSystem.RegisterCallback(
+        MessageType::RawKey, Delegate<void(const Message &)>([](const Message &message) {
+            if (message.RawKey.Scancode == SDL_SCANCODE_F1 && message.RawKey.Key->wasPressed())
+            {
+                isVisible = !isVisible;
+            }
+        }));
 }
 }  // namespace DG

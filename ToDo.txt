@@ -16,45 +16,19 @@ Messaging (Mediator) (System) (Chris) (Review!)
 	1.) Inputs
 	2.) System specific communication
 	
-Frame Structure
-Pass one object to each phase which has all neccessary information to run its task
-	- Update
-		- Sub1
-		- Sub2
-	- Pre-Render
-		- Sub1
-		- Sub2
-	- Render
-		- Sub1
-		- Sub2
-
-
-
-
-// Randoms
-Rewrite camera
 
 PhysX baking for dynamics (convex mesh hull)
-No physics while in WorldEdit
 
-
-
+// Not quite happening
 GameWorlds run in their own thread.
-Input is send to gameworlds via events (focus of gameworld??, send all and they are stopped?)
-If the gameworld wants to render something, it'll create a render context and push that onto the render queue (main thread)
-Managers( Model Shader etc need only be filled from main thread!)
 
-After Update and PreRender, synchronize with input of main thread. (Research put rendering on a diffrerent thread, how does that imply with SDL polling and when can we swap buffers?)
+// GameView Concep
+Input is send to gameworlds via events (focus of gameworld??, send all and they are stopped?)
+GameWorld genereate GameWorldData that is pushed to the RenderThread
 
 Reimplement WorldEdit....
 
-Concept of Viewport, input handling, backbuffer handling, 
-
-
-// Cleanup current
-
-Remove any c++ style cast!
-
+Concept of input handling
 
 Rewrite messaging without tempalte madness!
 

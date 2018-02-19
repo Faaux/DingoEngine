@@ -119,7 +119,7 @@ class File:
             if not os.path.exists(str(path)):
                 os.makedirs(str(path))
 
-            with open(str(), "w") as file:
+            with open(str(path / self.output_filename_h), "w") as file:
                 output_file(file, False, self.output_filename_h, self)
 
             with open(str(path / self.output_filename_cpp), "w") as file:

@@ -9,13 +9,15 @@
 #include <ImGuizmo.h>
 #include <SDL.h>
 #include <fstream>
+#include "components/SceneComponent.h"
+#include "components/StaticMeshComponent.h"
 #include "engine/Messaging.h"
 #include "engine/Types.h"
 #include "engine/WorldEditor.h"
 #include "graphics/FrameData.h"
+#include "graphics/GameWorldWindow.h"
 #include "graphics/GraphicsSystem.h"
 #include "graphics/Renderer.h"
-#include "graphics/Viewport.h"
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
@@ -36,7 +38,7 @@ StringHashTable<2048> g_StringHashTable;
 
 GameMemory Memory;
 GameState* Game;
-Managers* gManagers;
+Managers* g_Managers;
 
 bool InitWindow()
 {
@@ -108,29 +110,7 @@ void Cleanup()
     SDL_Quit();
 }
 
-void AttachDebugListenersToMessageSystem()
-{
-    // ToDo: Messaging
-    /*g_MessagingSystem.RegisterCallback<MainBackbufferSizeMessage>(
-        [](const MainBackbufferSizeMessage& message) {
-            SDL_LogVerbose(0, "Backbuffer was resized: %.2f x %.2f", message.WindowSize.x,
-                           message.WindowSize.y);
-        });*/
-}
-
-void Update(graphics::FrameData* frameData)
-{
-    Game->ActiveWorld->Update();
-    Game->WorldEdit->Update();
-    static bool showGrid = false;
-    TWEAKER(CB, "Grid", &showGrid);
-
-    if (showGrid)
-        graphics::AddDebugXZGrid(vec2(0), -5, 5, 0);
-    graphics::AddDebugAxes(Transform(vec3(0, 0.01f, 0), vec3(), vec3(1)), 5.f, 2.5f);
-
-    graphics::AddDebugTextScreen(vec2(0), "Test test test");
-}
+void AttachDebugListenersToMessageSystem() {}
 
 u64 GetFrameBufferIndex(u64 frameIndex, u64 size)
 {
@@ -171,11 +151,11 @@ int main(int, char* [])
     InitClocks();
 
     // Initialize Resource Managers
-    gManagers = Memory.TransientMemory.PushAndConstruct<Managers>();
-    gManagers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
-    gManagers->GLTFSceneManager =
+    g_Managers = Memory.TransientMemory.PushAndConstruct<Managers>();
+    g_Managers->ModelManager = Memory.TransientMemory.PushAndConstruct<ModelManager>();
+    g_Managers->GLTFSceneManager =
         Memory.TransientMemory.PushAndConstruct<graphics::GLTFSceneManager>();
-    gManagers->ShaderManager = Memory.TransientMemory.PushAndConstruct<graphics::ShaderManager>();
+    g_Managers->ShaderManager = Memory.TransientMemory.PushAndConstruct<graphics::ShaderManager>();
 
     // Initialize Game
     const u32 playModeSize = 4 * 1024 * 1024;  // 4MB
@@ -183,7 +163,10 @@ int main(int, char* [])
     Game->GameIsRunning = true;
     Game->PlayModeStack.Init(Memory.TransientMemory.Push(playModeSize, 4), playModeSize);
     Game->RawInputSystem = Memory.TransientMemory.PushAndConstruct<RawInputSystem>();
-    Game->InputSystem = Memory.TransientMemory.PushAndConstruct<InputSystem>();
+
+    // Init Messaging
+    // ToDo(Faaux)(Messaging): Messaging runs on real time clock? What if we pause the game?
+    g_MessagingSystem.Initialize(&Memory.TransientMemory, &g_RealTimeClock);
 
     // Init RenderState
     Game->RenderState = Memory.TransientMemory.PushAndConstruct<graphics::RenderState>();
@@ -208,8 +191,6 @@ int main(int, char* [])
     Game->WorldEdit->Startup(&Memory.TransientMemory);
     Game->ActiveWorld = Game->WorldEdit->GetWorld();
 
-    // ToDo: Messaging Init
-    // g_MessagingSystem.Init(g_InGameClock);
     AttachDebugListenersToMessageSystem();
 
     u64 currentTime = SDL_GetPerformanceCounter();
@@ -240,8 +221,8 @@ int main(int, char* [])
         g_EditingClock.SetPaused(true);
 
     // ToDo: This is not the right place for this to live....
-    graphics::Viewport mainViewport;
-    mainViewport.Initialize(vec2(), vec2());
+    graphics::GameWorldWindow mainGameWindow;
+    mainGameWindow.Initialize("EditWindow", Game->WorldEdit->GetWorld());
 
     while (!Game->RawInputSystem->IsQuitRequested())
     {
@@ -269,231 +250,210 @@ int main(int, char* [])
         graphics::g_DebugRenderContext = currentFrameData.WorldRenderData[0]->DebugRenderCTX;
         currentFrameData.WorldRenderData[0]->RenderCTX->IsWireframe = isWireframe;
 
-        // Poll Events and Update Input accordingly
-        Game->RawInputSystem->Update();
-
-        // Measure time and update clocks!
-        const u64 lastTime = currentTime;
-        currentTime = SDL_GetPerformanceCounter();
-        f32 dtSeconds = (f32)(currentTime - lastTime) / cpuFrequency;
-
-        // This usually happens once we hit a breakpoint when debugging
-        if (dtSeconds > 0.25f)
-            dtSeconds = 1.0f / TargetFrameRate;
-
-        // Update Clocks
-        g_RealTimeClock.Update(dtSeconds);
-        g_EditingClock.Update(dtSeconds);
-        g_InGameClock.Update(dtSeconds);
-
-        // Imgui
-        ImGui_ImplSdlGL3_NewFrame(Game->RenderState->Window);
-        ImGuizmo::BeginFrame();
-        ImVec2 mainBarSize;
-
-        // Main Menu Bar
-        if (ImGui::BeginMainMenuBar())
+        // Update Phase!
         {
-            mainBarSize = ImGui::GetWindowSize();
-            if (ImGui::BeginMenu("File"))
+            // Poll Events and Update Input accordingly
+            Game->RawInputSystem->Update();
+
+            // Measure time and update clocks!
+            const u64 lastTime = currentTime;
+            currentTime = SDL_GetPerformanceCounter();
+            f32 dtSeconds = (f32)(currentTime - lastTime) / cpuFrequency;
+
+            // This usually happens once we hit a breakpoint when debugging
+            if (dtSeconds > 0.25f)
+                dtSeconds = 1.0f / TargetFrameRate;
+
+            // Update Clocks
+            g_RealTimeClock.Update(dtSeconds);
+            g_EditingClock.Update(dtSeconds);
+            g_InGameClock.Update(dtSeconds);
+
+            // Imgui
+            ImGui_ImplSdlGL3_NewFrame(Game->RenderState->Window);
+            ImGuizmo::BeginFrame();
+            ImVec2 mainBarSize;
+
+            // Main Menu Bar
+            if (ImGui::BeginMainMenuBar())
             {
-                if (ImGui::MenuItem("Save layout"))
+                mainBarSize = ImGui::GetWindowSize();
+                if (ImGui::BeginMenu("File"))
                 {
-                    ImGui::SaveDock();
+                    if (ImGui::MenuItem("Save layout"))
+                    {
+                        ImGui::SaveDock();
+                    }
+
+                    if (ImGui::MenuItem("Exit"))
+                    {
+                        Game->RawInputSystem->RequestClose();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Shader"))
+                {
+                    if (ImGui::MenuItem("Reload changed shaders"))
+                    {
+                        auto it = g_Managers->ShaderManager->begin();
+                        auto end = g_Managers->ShaderManager->end();
+                        while (it != end)
+                        {
+                            it->ReloadShader();
+                            ++it;
+                        }
+                    }
+                    ImGui::EndMenu();
                 }
 
-                if (ImGui::MenuItem("Exit"))
+                if (Game->Mode == GameState::GameMode::EditMode)
                 {
-                    Game->RawInputSystem->RequestClose();
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Shader"))
-            {
-                if (ImGui::MenuItem("Reload changed shaders"))
-                {
-                    auto it = gManagers->ShaderManager->begin();
-                    auto end = gManagers->ShaderManager->end();
-                    while (it != end)
+                    if (ImGui::MenuItem("Start Playmode"))
                     {
-                        it->ReloadShader();
-                        ++it;
+                        Game->Mode = GameState::GameMode::PlayMode;
+                        g_EditingClock.SetPaused(true);
+                        g_InGameClock.SetPaused(false);
+
+                        // Cleanup PlayMode stack
+                        Game->PlayModeStack.Reset();
+                        Game->ActiveWorld = Game->PlayModeStack.Push<GameWorld>();
+
+                        // Copy World from Edit mode over
+                        // CopyGameWorld(Game->ActiveWorld, Game->WorldEdit->GetWorld());
                     }
                 }
-                ImGui::EndMenu();
+                else if (Game->Mode == GameState::GameMode::PlayMode)
+                {
+                    if (ImGui::MenuItem("Stop Playmode"))
+                    {
+                        Game->Mode = GameState::GameMode::EditMode;
+                        g_EditingClock.SetPaused(false);
+                        g_InGameClock.SetPaused(true);
+
+                        Game->ActiveWorld->Shutdown();
+                        Game->ActiveWorld->~GameWorld();
+                        Game->ActiveWorld = Game->WorldEdit->GetWorld();
+                    }
+                }
+
+                if (ImGui::MenuItem("Spawn Duck Actor"))
+                {
+                    auto actor = Game->ActiveWorld->CreateActor<Actor>();
+                    auto rootScene = (SceneComponent*)actor->GetFirstComponentOfType(
+                        SceneComponent::GetClassType());
+                    auto staticMesh = actor->RegisterComponent<StaticMeshComponent>();
+                    staticMesh->RenderableId = "DuckModel";
+                    staticMesh->Parent = rootScene;
+                }
+
+                // Shift all the way to the right
+                ImGui::SameLine(ImGui::GetWindowWidth() - 200);
+                ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                            ImGui::GetIO().Framerate);
+
+                ImGui::EndMainMenuBar();
             }
 
-            if (Game->Mode == GameState::GameMode::EditMode)
+            // Create Main Window
+            vec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
+            adjustedDisplaySize.y -= mainBarSize.y;
+            ImGui::SetNextWindowPos(ImVec2(0, mainBarSize.y));
+            ImGui::SetNextWindowSize(adjustedDisplaySize, ImGuiCond_Always);
+            bool isContentVisible =
+                ImGui::Begin("###content", 0,
+                             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+                                 ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                 ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoInputs);
+            Assert(isContentVisible);
+
+            ImGui::BeginDockspace();
+
+            // Imgui Window for MainViewport
+            mainGameWindow.AddToImgui();
+
+            // Game Logic
+            g_MessagingSystem.Update();
+            mainGameWindow.Update(dtSeconds);  // Also updates the world
+            Game->WorldEdit->Update();
+
+            AddImguiTweakers();
+
+            ImGui::EndDockspace();
+            ImGui::End();
+            ImGui::Render();  // Just generates statements to be rendered, doesnt actually render!
+        }
+
+        // PreRender Phase!
+        {
+            // Copying imgui render data to context
+            ImDrawData* drawData = currentFrameData.FrameMemory.Push<ImDrawData>();
+            *drawData = *ImGui::GetDrawData();
+            ImDrawList** newList =
+                currentFrameData.FrameMemory.Push<ImDrawList*>(drawData->CmdListsCount);
+
+            // Create copies of cmd lists
+            for (int i = 0; i < drawData->CmdListsCount; ++i)
             {
-                if (ImGui::MenuItem("Start Playmode"))
+                // Copy this list!
+                ImDrawList* drawList = drawData->CmdLists[i];
+                newList[i] = currentFrameData.FrameMemory.Push<ImDrawList>();
+                ImDrawList* copiedDrawList = newList[i];
+
+                // Create copies of
+                copiedDrawList->CmdBuffer = ImVector<ImDrawCmd>();
+                CopyImVector<ImDrawCmd>(&copiedDrawList->CmdBuffer, &drawList->CmdBuffer,
+                                        currentFrameData.FrameMemory);
+
+                copiedDrawList->IdxBuffer = ImVector<ImDrawIdx>();
+                CopyImVector<ImDrawIdx>(&copiedDrawList->IdxBuffer, &drawList->IdxBuffer,
+                                        currentFrameData.FrameMemory);
+
+                copiedDrawList->VtxBuffer = ImVector<ImDrawVert>();
+                CopyImVector<ImDrawVert>(&copiedDrawList->VtxBuffer, &drawList->VtxBuffer,
+                                         currentFrameData.FrameMemory);
+            }
+
+            drawData->CmdLists = newList;
+
+            // Set Imgui Render Data
+            currentFrameData.ImOverlayDrawData = drawData;
+
+            graphics::RenderQueue* rq = currentFrameData.FrameMemory.Push<graphics::RenderQueue>();
+            // ToDo(Faaux)(Graphics): This needs to be a dynamic amount of renderables
+            rq->Renderables = currentFrameData.FrameMemory.Push<graphics::Renderable>(250);
+            rq->Count = 0;
+            // Get all actors that need to be drawn
+            for (auto& actor : Game->ActiveWorld->GetAllActors())
+            {
+                // Check if we have a Mesh associated
+                auto staticMeshes = actor->GetComponentsOfType(StaticMeshComponent::GetClassType());
+                for (auto& sm : staticMeshes)
                 {
-                    Game->Mode = GameState::GameMode::PlayMode;
-                    g_EditingClock.SetPaused(true);
-                    g_InGameClock.SetPaused(false);
-
-                    // Cleanup PlayMode stack
-                    Game->PlayModeStack.Reset();
-                    Game->ActiveWorld = Game->PlayModeStack.Push<GameWorld>();
-
-                    // Copy World from Edit mode over
-                    // CopyGameWorld(Game->ActiveWorld, Game->WorldEdit->GetWorld());
+                    auto staticMesh = (StaticMeshComponent*)sm;
+                    auto model = g_Managers->ModelManager->Exists(staticMesh->RenderableId);
+                    Assert(model);
+                    Assert(!rq->Shader || rq->Shader == &model->shader);
+                    rq->Shader = &model->shader;
+                    rq->Renderables[rq->Count].Model = model;
+                    rq->Renderables[rq->Count].ModelMatrix = staticMesh->GetGlobalModelMatrix();
+                    rq->Count++;
                 }
             }
-            else if (Game->Mode == GameState::GameMode::PlayMode)
-            {
-                if (ImGui::MenuItem("Stop Playmode"))
-                {
-                    Game->Mode = GameState::GameMode::EditMode;
-                    g_EditingClock.SetPaused(false);
-                    g_InGameClock.SetPaused(true);
-
-                    Game->ActiveWorld->Shutdown();
-                    Game->ActiveWorld->~GameWorld();
-                    Game->ActiveWorld = Game->WorldEdit->GetWorld();
-                }
-            }
-
-            // Shift all the way to the right
-            ImGui::SameLine(ImGui::GetWindowWidth() - 200);
-            ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                        ImGui::GetIO().Framerate);
-
-            ImGui::EndMainMenuBar();
+            if (rq->Count != 0)
+                currentFrameData.WorldRenderData[0]->RenderCTX->AddRenderQueue(rq);
+            currentFrameData.WorldRenderData[0]->Window = &mainGameWindow;
+            currentFrameData.IsPreRenderDone = true;
         }
-
-        // Create Main Window
-        vec2 adjustedDisplaySize = ImGui::GetIO().DisplaySize;
-        adjustedDisplaySize.y -= mainBarSize.y;
-        ImGui::SetNextWindowPos(ImVec2(0, mainBarSize.y));
-        ImGui::SetNextWindowSize(adjustedDisplaySize, ImGuiCond_Always);
-        bool isContentVisible = ImGui::Begin(
-            "###content", 0,
-            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
-                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoInputs);
-        Assert(isContentVisible);
-
-        ImGui::BeginDockspace();
-
-        // Imgui Window for MainViewport
-        if (ImGui::BeginDock("Scene Window", 0, ImGuiWindowFlags_NoResize))
+        // Render Phase
         {
-            Game->InputSystem->IsForwardingToGame =
-                ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+            previousFrameData.RenderDone.WaitAndReset();
 
-            vec2 pos = ImGui::GetCursorScreenPos();
-            vec2 avaialbeSize = ImGui::GetContentRegionAvail();
-
-            // Update viewport
-            mainViewport.SetLocation(pos, avaialbeSize);
-            mainViewport.SetCamera(Game->ActiveWorld->GetActiveCamera());
-
-            const Framebuffer* mainViewportFB = mainViewport.GetFramebuffer();
-            if (mainViewportFB->ColorTexture.IsValid())
-            {
-                // Should use this to do custom rendering so that we do not
-                // flicker when resizing the viewport
-                /*ImGui::GetWindowDrawList()->AddDrawCmd();
-                ImGui::GetWindowDrawList()->AddCallback(, &mainViewport);*/
-
-                ImGui::GetWindowDrawList()->AddImage(
-                    (void*)(size_t)mainViewportFB->ColorTexture.GetTextureId(), pos,
-                    pos + avaialbeSize, ImVec2(0, 1), ImVec2(1, 0));
-            }
+            Game->RenderState->FrameDataToRender = &currentFrameData;
+            Game->RenderState->RenderCondition.Signal();
+            currentFrameData.DoubleBufferDone.WaitAndReset();
         }
-        ImGui::EndDock();
-
-        // Game Logic
-        // ToDo: Messaging
-        // g_MessagingSystem.Update();
-        Update(&currentFrameData);
-
-        AddImguiTweakers();
-
-        if (ImGui::BeginDock("Models"))
-        {
-            const vec2 origPos = ImGui::GetCursorScreenPos();
-            const vec2 avaialbeSize = ImGui::GetContentRegionAvail();
-
-            const vec2 imageSize(90);
-            const vec2 wantedSizePerImage = imageSize + vec2(0, 20);
-            const f32 padding = 5;
-
-            u32 imagesPerRow = (u32)(avaialbeSize.x / wantedSizePerImage.x);
-
-            if (imagesPerRow < 1)
-                imagesPerRow = 1;
-
-            if (imagesPerRow * wantedSizePerImage.x + (imagesPerRow - 1) * padding > avaialbeSize.x)
-                --imagesPerRow;
-
-            if (imagesPerRow < 1)
-                imagesPerRow = 1;
-
-            vec2 pos = origPos;
-            auto it = gManagers->ModelManager->begin();
-            auto end = gManagers->ModelManager->end();
-            while (it != end)
-            {
-                for (u32 i = 0; i < imagesPerRow && it != end; ++i)
-                {
-                    // ToDo: Readd model viewer
-                    ++it;
-                }
-                pos.x = origPos.x;
-                pos.y += wantedSizePerImage.y + padding;
-            }
-        }
-        ImGui::EndDock();
-        ImGui::EndDockspace();
-        ImGui::End();
-        ImGui::Render();  // Just generates statements to be rendered, doesnt actually render!
-
-        // PreRender
-        // Copying imgui render data to context
-        ImDrawData* drawData = currentFrameData.FrameMemory.Push<ImDrawData>();
-        *drawData = *ImGui::GetDrawData();
-        ImDrawList** newList =
-            currentFrameData.FrameMemory.Push<ImDrawList*>(drawData->CmdListsCount);
-
-        // Create copies of cmd lists
-        for (int i = 0; i < drawData->CmdListsCount; ++i)
-        {
-            // Copy this list!
-            ImDrawList* drawList = drawData->CmdLists[i];
-            newList[i] = currentFrameData.FrameMemory.Push<ImDrawList>();
-            ImDrawList* copiedDrawList = newList[i];
-
-            // Create copies of
-            copiedDrawList->CmdBuffer = ImVector<ImDrawCmd>();
-            CopyImVector<ImDrawCmd>(&copiedDrawList->CmdBuffer, &drawList->CmdBuffer,
-                                    currentFrameData.FrameMemory);
-
-            copiedDrawList->IdxBuffer = ImVector<ImDrawIdx>();
-            CopyImVector<ImDrawIdx>(&copiedDrawList->IdxBuffer, &drawList->IdxBuffer,
-                                    currentFrameData.FrameMemory);
-
-            copiedDrawList->VtxBuffer = ImVector<ImDrawVert>();
-            CopyImVector<ImDrawVert>(&copiedDrawList->VtxBuffer, &drawList->VtxBuffer,
-                                     currentFrameData.FrameMemory);
-        }
-
-        drawData->CmdLists = newList;
-
-        // Set Imgui Render Data
-        currentFrameData.ImOverlayDrawData = drawData;
-
-        currentFrameData.WorldRenderData[0]->Viewport = &mainViewport;
-        currentFrameData.IsPreRenderDone = true;
-
-        // Render
-        previousFrameData.RenderDone.WaitAndReset();
-
-        Game->RenderState->FrameDataToRender = &currentFrameData;
-        Game->RenderState->RenderCondition.Signal();
-        currentFrameData.DoubleBufferDone.WaitAndReset();
-
         currentFrameIdx++;
     }
     Game->GameIsRunning = false;

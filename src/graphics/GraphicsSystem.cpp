@@ -85,7 +85,7 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
     static bool wasFBInit = false;
     static Framebuffer shadowFramebuffer;
     static Shader* shadowShader =
-        gManagers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
+        g_Managers->ShaderManager->LoadOrGet(StringId("shadow_map"), "shadow_map");
     static mat4 lightProjection;
     static mat4 lightViewMatrix;
     if (!wasFBInit)
@@ -114,11 +114,10 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
                      ++renderableIndex)
                 {
                     auto& renderable = renderQueue->Renderables[renderableIndex];
-                    auto& model = renderable.model;
+                    auto& model = renderable.Model;
                     if (model)
                     {
-                        AABB modelSpaceAABB =
-                            TransformAABB(model->aabb, renderable.transform.GetModelMatrix());
+                        AABB modelSpaceAABB = TransformAABB(model->aabb, renderable.ModelMatrix);
                         if (queueIndex == 0 && renderableIndex == 0)
                         {
                             aabb = modelSpaceAABB;
@@ -151,13 +150,12 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
             for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
             {
                 auto& renderable = renderQueue->Renderables[renderableIndex];
-                auto& model = renderable.model;
+                auto& model = renderable.Model;
                 if (model)
                 {
                     for (auto& mesh : model->meshes)
                     {
-                        shadowShader->SetUniform(
-                            "m", renderable.transform.GetModelMatrix() * mesh.localTransform);
+                        shadowShader->SetUniform("m", renderable.ModelMatrix * mesh.localTransform);
 
                         glBindVertexArray(mesh.vao);
                         glDrawElements(mesh.drawMode, (s32)mesh.count, mesh.type,
@@ -172,23 +170,24 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
         glBindVertexArray(0);
     }  // End ShadowMap
 
-    worldData->Viewport->GetBufferedFramebuffer()->Bind();
+    auto activeFramebuffer = worldData->Window->GetFramebuffer();
+    activeFramebuffer->Bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    const Camera& camera = worldData->Viewport->GetBufferedCamera();
+    const Camera* camera = worldData->Window->GetCamera();
     auto renderQueues = worldData->RenderCTX->GetRenderQueues();
     for (u32 queueIndex = 0; queueIndex < worldData->RenderCTX->GetRenderQueueCount(); ++queueIndex)
     {
         // Setup Shader
         auto renderQueue = renderQueues[queueIndex];
         renderQueue->Shader->Use();
-        renderQueue->Shader->SetUniform("proj", camera.GetProjectionMatrix());
-        renderQueue->Shader->SetUniform("view", camera.GetViewMatrix());
+        renderQueue->Shader->SetUniform("proj", camera->GetProjectionMatrix());
+        renderQueue->Shader->SetUniform("view", camera->GetViewMatrix());
         renderQueue->Shader->SetUniform("lightMVP", lightProjection * lightViewMatrix);
         renderQueue->Shader->SetUniform("lightDirection", lightDirection);
         renderQueue->Shader->SetUniform("lightColor", lightColor);
         renderQueue->Shader->SetUniform("bias", bias);
-        renderQueue->Shader->SetUniform("resolution", worldData->Viewport->GetSize());
+        renderQueue->Shader->SetUniform("resolution", activeFramebuffer->GetSize());
 
         glActiveTexture(GL_TEXTURE0);
         shadowFramebuffer.DepthTexture.Bind();
@@ -197,13 +196,13 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
         for (u32 renderableIndex = 0; renderableIndex < renderQueue->Count; ++renderableIndex)
         {
             auto& renderable = renderQueue->Renderables[renderableIndex];
-            auto& model = renderable.model;
+            auto& model = renderable.Model;
             if (model)
             {
                 for (auto& mesh : model->meshes)
                 {
-                    renderQueue->Shader->SetUniform(
-                        "model", renderable.transform.GetModelMatrix() * mesh.localTransform);
+                    renderQueue->Shader->SetUniform("model",
+                                                    renderable.ModelMatrix * mesh.localTransform);
 
                     glBindVertexArray(mesh.vao);
                     glDrawElements(mesh.drawMode, (s32)(mesh.count), mesh.type,
@@ -218,7 +217,7 @@ void GraphicsSystem::RenderWorldInternal(WorldRenderData* worldData)
 
     _debugRenderSystem.Render(worldData);
 
-    worldData->Viewport->GetBufferedFramebuffer()->UnBind();
+    activeFramebuffer->UnBind();
 }
 
 void RenderContext::AddRenderQueue(RenderQueue* queue)
@@ -368,17 +367,18 @@ void DebugRenderSystem::Render(WorldRenderData* worldData)
 {
     static bool isFontInit = false;
     static Font font;
+
+    auto activeFramebuffer = worldData->Window->GetFramebuffer();
+    auto activeCamera = worldData->Window->GetCamera();
     if (!isFontInit)
     {
-        vec2 currentSize = worldData->Viewport->GetSize();
+        vec2 currentSize = activeFramebuffer->GetSize();
         font.Init("Roboto-Regular.ttf", 16);
         isFontInit = true;
     }
 
-    RenderDebugLines(worldData->Viewport->GetBufferedCamera(), true,
-                     worldData->DebugRenderCTX->GetDebugLines(true));
-    RenderDebugLines(worldData->Viewport->GetBufferedCamera(), false,
-                     worldData->DebugRenderCTX->GetDebugLines(false));
+    RenderDebugLines(activeCamera, true, worldData->DebugRenderCTX->GetDebugLines(true));
+    RenderDebugLines(activeCamera, false, worldData->DebugRenderCTX->GetDebugLines(false));
 
     glDisable(GL_DEPTH_TEST);
     for (auto& text : worldData->DebugRenderCTX->GetDebugTextScreen(false))
@@ -387,8 +387,8 @@ void DebugRenderSystem::Render(WorldRenderData* worldData)
     }
     for (auto& text : worldData->DebugRenderCTX->GetDebugTextWorld(false))
     {
-        font.RenderTextWorldBillboard(text.text, worldData->Viewport->GetBufferedCamera(),
-                                      worldData->Viewport->GetSize(), text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, activeCamera, activeFramebuffer->GetSize(),
+                                      text.position, text.color);
     }
 
     glEnable(GL_DEPTH_TEST);
@@ -398,12 +398,12 @@ void DebugRenderSystem::Render(WorldRenderData* worldData)
     }
     for (auto& text : worldData->DebugRenderCTX->GetDebugTextWorld(true))
     {
-        font.RenderTextWorldBillboard(text.text, worldData->Viewport->GetBufferedCamera(),
-                                      worldData->Viewport->GetSize(), text.position, text.color);
+        font.RenderTextWorldBillboard(text.text, activeCamera, activeFramebuffer->GetSize(),
+                                      text.position, text.color);
     }
 }
 
-void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled,
+void DebugRenderSystem::RenderDebugLines(Camera* camera, bool depthEnabled,
                                          const std::vector<DebugLine>& lines)
 {
     if (lines.empty())
@@ -411,8 +411,8 @@ void DebugRenderSystem::RenderDebugLines(const Camera& camera, bool depthEnabled
 
     glBindVertexArray(linePointVAO);
     _shader.Use();
-    _shader.SetUniform("mv_Matrix", camera.GetViewMatrix());
-    _shader.SetUniform("p_Matrix", camera.GetProjectionMatrix());
+    _shader.SetUniform("mv_Matrix", camera->GetViewMatrix());
+    _shader.SetUniform("p_Matrix", camera->GetProjectionMatrix());
 
     if (depthEnabled)
     {
@@ -556,8 +556,6 @@ void AddDebugTriangle(const vec3& vertex0, const vec3& vertex1, const vec3& vert
     AddDebugLine(vertex0, vertex1, color, lineWidth, durationSeconds, depthEnabled);
     AddDebugLine(vertex1, vertex2, color, lineWidth, durationSeconds, depthEnabled);
     AddDebugLine(vertex2, vertex0, color, lineWidth, durationSeconds, depthEnabled);
-
-    // ToDo: Post event to message system if time is still valid for assumed next frame
 }
 
 void AddDebugAABB(const vec3& minCoords, const vec3& maxCoords, Color color, f32 lineWidth,

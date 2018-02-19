@@ -9,6 +9,8 @@
 #include <imgui.h>
 #include "Messaging.h"
 #include "imgui/imgui_dock.h"
+#include "imgui/DG_Imgui.h"
+#include <imgui_internal.h>
 
 namespace DG
 {
@@ -70,95 +72,80 @@ void WorldEdit::Update()
 {
     static int SelectedIndex = -1;
 
-    if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled && !ImGuizmo::IsOver())
-    {
-        /* vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
+    //if (_lastInputMessage.MouseLeftPressed && !_lastInputMessageHandled && !ImGuizmo::IsOver())
+    //{
+    //    /* vec3 ray = GetMouseRayGameClient(_lastInputMessage, _gameWorld.GetPlayerCamera());
 
-         void* actor =
-             _gameWorld.PhysicsWorld.RayCast(_gameWorld.GetPlayerCamera().GetPosition(), ray);
-         for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
-         {
-             auto& gameObject = _gameWorld.GetGameObject(i);
-             if (gameObject.Physics->Data == actor)
-             {
-                 SelectedIndex = i;
-                 break;
-             }
-         }*/
-    }
+    //     void* actor =
+    //         _gameWorld.PhysicsWorld.RayCast(_gameWorld.GetPlayerCamera().GetPosition(), ray);
+    //     for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
+    //     {
+    //         auto& gameObject = _gameWorld.GetGameObject(i);
+    //         if (gameObject.Physics->Data == actor)
+    //         {
+    //             SelectedIndex = i;
+    //             break;
+    //         }
+    //     }*/
+    //}
     _lastInputMessageHandled = true;
     bool hasSelection = false;
-    if (ImGui::BeginDock("Entity List"))
-    {
-        /*for (u32 i = 0; i < _gameWorld.GetGameObjectCount(); ++i)
-        {
-            ImGui::PushID(i);
-            hasSelection = hasSelection | (i == SelectedIndex);
-            if (ImGui::Selectable("Unknown", i == SelectedIndex))
-            {
-                hasSelection = true;
-                SelectedIndex = i;
-            }
-            ImGui::PopID();
-        }*/
-    }
-    ImGui::EndDock();
 
     Transform gameTransform;
 
     if (ImGui::BeginDock("Entity Manager"))
     {
-        /*if (!hasSelection)
-        {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
+        //if (!hasSelection)
+        //{
+        //    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        //    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        //}
 
-        auto& camera = _gameWorld.GetPlayerCamera();
-        if (hasSelection)
-        {
-            auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
-            gameTransform = gameObject.GetTransform();
-        }
-        AddEditTransform(camera.GetViewMatrix(), camera.GetProjectionMatrix(), gameTransform);
-        if (hasSelection)
-        {
-            auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
-            gameObject.GetTransform().Set(gameTransform);
-        }
+        //auto camera = _gameWorld.GetActiveCamera();
+        //if (hasSelection)
+        //{
+        //    //auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
+        //    //gameTransform = gameObject.GetTransform();
+        //}
+        //AddEditTransform(camera->GetViewMatrix(), camera->GetProjectionMatrix(), gameTransform);
+        //if (hasSelection)
+        //{
+        //    //auto& gameObject = _gameWorld.GetGameObject(SelectedIndex);
+        //    //gameObject.GetTransform().Set(gameTransform);
+        //}
 
-        if (!hasSelection)
-        {
-            ImGui::PopItemFlag();
-            ImGui::PopStyleVar();
-        }
-        ImGui::Text("Current Entity Count: %i", _gameWorld.GetGameObjectCount());
-        static u32 spawnCount = 100;
-        TWEAKER(S1, "Spawn Count", &spawnCount);
-        if (ImGui::Button("Add Entity"))
-        {
-            u32 size = (u32)glm::sqrt(spawnCount);
-            u32 index = 0;
-            float offset = 5.0f;
-            float otherOffset = size / 2 * 0.3f;
-            for (u32 row = 0; row < size; ++row)
-            {
-                if (index >= spawnCount)
-                    break;
-                for (u32 col = 0; col < size; ++col)
-                {
-                    if (index >= spawnCount)
-                        break;
-                    GameObject newDuck("DuckModel");
-                    auto& tansform = newDuck.GetTransform();
-                    tansform.SetPos(
-                        vec3(row * offset - otherOffset, col * offset - otherOffset, 0));
-                    tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
-                    _gameWorld.AddGameObject(newDuck, true);
-                    index++;
-                }
-            }
-        }*/
+        //if (!hasSelection)
+        //{
+        //    ImGui::PopItemFlag();
+        //    ImGui::PopStyleVar();
+        //}
+        //ImGui::Text("Current Entity Count: %i", _gameWorld.GetAllActors().size());
+        //static u32 spawnCount = 100;
+        //TWEAKER(S1, "Spawn Count", &spawnCount);
+        //if (ImGui::Button("Add Entity"))
+        //{
+        //    u32 size = (u32)glm::sqrt(spawnCount);
+        //    u32 index = 0;
+        //    float offset = 5.0f;
+        //    float otherOffset = size / 2 * 0.3f;
+        //    for (u32 row = 0; row < size; ++row)
+        //    {
+        //        if (index >= spawnCount)
+        //            break;
+        //        for (u32 col = 0; col < size; ++col)
+        //        {
+        //            if (index >= spawnCount)
+        //                break;
+        //            GameObject newDuck("DuckModel");
+        //            auto& tansform = newDuck.GetTransform();
+        //            tansform.SetPos(
+        //                vec3(row * offset - otherOffset, col * offset - otherOffset, 0));
+        //            tansform.SetRotation(vec3(0, glm::radians(90.f), 0));
+        //            _gameWorld.AddGameObject(newDuck, true);
+        //            index++;
+        //        }
+        //    }
+        //}
     }
     ImGui::EndDock();
 
@@ -202,29 +189,5 @@ void WorldEdit::Startup(StackAllocator* allocator)
     _gameWorld.Startup(worldMemory, worldSize);
 }
 
-void WorldEdit::Shutdown()
-{
-    _gameWorld.Shutdown();
-}
-
-vec3 GetMouseRayGameClient(const InputMessage& message, const Camera& camera)
-{
-    // ToDo: This needs to get the current window size form somewhere else...
-    bool isVisible = ImGui::BeginChild("Scene Window");
-    Assert(isVisible);
-    ImVec2 size = ImGui::GetContentRegionAvail();
-    ImGui::EndChild();
-
-    vec4 pos(message.MouseX, message.MouseY, -1.0f, 1.0f);
-
-    pos.x = (pos.x / size.x) * 2.f - 1.f;
-    pos.y = (1.f - (pos.y / size.y)) * 2.f - 1.f;
-
-    pos = glm::inverse(camera.GetProjectionMatrix()) * pos;
-    pos.w = 0.f;
-    pos.z = -1.f;
-    pos = glm::inverse(camera.GetViewMatrix()) * pos;
-
-    return glm::normalize(vec3(pos.x, pos.y, pos.z));
-}
+void WorldEdit::Shutdown() { _gameWorld.Shutdown(); }
 }  // namespace DG

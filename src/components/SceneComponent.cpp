@@ -8,4 +8,15 @@
 
 namespace DG
 {
+mat4 SceneComponent::GetGlobalModelMatrix() const
+{
+    auto parent = Parent;
+    mat4 model = Transform.GetModelMatrix();
+    while (parent)
+    {
+        model = parent->Transform.GetModelMatrix() * model;
+        parent = parent->Parent;
+    }
+    return model;
+}
 }  // namespace DG

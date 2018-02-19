@@ -72,17 +72,13 @@ static glm::quat LookRotation(vec3 forward, vec3 up)
 Camera::Camera() : Camera(vec3(0, 0, 1), vec3(), vec3(0, 1, 0), 45.f, 0.01f, 100.f, 16.f / 9.f) {}
 
 Camera::Camera(vec3 pos, vec3 lookat, vec3 up, float fov, float near, float far, float aspectRatio)
-    : _position(pos), _fov(fov), _near(near), _far(far), _aspectRatio(aspectRatio), _up(up)
+    : _fov(fov), _near(near), _far(far), _aspectRatio(aspectRatio), _position(pos), _up(up)
 {
     RecalculateProjection();
     vec3 forward = pos - lookat;
     Assert(forward != vec3(0));
     _orientation = LookRotation(forward, up);
     RecalculateView();
-
-    //_forward = -glm::normalize(glm::vec3(_viewMatrix[0][2], _viewMatrix[1][2],
-    //    _viewMatrix[2][2]));
-    //_right = glm::normalize(glm::vec3(_viewMatrix[0][0],  _viewMatrix[1][0],_viewMatrix[2][0]));
 }
 
 const mat4& Camera::GetViewMatrix() const
@@ -137,6 +133,16 @@ void Camera::Set(vec3 position, quat orientation)
     _orientation = orientation;
 }
 
+void Camera::Set(vec3 newPosition, vec3 lookAt)
+{
+    _isViewValid = false;
+    _position = newPosition;
+
+    vec3 forward = newPosition - lookAt;
+    Assert(forward != vec3(0));
+    _orientation = LookRotation(forward, _up);
+}
+
 void Camera::RecalculateView() const
 {
     if (!_isViewValid)
@@ -155,39 +161,8 @@ void Camera::RecalculateProjection() const
     }
 }
 
-void UpdateFreeCameraFromInput(Camera& camera, InputMessage message, const Clock& clock)
+void UpdateFreeCameraFromInput(Camera& camera, const Clock& clock)
 {
-    static float rotationSpeed = 1.7f;
-    static float speed = 19.f;
-    static vec3 newPosition = vec3(0);
-    newPosition = camera.GetPosition();
-    quat newOrientation = camera.GetOrientation();
-    // Imgui Debug Interface
-    TWEAKER_CAT("Camera", F1, "Sensitivity", &rotationSpeed);
-    TWEAKER_CAT("Camera", F1, "Movement Speed", &speed);
-
-    // ToDo: This is broken :(
-    TWEAKER_CAT("Camera", F3, "Position", &newPosition.x);
-
-    if (message.MouseRightDown)
-    {
-        // Update Pos by User Input
-        glm::vec2 mouseDelta(message.MouseDeltaX, message.MouseDeltaY);
-        mouseDelta *= rotationSpeed / 1000.f;
-
-        glm::quat rotX = glm::angleAxis(-mouseDelta.x, glm::vec3(0.f, 1.f, 0.f));
-        glm::quat rotY = glm::angleAxis(mouseDelta.y, camera.GetRight());
-
-        newOrientation = glm::normalize(rotX * rotY * newOrientation);
-    }
-
-    glm::vec3 dir(0);
-    dir += camera.GetForward() * message.Forward;
-    dir += camera.GetRight() * message.Right;
-    if (message.MouseRightDown)
-        dir += glm::vec3(0, 1, 0) * message.Up;
-
-    newPosition = newPosition + dir * speed * clock.GetLastDtSeconds();
-    camera.Set(newPosition, newOrientation);
+    // ToDo(Faaux)(Default): Update routine to world
 }
 }  // namespace DG
