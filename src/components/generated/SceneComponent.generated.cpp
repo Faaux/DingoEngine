@@ -13,7 +13,7 @@ namespace DG
 {
 void SerializeSceneComponent(const SceneComponent* item, nlohmann::json& json)
 {
-    json["Transform"] = Serialize(item->Transform);
-    json["Parent"] = Serialize(item->Parent);
+    json["Transform"] = Serialize(item->_transform);
+    json["Parent"] = Serialize(item->_parent);
 }
 }  // namespace DG

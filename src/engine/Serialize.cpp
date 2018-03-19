@@ -5,6 +5,7 @@
  */
 
 #include "Serialize.h"
+#include "components/SceneComponent.h"
 #include "json.hpp"
 
 namespace DG
@@ -56,5 +57,6 @@ void SerializeActor(const Actor* actor, nlohmann::json& a)
         components.push_back(c);
     }
     a["components"] = components;
+    a["RootComponent"] = actor->GetRootSceneComponent()->GetUniqueId();
 }
 }  // namespace DG

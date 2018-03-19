@@ -90,6 +90,7 @@ void GameWorldWindow::Update(float dtSeconds)
         input.MouseDeltaY = (f32)_lastRawMessage.RawInput.MouseDeltaY;
         input.ScreenWidth = _size.x;
         input.ScreenHeight = _size.y;
+
         _gameWorld->SetInput(input);
     }
     _gameWorld->Update(dtSeconds);

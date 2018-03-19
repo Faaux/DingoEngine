@@ -31,6 +31,11 @@ void RawInputSystem::Update()
     _mouseLeftDown = _mouseRightDown = _mouseMiddleDown = false;
     _mouseLeftPressed = _mouseRightPressed = _mouseMiddlePressed = false;
 
+    s32 mouseX = 0;
+    s32 mouseY = 0;
+    s32 mouseDeltaX = 0;
+    s32 mouseDeltaY = 0;
+
     for (Key& key : _keys)
     {
         key.Reset();
@@ -44,8 +49,10 @@ void RawInputSystem::Update()
         switch (event.type)
         {
             case SDL_QUIT:
+            {
                 _quitRequested = true;
                 break;
+            }
             case SDL_KEYDOWN:
             case SDL_KEYUP:
             {
@@ -73,11 +80,14 @@ void RawInputSystem::Update()
                     _keys[SDL_SCANCODE_LALT].isDown() || _keys[SDL_SCANCODE_RALT].isDown();
 
                 g_MessagingSystem.SendNextFrame(message);
+                break;
             }
-            break;
+
             case SDL_TEXTINPUT:
+            {
                 SDL_strlcat(_textInput, event.text.text, 32);
                 break;
+            }
             case SDL_WINDOWEVENT:
                 if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                 {
@@ -88,14 +98,16 @@ void RawInputSystem::Update()
                     message.RawWindowSize.Height = event.window.data2;
 
                     g_MessagingSystem.SendNextFrame(message);
+                    break;
                 }
-                break;
+
             case SDL_MOUSEWHEEL:
             {
                 if (event.wheel.y > 0)
                     _mouseWheel = 1;
                 if (event.wheel.y < 0)
                     _mouseWheel = -1;
+                break;
             }
             case SDL_MOUSEBUTTONDOWN:
             {
@@ -105,19 +117,25 @@ void RawInputSystem::Update()
                     _mouseRightPressed = true;
                 if (event.button.button == SDL_BUTTON_MIDDLE)
                     _mouseMiddlePressed = true;
+                break;
+            }
+            case SDL_MOUSEMOTION:
+            {
+                mouseX = event.motion.x;
+                mouseY = event.motion.y;
+                mouseDeltaX += event.motion.xrel;
+                mouseDeltaY -= event.motion.yrel;
             }
         }
     }
 
     // Grab Mouse State (additionally to events!)
-    s32 mouseX, mouseY;
-    u32 mouseMask = SDL_GetMouseState(&mouseX, &mouseY);
+
+    u32 mouseMask = SDL_GetMouseState(NULL, NULL);
     _mouseLeftDown = _mouseLeftPressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
     _mouseRightDown = _mouseRightPressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
     _mouseMiddleDown = _mouseMiddlePressed || (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
 
-    s32 mouseDeltaX = mouseX - _mouseX;
-    s32 mouseDeltaY = _mouseY - mouseY;
     _mouseX = mouseX;
     _mouseY = mouseY;
 

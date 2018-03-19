@@ -45,6 +45,8 @@ class GameWorld
     void Startup(u8* worldMemory, s32 worldMemorySize);
     void Shutdown();
 
+    PhysicsWorld* GetPhysicsWorld();
+
     template <typename T, typename... Args>
     T* CreateActor(Args&&... args);
     void DestroyActor(Actor* actor);
@@ -58,8 +60,8 @@ class GameWorld
     void SetInput(Input input);
 
    private:
-    template <typename T>
-    T* CreateComponent(Actor* actor);
+    template <typename T, typename... Args>
+    T* CreateComponent(Actor* actor, Args&&... args);
     void DestroyComponent(BaseComponent* component);
 
     Camera _camera;  // ToDo(Faaux)(Default): Remove and put into component
@@ -86,8 +88,8 @@ T* GameWorld::CreateActor(Args&&... args)
     return result;
 }
 
-template <typename T>
-T* GameWorld::CreateComponent(Actor* actor)
+template <typename T, typename... Args>
+T* GameWorld::CreateComponent(Actor* actor, Args&&... args)
 {
     static_assert(std::is_base_of<BaseComponent, T>::value, "T not derived from BaseComponent");
 
@@ -105,7 +107,7 @@ T* GameWorld::CreateComponent(Actor* actor)
     // Create component
     T* component = storage->CreateComponent();
 
-    new (component) T(actor);
+    new (component) T(actor, std::forward<Args>(args)...);
     return component;
 }
 }  // namespace DG

@@ -20,14 +20,15 @@ class PhysicsWorld
     void Update();
     void* RayCast(vec3 origin, vec3 unitDir);
     void Shutdown();
-    /*void AddModel(GameObject& obj, bool forEditing);
-    void RemoveModel(GameObject& obj);*/
+    void* AddStaticModel(const graphics::GraphicsModel& model, Transform worldTransform,
+                         void* userData);
+    void RemoveModel(void* model);
 
    private:
     const Clock* _clock;
     bool _outputDebugLines = false;
 };
-void CookModel(graphics::GraphicsModel* model);
+void CookModel(const graphics::GraphicsModel& model);
 bool InitPhysics();
 bool ShutdownPhysics();
 

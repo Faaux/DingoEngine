@@ -8,7 +8,6 @@
 
 #include <ImGuizmo.h>
 #include <SDL.h>
-#include <fstream>
 #include "components/SceneComponent.h"
 #include "components/StaticMeshComponent.h"
 #include "engine/Messaging.h"
@@ -21,7 +20,6 @@
 #include "imgui/DG_Imgui.h"
 #include "imgui/imgui_dock.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "math/Transform.h"
 #include "memory/Memory.h"
 #include "physics/Physics.h"
 #include "platform/ConditionVariable.h"
@@ -195,7 +193,6 @@ int main(int, char* [])
 
     u64 currentTime = SDL_GetPerformanceCounter();
     f32 cpuFrequency = (f32)(SDL_GetPerformanceFrequency());
-    u64 currentFrameIdx = 0;
 
     // Init FrameRingBuffer
     graphics::FrameData* frames = Memory.TransientMemory.Push<graphics::FrameData>(5);
@@ -231,8 +228,9 @@ int main(int, char* [])
 
         // Frame Data Setup
         graphics::FrameData& previousFrameData =
-            frames[GetFrameBufferIndex(currentFrameIdx - 1, 5)];
-        graphics::FrameData& currentFrameData = frames[GetFrameBufferIndex(currentFrameIdx, 5)];
+            frames[GetFrameBufferIndex(Game->CurrentFrameIdx - 1, 5)];
+        graphics::FrameData& currentFrameData =
+            frames[GetFrameBufferIndex(Game->CurrentFrameIdx, 5)];
         currentFrameData.Reset();
 
         // For now assume one world only
@@ -339,11 +337,13 @@ int main(int, char* [])
                 if (ImGui::MenuItem("Spawn Duck Actor"))
                 {
                     auto actor = Game->ActiveWorld->CreateActor<Actor>();
-                    auto rootScene = (SceneComponent*)actor->GetFirstComponentOfType(
-                        SceneComponent::GetClassType());
-                    auto staticMesh = actor->RegisterComponent<StaticMeshComponent>();
-                    staticMesh->RenderableId = "DuckModel";
-                    staticMesh->Parent = rootScene;
+                    auto staticMesh =
+                        actor->RegisterComponent<StaticMeshComponent>("DuckModel", Transform());
+
+                    /*std::ofstream o("pretty.json");
+                    nlohmann::json j;
+                    actor->Serialize(j);
+                    o << std::setw(4) << j << std::endl;*/
                 }
 
                 // Shift all the way to the right
@@ -432,7 +432,7 @@ int main(int, char* [])
                 for (auto& sm : staticMeshes)
                 {
                     auto staticMesh = (StaticMeshComponent*)sm;
-                    auto model = g_Managers->ModelManager->Exists(staticMesh->RenderableId);
+                    auto model = g_Managers->ModelManager->Exists(staticMesh->GetRenderable());
                     Assert(model);
                     Assert(!rq->Shader || rq->Shader == &model->shader);
                     rq->Shader = &model->shader;
@@ -454,7 +454,7 @@ int main(int, char* [])
             Game->RenderState->RenderCondition.Signal();
             currentFrameData.DoubleBufferDone.WaitAndReset();
         }
-        currentFrameIdx++;
+        Game->CurrentFrameIdx++;
     }
     Game->GameIsRunning = false;
 

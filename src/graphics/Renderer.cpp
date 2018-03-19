@@ -94,8 +94,8 @@ static int RenderThreadStart(void* data)
         scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
         g_Managers->ModelManager->LoadOrGet(StringId("DuckModel2"), scene, shader);
 
-        scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("duck.gltf"), "duck.gltf");
-        g_Managers->ModelManager->LoadOrGet(StringId("DuckModel3"), scene, shader);
+        scene = g_Managers->GLTFSceneManager->LoadOrGet(StringId("scene.gltf"), "scene.gltf");
+        g_Managers->ModelManager->LoadOrGet(StringId("Scene"), scene, shader);
     }
 
     SDL_Log("Renderer initialized.");
@@ -118,6 +118,7 @@ static int RenderThreadStart(void* data)
                                             renderState->FrameDataToRender->WorldRenderData,
                                             renderState->FrameDataToRender->WorldRenderDataCount);
         SDL_GL_SwapWindow(renderState->Window);
+        glFinish();
         renderState->FrameDataToRender->RenderDone.Signal();
     }
 

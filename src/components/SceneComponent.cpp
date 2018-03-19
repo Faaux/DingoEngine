@@ -10,12 +10,12 @@ namespace DG
 {
 mat4 SceneComponent::GetGlobalModelMatrix() const
 {
-    auto parent = Parent;
-    mat4 model = Transform.GetModelMatrix();
+    auto parent = _parent;
+    mat4 model = _transform.GetModelMatrix();
     while (parent)
     {
-        model = parent->Transform.GetModelMatrix() * model;
-        parent = parent->Parent;
+        model = parent->_transform.GetModelMatrix() * model;
+        parent = parent->_parent;
     }
     return model;
 }

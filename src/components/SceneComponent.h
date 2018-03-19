@@ -7,19 +7,24 @@
 #pragma once
 #include "BaseComponent.h"
 #include "math/Transform.h"
-
+#include "gameobjects/Actor.h"
 namespace DG
 {
 class SceneComponent : public BaseComponent
 {
-   private:
     DECLARE_CLASS_TYPE(SceneComponent, BaseComponent)
    public:
-    explicit SceneComponent(Actor* actor) : BaseComponent(actor) {}
+    explicit SceneComponent(Actor* actor) : BaseComponent(actor)
+    {
+        auto parent = actor->GetRootSceneComponent();
+        if (parent != this)
+            _parent = parent;
+    }
 
     mat4 GetGlobalModelMatrix() const;
 
-    DPROPERTY Transform Transform;
-    DPROPERTY SceneComponent* Parent = nullptr;
+   protected:
+    DPROPERTY Transform _transform;
+    DPROPERTY SceneComponent* _parent = nullptr;
 };
 }  // namespace DG

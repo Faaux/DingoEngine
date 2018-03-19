@@ -44,6 +44,8 @@ struct GameState
 
     WorldEdit* WorldEdit;
     GameWorld* ActiveWorld;
+
+    u64 CurrentFrameIdx = 0;
 };
 
 extern Managers* g_Managers;

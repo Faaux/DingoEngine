@@ -187,6 +187,78 @@ void PhysicsWorld::Shutdown()
     WorldToPhysX.erase(this);
 }
 
+void* PhysicsWorld::AddStaticModel(const graphics::GraphicsModel& model, Transform worldTransform,
+                                   void* userData)
+{
+    auto scene = WorldToPhysX[this].Scene;
+
+    // Disassemble local matrix for model
+    mat4 worldMatrix = worldTransform.GetModelMatrix();
+
+    vec3 scale, translation, skew;
+    vec4 perspective;
+    glm::quat orientation;
+    glm::decompose(worldMatrix, scale, orientation, translation, skew, perspective);
+    orientation = glm::conjugate(orientation);
+
+    // Get Mesh
+    auto triangleMesh = gPhysicsMeshManager.Exists(model.id);
+    if (!triangleMesh)
+    {
+        SDL_LogWarn(0, "Runtime cooking for EDITOR Mesh");
+        CookModel(model);
+        triangleMesh = gPhysicsMeshManager.Exists(model.id);
+    }
+    Assert(triangleMesh);
+
+    // Create Geometry and then Shape
+    physx::PxTriangleMeshGeometry geom(*triangleMesh, physx::PxMeshScale(ToPxVec3(scale)));
+    physx::PxShape* shape = gPhysics->createShape(geom, *gMaterial);
+
+    // Create Rigid Static
+    physx::PxRigidStatic* staticActor = gPhysics->createRigidStatic(
+        physx::PxTransform(ToPxVec3(translation), ToPxQuat(orientation)));
+
+    staticActor->userData = userData;
+    staticActor->attachShape(*shape);
+    shape->release();
+    scene->addActor(*staticActor);
+
+    return staticActor;
+
+    // Note(Chris) Bakckup for Dynamic
+    // auto& objectTransform = obj.GetTransform();
+    // const auto translation = ToPxVec3(objectTransform.GetPosition());
+    // const auto orientation = ToPxQuat(objectTransform.GetOrientation());
+    //// Create Actor
+    // PxRigidDynamic* dynamic =
+    //    gPhysics->createRigidDynamic(PxTransform(translation, orientation));
+
+    //// Attach Shape
+    // PxShape* dynamicShape = PxRigidActorExt::createExclusiveShape(
+    //    *dynamic, PxBoxGeometry(0.7f, 0.4f, 0.3f), *gMaterial);
+    // PxTransform relativePose(PxVec3(0, 0.5f, 0));
+    // dynamicShape->setLocalPose(relativePose);
+
+    //// Update with new shape
+    // PxRigidBodyExt::updateMassAndInertia(*dynamic, 1);
+
+    //// Add to scene
+    // dynamic->userData = &obj;
+    // scene->addActor(*dynamic);
+
+    //// Add to gameobject
+    // obj.Physics = new PhysicsComponent();
+    // obj.Physics->Data = dynamic;
+    // obj.Physics->Type = PhysicsComponent::Type::Dynamic;
+}
+
+void PhysicsWorld::RemoveModel(void* model)
+{
+    physx::PxRigidActor* actor = (physx::PxRigidActor*)model;
+    actor->release();
+}
+
 bool InitPhysics()
 {
     gFoundation = PxCreateFoundation(PX_FOUNDATION_VERSION, gAllocator, gErrorCallback);
@@ -226,10 +298,9 @@ bool ShutdownPhysics()
     return true;
 }
 
-void CookModel(graphics::GraphicsModel* model)
+void CookModel(const graphics::GraphicsModel& model)
 {
-    Assert(model);
-    physx::PxTriangleMesh** cachedMesh = gPhysicsMeshManager.Exists(model->id);
+    physx::PxTriangleMesh** cachedMesh = gPhysicsMeshManager.Exists(model.id);
     if (cachedMesh)
         return;
 
@@ -243,7 +314,7 @@ void CookModel(graphics::GraphicsModel* model)
     gCooking->setParams(params);
 
     // ToDo: Not only one mesh!
-    auto& mesh = model->meshes[0];
+    auto& mesh = model.meshes[0];
     // Copy over data and indices
 
     physx::PxTriangleMeshDesc meshDesc;
@@ -261,6 +332,6 @@ void CookModel(graphics::GraphicsModel* model)
     physx::PxTriangleMesh* aTriangleMesh =
         gCooking->createTriangleMesh(meshDesc, gPhysics->getPhysicsInsertionCallback());
 
-    gPhysicsMeshManager.LoadOrGet(model->id, aTriangleMesh);
+    gPhysicsMeshManager.LoadOrGet(model.id, aTriangleMesh);
 }
 }  // namespace DG

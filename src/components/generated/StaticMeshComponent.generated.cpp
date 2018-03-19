@@ -13,6 +13,6 @@ namespace DG
 {
 void SerializeStaticMeshComponent(const StaticMeshComponent* item, nlohmann::json& json)
 {
-    json["RenderableId"] = Serialize(item->RenderableId);
+    json["RenderableId"] = Serialize(item->_renderableId);
 }
 }  // namespace DG

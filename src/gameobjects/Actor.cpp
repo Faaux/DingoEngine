@@ -9,7 +9,10 @@
 
 namespace DG
 {
-Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld) { RegisterComponent<SceneComponent>(); }
+Actor::Actor(GameWorld* gameWorld) : _gameWorld(gameWorld)
+{
+    _rootSceneComponent = RegisterComponent<SceneComponent>();
+}
 
 Actor::~Actor()
 {
@@ -26,6 +29,10 @@ void Actor::DeRegisterComponent(BaseComponent* component)
     _gameWorld->DestroyComponent(component);
     _components.erase(it);
 }
+
+GameWorld* Actor::GetGameWorld() const { return _gameWorld; }
+
+SceneComponent* Actor::GetRootSceneComponent() const { return _rootSceneComponent; }
 
 BaseComponent* Actor::GetFirstComponentOfType(TypeId type, bool orSubtype)
 {

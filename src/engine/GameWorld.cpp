@@ -25,6 +25,8 @@ void GameWorld::Shutdown()
     _isShutdown = true;
 }
 
+PhysicsWorld* GameWorld::GetPhysicsWorld() { return &_physicsWorld; }
+
 void GameWorld::DestroyActor(Actor* actor)
 {
     Assert(!_isShutdown);
