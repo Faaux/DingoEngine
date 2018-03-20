@@ -51,6 +51,11 @@ static bool InitOpenGL(RenderState* renderState)
 
     SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "Display #%d: current display mode is %dx%dpx @ %dhz.", 0,
                 current.w, current.h, current.refresh_rate);
+    int major = 0;
+    int minor = 0;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major); 
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+    SDL_LogInfo(SDL_LOG_CATEGORY_VIDEO, "OpenGL Version %i.%i", major, minor);
 
     // Use Vsync
     if (SDL_GL_SetSwapInterval(1) < 0)
